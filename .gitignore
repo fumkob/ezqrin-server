@@ -31,4 +31,5 @@ go.work.sum
 .claude/
 CLAUDE.md
 .serena/
+.mcp.json
 
