@@ -2,6 +2,43 @@
 
 Complete API reference for the ezQRin event management and QR code distribution system.
 
+---
+
+## API Specification (OpenAPI)
+
+**Single Source of Truth:**
+
+The ezQRin API is defined using **OpenAPI 3.0+ specification** as the **Single Source of Truth
+(SSOT)** for all API contracts. This specification serves as the authoritative source from which
+server code, client SDKs, and documentation are generated.
+
+**OpenAPI Specification File:**
+
+```
+docs/api/openapi.yaml          # Main OpenAPI 3.0+ specification
+```
+
+**Code Generation:**
+
+We use `oapi-codegen` to automatically generate:
+
+- **Type-safe DTOs** - Request/Response models with validation
+- **Gin Server Interfaces** - HTTP handlers with type safety
+- **API Client** - Client libraries for testing and integration
+- **Validation Schemas** - Input validation logic
+
+**Benefits of API-First Approach:**
+
+- ✅ **Consistency:** Documentation and implementation always in sync
+- ✅ **Type Safety:** Compile-time guarantees for API contracts
+- ✅ **Rapid Development:** Reduced boilerplate through code generation
+- ✅ **Client SDKs:** Automatic generation for frontend/mobile teams
+
+For detailed information on API-first development workflow, see
+[Architecture Documentation](../architecture/overview.md#api-first-development-with-openapi).
+
+---
+
 ## Quick Navigation
 
 ### Core Workflows
