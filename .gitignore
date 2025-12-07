@@ -33,3 +33,9 @@ CLAUDE.md
 .serena/
 .mcp.json
 
+# Documentation
+.obsidian
+
+# Node modules
+node_modules/
+package-lock.json
