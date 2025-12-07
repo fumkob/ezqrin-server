@@ -1,25 +1,43 @@
-# Docker Deployment Guide
+# DevContainer Development Guide
 
 ## Overview
 
-This guide covers deploying ezQRin using Docker and Docker Compose for local development, testing,
-and production environments.
+This guide covers setting up the ezQRin development environment using **DevContainers** (Development
+Containers). DevContainers provide a consistent, reproducible development environment that runs
+inside Docker, ensuring all developers have identical tooling, dependencies, and configurations.
+
+### Why DevContainers?
+
+**Benefits:**
+
+- **Consistency**: Identical environment across all developers and CI/CD
+- **Zero Setup**: Clone and open in container - no local Go/PostgreSQL/Redis installation needed
+- **Isolation**: Project dependencies don't conflict with other projects
+- **VS Code/Cursor Integration**: Seamless IDE experience with extensions, debugging, and
+  IntelliSense
+- **Delve Debugging**: Pre-configured Go debugger ready to use
+- **Hot Reload**: Automatic code reloading with Air during development
 
 ---
 
 ## Prerequisites
 
-**Required Software:**
+### Required Software
 
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- Git
+- **Docker Desktop 20.10+** (or Docker Engine with Docker Compose)
+  - [Download Docker Desktop](https://www.docker.com/products/docker-desktop)
+- **VS Code or Cursor IDE**
+  - [Download VS Code](https://code.visualstudio.com/)
+  - [Download Cursor](https://cursor.sh/)
+- **Dev Containers Extension** (VS Code/Cursor)
+  - Extension ID: `ms-vscode-remote.remote-containers`
 
-**System Requirements:**
+### System Requirements
 
 - CPU: 2+ cores
-- RAM: 4GB minimum (8GB recommended)
+- RAM: 8GB minimum (16GB recommended)
 - Disk: 10GB free space
+- OS: macOS, Linux, or Windows with WSL2
 
 ---
 
@@ -32,46 +50,174 @@ git clone https://github.com/ezqrin/ezqrin-server.git
 cd ezqrin-server
 ```
 
-### 2. Environment Configuration
+### 2. Open in Container
+
+**VS Code:**
+
+1. Open the project folder: `File > Open Folder`
+2. When prompted "Reopen in Container", click **Reopen in Container**
+3. Or use Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`): `Dev Containers: Reopen in Container`
+
+**Cursor:**
+
+1. Open the project folder
+2. Use Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`): `Dev Containers: Reopen in Container`
+
+**First-time setup** will take 3-5 minutes to build the container and install dependencies.
+
+### 3. Verify Setup
+
+Once the container is running, open a terminal inside the container:
 
 ```bash
-cp .env.example .env
+# Check Go version
+go version
+# Expected: go version go1.25.4 linux/amd64
+
+# Check database connection
+psql -h postgres -U ezqrin -d ezqrin -c "SELECT version();"
+
+# Check Redis connection
+redis-cli -h redis ping
+# Expected: PONG
 ```
 
-Edit `.env` file with your configuration (see [Environment Variables](./environment.md))
-
-### 3. Start Services
+### 4. Run Development Server
 
 ```bash
-docker-compose up -d
+# Start with hot reload (Air)
+air
+
+# Or run directly
+go run cmd/api/main.go
 ```
 
-### 4. Run Migrations
+Access the API at `http://localhost:8080/health`
 
-```bash
-docker-compose exec api ./ezqrin migrate up
+---
+
+## DevContainer Configuration
+
+### File Structure
+
 ```
-
-### 5. Verify Installation
-
-```bash
-curl http://localhost:8080/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-11-08T10:00:00Z"
-}
+.devcontainer/
+├── devcontainer.json       # Main DevContainer configuration
+├── Dockerfile              # Development container image
+└── docker-compose.yml      # Services (API, PostgreSQL, Redis)
 ```
 
 ---
 
-## Docker Compose Configuration
+### devcontainer.json
 
-### Development Setup (docker-compose.yml)
+Main configuration file for DevContainer behavior:
+
+```json
+{
+  "name": "ezQRin Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "api",
+  "workspaceFolder": "/app",
+
+  // VS Code/Cursor customizations
+  "customizations": {
+    "vscode": {
+      "extensions": ["golang.go", "ms-azuretools.vscode-docker", "eamodio.gitlens"],
+      "settings": {
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "go.lintTool": "golangci-lint",
+        "go.lintOnSave": "workspace"
+      }
+    }
+  },
+
+  // Port forwarding (host:container)
+  "forwardPorts": [
+    8080, // API server
+    5432, // PostgreSQL
+    6379, // Redis
+    2345 // Delve debugger
+  ],
+
+  // Post-creation command
+  "postCreateCommand": "go mod download",
+
+  // Keep container running
+  "shutdownAction": "stopCompose",
+
+  // Run as non-root user
+  "remoteUser": "vscode"
+}
+```
+
+**Key Settings:**
+
+- `dockerComposeFile`: References `docker-compose.yml` for multi-service setup
+- `service`: Specifies which service is the development container (`api`)
+- `workspaceFolder`: Working directory inside container
+- `forwardPorts`: Exposes ports to host machine
+- `postCreateCommand`: Runs after container creation
+
+---
+
+### Dockerfile
+
+Development container image with Go, Delve, and development tools:
+
+```dockerfile
+FROM golang:1.25.4-alpine
+
+# Install development dependencies
+RUN apk add --no-cache \
+    git \
+    make \
+    curl \
+    postgresql-client \
+    redis \
+    bash \
+    build-base
+
+# Install Delve debugger
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Install Air for hot reload
+RUN go install github.com/cosmtrek/air@latest
+
+# Install additional Go tools
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Create non-root user
+RUN addgroup -g 1000 vscode && \
+    adduser -u 1000 -G vscode -s /bin/bash -D vscode
+
+# Set working directory
+WORKDIR /app
+
+# Change ownership
+RUN chown -R vscode:vscode /app
+
+# Switch to non-root user
+USER vscode
+
+# Default command
+CMD ["bash"]
+```
+
+**Installed Tools:**
+
+- **Delve**: Go debugger for breakpoints and step-through debugging
+- **Air**: Hot reload for rapid development
+- **golangci-lint**: Comprehensive Go linter
+- **PostgreSQL client**: Database CLI access
+- **Redis CLI**: Redis debugging and testing
+
+---
+
+### docker-compose.yml
+
+Multi-service development environment:
 
 ```yaml
 version: "3.8"
@@ -79,25 +225,26 @@ version: "3.8"
 services:
   api:
     build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: ezqrin-api
-    ports:
-      - "8080:8080"
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: ezqrin-dev
+    volumes:
+      - ..:/app:cached
+      - go-modules:/go/pkg/mod
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=ezqrin_dev
+      - DB_USER=ezqrin
+      - DB_PASSWORD=dev_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=dev_secret_key_do_not_use_in_production_min_32_chars
       - ENV=development
-    volumes:
-      - ./:/app
-      - go-modules:/go/pkg/mod
+      - LOG_LEVEL=debug
+    ports:
+      - "8080:8080" # API server
+      - "2345:2345" # Delve debugger
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,31 +252,30 @@ services:
         condition: service_healthy
     networks:
       - ezqrin-network
-    restart: unless-stopped
+    command: sleep infinity
 
   postgres:
     image: postgres:18-alpine
-    container_name: ezqrin-postgres
+    container_name: ezqrin-postgres-dev
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=ezqrin_dev
+      - POSTGRES_USER=ezqrin
+      - POSTGRES_PASSWORD=dev_password
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ezqrin"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - ezqrin-network
-    restart: unless-stopped
 
   redis:
     image: redis:8-alpine
-    container_name: ezqrin-redis
+    container_name: ezqrin-redis-dev
     ports:
       - "6379:6379"
     volumes:
@@ -141,24 +287,6 @@ services:
       retries: 5
     networks:
       - ezqrin-network
-    restart: unless-stopped
-
-  # Optional: Database administration tool
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: ezqrin-pgadmin
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@ezqrin.local
-      - PGADMIN_DEFAULT_PASSWORD=admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - ezqrin-network
-    restart: unless-stopped
-    profiles:
-      - tools
 
 volumes:
   postgres-data:
@@ -170,473 +298,365 @@ networks:
     driver: bridge
 ```
 
----
+**Service Details:**
 
-### Production Setup (docker-compose.prod.yml)
-
-```yaml
-version: "3.8"
-
-services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    image: ezqrin/api:latest
-    container_name: ezqrin-api-prod
-    ports:
-      - "8080:8080"
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=${JWT_SECRET}
-      - ENV=production
-      - LOG_LEVEL=info
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - ezqrin-network
-    restart: always
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-
-  postgres:
-    image: postgres:18-alpine
-    container_name: ezqrin-postgres-prod
-    environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./backups:/backups
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      - ezqrin-network
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-
-  redis:
-    image: redis:8-alpine
-    container_name: ezqrin-redis-prod
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      - ezqrin-network
-    restart: always
-
-  # Nginx reverse proxy (optional)
-  nginx:
-    image: nginx:alpine
-    container_name: ezqrin-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - api
-    networks:
-      - ezqrin-network
-    restart: always
-    profiles:
-      - with-nginx
-
-volumes:
-  postgres-data:
-  redis-data:
-
-networks:
-  ezqrin-network:
-    driver: bridge
-```
+- **api**: Development container with source code mounted
+- **postgres**: PostgreSQL 18 with persistent storage
+- **redis**: Redis 8 for caching and sessions
 
 ---
 
-## Dockerfile
+## Delve Debugging Setup
 
-### Multi-Stage Build
+### Delve Installation
 
-```dockerfile
-# Build stage
-FROM golang:1.25.4-alpine AS builder
+Delve is **pre-installed** in the DevContainer. Verify installation:
 
-# Install build dependencies
-RUN apk add --no-cache git make
-
-# Set working directory
-WORKDIR /app
-
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ezqrin ./cmd/api
-
-# Development stage
-FROM golang:1.25.4-alpine AS development
-
-# Install development tools
-RUN apk add --no-cache git make curl
-
-WORKDIR /app
-
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Install air for hot reload
-RUN go install github.com/cosmtrek/air@latest
-
-# Copy source
-COPY . .
-
-EXPOSE 8080
-
-# Use air for hot reload in development
-CMD ["air", "-c", ".air.toml"]
-
-# Production stage
-FROM alpine:latest AS production
-
-# Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata
-
-# Create non-root user
-RUN addgroup -g 1001 -S ezqrin && \
-    adduser -u 1001 -S ezqrin -G ezqrin
-
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /app/ezqrin .
-
-# Copy migrations (if needed)
-COPY --from=builder /app/internal/infrastructure/database/migration/migrations ./migrations
-
-# Change ownership
-RUN chown -R ezqrin:ezqrin /app
-
-# Switch to non-root user
-USER ezqrin
-
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
-CMD ["./ezqrin"]
+```bash
+dlv version
 ```
+
+### VS Code/Cursor Launch Configuration
+
+Create `.vscode/launch.json` for debugging:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug API",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/api",
+      "env": {
+        "DB_HOST": "postgres",
+        "DB_PORT": "5432",
+        "DB_NAME": "ezqrin_dev",
+        "DB_USER": "ezqrin",
+        "DB_PASSWORD": "dev_password",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379",
+        "JWT_SECRET": "dev_secret_key_do_not_use_in_production_min_32_chars",
+        "ENV": "development",
+        "LOG_LEVEL": "debug"
+      },
+      "args": []
+    },
+    {
+      "name": "Debug Tests",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}",
+      "env": {
+        "DB_HOST": "postgres",
+        "DB_PORT": "5432",
+        "DB_NAME": "ezqrin_test",
+        "DB_USER": "ezqrin",
+        "DB_PASSWORD": "dev_password"
+      }
+    },
+    {
+      "name": "Attach to Remote Delve",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "/app",
+      "port": 2345,
+      "host": "localhost"
+    }
+  ]
+}
+```
+
+### Debugging Workflows
+
+**1. Standard Debugging (Recommended):**
+
+1. Set breakpoints in your code
+2. Press `F5` or select **Debug API** from Run menu
+3. Application starts with debugger attached
+4. Execution pauses at breakpoints
+
+**2. Remote Debugging (Advanced):**
+
+Start Delve server manually:
+
+```bash
+dlv debug cmd/api/main.go --headless --listen=:2345 --api-version=2
+```
+
+Then attach using **Attach to Remote Delve** configuration.
+
+**3. Debug Tests:**
+
+1. Select **Debug Tests** configuration
+2. Run specific test files with breakpoints
+3. Step through test execution
+
+### Debugging Tips
+
+**Breakpoint Types:**
+
+- **Line Breakpoint**: Click left margin or press `F9`
+- **Conditional Breakpoint**: Right-click breakpoint → Edit Breakpoint
+- **Logpoint**: Right-click → Add Logpoint (non-breaking logging)
+
+**Debugging Commands:**
+
+- `F5`: Continue
+- `F10`: Step Over
+- `F11`: Step Into
+- `Shift+F11`: Step Out
+- `Shift+F5`: Stop Debugging
+
+**View Variables:**
+
+- Hover over variable to see value
+- Use **Variables** panel in sidebar
+- Add expressions to **Watch** panel
 
 ---
 
-## Common Docker Commands
+## Development Workflow
 
-### Start Services
-
-```bash
-# Development
-docker-compose up -d
-
-# Production
-docker-compose -f docker-compose.prod.yml up -d
-
-# With specific profile
-docker-compose --profile tools up -d
-```
-
-### Stop Services
+### Starting Development
 
 ```bash
-docker-compose down
+# Inside DevContainer terminal
 
-# Remove volumes (WARNING: deletes data)
-docker-compose down -v
+# 1. Install dependencies
+go mod download
+
+# 2. Run migrations
+make migrate-up
+# or
+./scripts/migrate-up.sh
+
+# 3. Start with hot reload
+air
 ```
 
-### View Logs
+### Hot Reload Configuration (.air.toml)
 
-```bash
-# All services
-docker-compose logs -f
+Create `.air.toml` in project root:
 
-# Specific service
-docker-compose logs -f api
+```toml
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
 
-# Last 100 lines
-docker-compose logs --tail=100 api
+[build]
+  args_bin = []
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ./cmd/api"
+  delay = 1000
+  exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+  exclude_file = []
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = false
+  follow_symlink = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  include_file = []
+  kill_delay = "0s"
+  log = "build-errors.log"
+  poll = false
+  poll_interval = 0
+  rerun = false
+  rerun_delay = 500
+  send_interrupt = false
+  stop_on_error = false
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  main_only = false
+  time = false
+
+[misc]
+  clean_on_exit = false
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true
 ```
 
-### Execute Commands
+**Air automatically:**
 
-```bash
-# Run migration
-docker-compose exec api ./ezqrin migrate up
-
-# Open shell in container
-docker-compose exec api sh
-
-# Run tests
-docker-compose exec api go test ./...
-```
-
-### Rebuild Images
-
-```bash
-# Rebuild single service
-docker-compose build api
-
-# Rebuild without cache
-docker-compose build --no-cache api
-
-# Rebuild and restart
-docker-compose up -d --build api
-```
+- Watches for file changes
+- Rebuilds the application
+- Restarts the server
+- Preserves logs and output
 
 ---
 
 ## Database Management
 
+### Access PostgreSQL
+
+```bash
+# Connect via psql
+psql -h postgres -U ezqrin -d ezqrin_dev
+
+# Run SQL file
+psql -h postgres -U ezqrin -d ezqrin_dev < schema.sql
+
+# Dump database
+pg_dump -h postgres -U ezqrin ezqrin_dev > backup.sql
+```
+
 ### Run Migrations
 
 ```bash
 # Up migrations
-docker-compose exec api ./ezqrin migrate up
+./scripts/migrate-up.sh
 
 # Down migrations
-docker-compose exec api ./ezqrin migrate down
+./scripts/migrate-down.sh
 
-# Specific version
-docker-compose exec api ./ezqrin migrate goto 3
+# Create new migration
+migrate create -ext sql -dir internal/infrastructure/database/migrations -seq migration_name
 ```
 
-### Database Backup
+### Database GUI Access
 
-```bash
-# Create backup
-docker-compose exec postgres pg_dump -U ezqrin ezqrin > backup.sql
+Access PostgreSQL from host machine:
 
-# Or using docker exec
-docker exec ezqrin-postgres pg_dump -U ezqrin ezqrin > backup.sql
+- **Host**: `localhost`
+- **Port**: `5432`
+- **Database**: `ezqrin_dev`
+- **User**: `ezqrin`
+- **Password**: `dev_password`
 
-# Restore backup
-docker-compose exec -T postgres psql -U ezqrin ezqrin < backup.sql
-```
+**Recommended Tools:**
 
-### Connect to Database
-
-```bash
-# Using psql in container
-docker-compose exec postgres psql -U ezqrin -d ezqrin
-
-# Using external psql
-psql -h localhost -p 5432 -U ezqrin -d ezqrin
-```
+- [TablePlus](https://tableplus.com/)
+- [DBeaver](https://dbeaver.io/)
+- [pgAdmin](https://www.pgadmin.org/)
 
 ---
 
 ## Redis Management
 
-### Connect to Redis
+### Access Redis CLI
 
 ```bash
-# Redis CLI
-docker-compose exec redis redis-cli
+# Connect to Redis
+redis-cli -h redis
 
-# With password (production)
-docker-compose exec redis redis-cli -a ${REDIS_PASSWORD}
+# Common commands
+PING                    # Test connection
+KEYS *                  # List all keys
+GET key_name            # Get value
+SET key_name value      # Set value
+FLUSHALL                # Clear all data
 ```
 
-### Clear Cache
+### Monitor Redis
 
 ```bash
-# Flush all caches
-docker-compose exec redis redis-cli FLUSHALL
+# Monitor all commands
+redis-cli -h redis MONITOR
 
-# Flush specific database
-docker-compose exec redis redis-cli FLUSHDB
+# Get server info
+redis-cli -h redis INFO
 ```
 
 ---
 
-## Monitoring & Health Checks
+## Testing
 
-### Check Container Status
+### Run Tests
 
 ```bash
-# List running containers
-docker-compose ps
+# All tests
+go test ./...
 
-# Check health status
-docker-compose ps | grep healthy
+# With coverage
+go test -cover ./...
+
+# Specific package
+go test ./internal/domain/entity
+
+# Verbose output
+go test -v ./...
+
+# With race detection
+go test -race ./...
 ```
 
-### Resource Usage
+### Ginkgo Tests (BDD)
 
 ```bash
-# Live resource monitoring
-docker stats
+# Install Ginkgo CLI
+go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
-# Specific container
-docker stats ezqrin-api
-```
+# Run Ginkgo tests
+ginkgo -r
 
-### Application Health
+# With coverage
+ginkgo -r --cover
 
-```bash
-# Health endpoint
-curl http://localhost:8080/health
-
-# Readiness check
-curl http://localhost:8080/health/ready
-
-# Liveness check
-curl http://localhost:8080/health/live
+# Watch mode (auto-run on changes)
+ginkgo watch -r
 ```
 
 ---
 
-## Production Deployment
+## Common Tasks
 
-### Pre-Deployment Checklist
+### Environment Variables
 
-- [ ] Environment variables configured
-- [ ] JWT secret generated (strong random string)
-- [ ] Database password set (strong password)
-- [ ] Redis password configured
-- [ ] SSL certificates obtained
-- [ ] Firewall rules configured
-- [ ] Backup strategy established
-- [ ] Monitoring tools set up
+Environment variables are set in `docker-compose.yml`. To modify:
 
-### Deployment Steps
+1. Edit `.devcontainer/docker-compose.yml`
+2. Rebuild container: `Dev Containers: Rebuild Container`
 
-1. **Pull Latest Code:**
+For production-like settings, create `.env` file (see [Environment Variables](./environment.md)).
+
+### Install Go Packages
 
 ```bash
-git pull origin main
+# Install package
+go get github.com/some/package
+
+# Update dependencies
+go mod tidy
+
+# Verify dependencies
+go mod verify
 ```
 
-2. **Build Production Image:**
+### Linting
 
 ```bash
-docker-compose -f docker-compose.prod.yml build
+# Run golangci-lint
+golangci-lint run
+
+# Auto-fix issues
+golangci-lint run --fix
+
+# Specific linters
+golangci-lint run --enable-all
 ```
 
-3. **Stop Old Containers:**
+### Build Binary
 
 ```bash
-docker-compose -f docker-compose.prod.yml down
-```
+# Development build
+go build -o bin/ezqrin cmd/api/main.go
 
-4. **Start New Containers:**
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-5. **Run Migrations:**
-
-```bash
-docker-compose -f docker-compose.prod.yml exec api ./ezqrin migrate up
-```
-
-6. **Verify Health:**
-
-```bash
-curl https://api.ezqrin.com/health
-```
-
----
-
-## Scaling
-
-### Horizontal Scaling (Multiple API Instances)
-
-```yaml
-services:
-  api:
-    # ... other config
-    deploy:
-      replicas: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-```
-
-### Load Balancer Configuration
-
-**Nginx (nginx.conf):**
-
-```nginx
-upstream api_backend {
-    least_conn;
-    server api:8080 max_fails=3 fail_timeout=30s;
-    server api-2:8080 max_fails=3 fail_timeout=30s;
-    server api-3:8080 max_fails=3 fail_timeout=30s;
-}
-
-server {
-    listen 80;
-    server_name api.ezqrin.com;
-
-    location / {
-        proxy_pass http://api_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+# Production build (optimized)
+CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/ezqrin cmd/api/main.go
 ```
 
 ---
@@ -645,57 +665,204 @@ server {
 
 ### Container Won't Start
 
-```bash
-# Check logs
-docker-compose logs api
+**Check Docker:**
 
-# Check if port is in use
+```bash
+# Verify Docker is running
+docker ps
+
+# Check Docker Compose services
+docker-compose -f .devcontainer/docker-compose.yml ps
+```
+
+**Rebuild Container:**
+
+1. Command Palette → `Dev Containers: Rebuild Container`
+2. Or: `Dev Containers: Rebuild Without Cache`
+
+### Database Connection Failed
+
+**Verify PostgreSQL is running:**
+
+```bash
+docker ps | grep postgres
+```
+
+**Test connection:**
+
+```bash
+psql -h postgres -U ezqrin -d ezqrin_dev
+```
+
+**Check environment variables:**
+
+```bash
+env | grep DB_
+```
+
+### Port Already in Use
+
+**Find process using port:**
+
+```bash
+# macOS/Linux
 lsof -i :8080
 
-# Remove and recreate
-docker-compose down
-docker-compose up -d
+# Kill process
+kill -9 <PID>
 ```
 
-### Database Connection Issues
+**Or change port** in `docker-compose.yml`:
 
-```bash
-# Verify postgres is running
-docker-compose ps postgres
-
-# Check network connectivity
-docker-compose exec api ping postgres
-
-# Verify credentials
-docker-compose exec postgres psql -U ezqrin -d ezqrin
+```yaml
+ports:
+  - "8081:8080" # Use 8081 on host
 ```
 
-### Performance Issues
+### Hot Reload Not Working
+
+**Check Air is running:**
 
 ```bash
-# Check resource usage
-docker stats
-
-# Check database connections
-docker-compose exec postgres psql -U ezqrin -c "SELECT count(*) FROM pg_stat_activity;"
-
-# Check Redis memory
-docker-compose exec redis redis-cli INFO memory
+ps aux | grep air
 ```
 
-### Clean Up Resources
+**Restart Air:**
 
 ```bash
-# Remove stopped containers
-docker-compose rm
+# Stop current process (Ctrl+C)
+# Restart
+air
+```
+
+**Verify `.air.toml` exists** in project root.
+
+### Debugger Won't Attach
+
+**Check Delve port forwarding:**
+
+```bash
+# Verify port 2345 is forwarded
+curl localhost:2345
+```
+
+**Restart with Delve:**
+
+```bash
+dlv debug cmd/api/main.go --headless --listen=:2345 --api-version=2
+```
+
+**Check launch.json configuration** matches port and paths.
+
+### Go Modules Issues
+
+**Clear module cache:**
+
+```bash
+go clean -modcache
+go mod download
+```
+
+**Verify go.mod:**
+
+```bash
+go mod tidy
+go mod verify
+```
+
+---
+
+## Performance Optimization
+
+### Volume Mounting Performance
+
+**macOS/Windows users** may experience slow file I/O. Optimize with:
+
+```yaml
+volumes:
+  - ..:/app:cached # Cached mode for better performance
+```
+
+**Alternatives:**
+
+- Use named volumes for dependencies: `go-modules:/go/pkg/mod`
+- Exclude heavy directories: `tmp/`, `node_modules/`
+
+### Build Cache
+
+Leverage Docker build cache:
+
+```bash
+# Build with cache
+docker-compose -f .devcontainer/docker-compose.yml build
+
+# Clear cache and rebuild
+docker-compose -f .devcontainer/docker-compose.yml build --no-cache
+```
+
+---
+
+## CI/CD Integration
+
+DevContainer configuration ensures CI/CD environments match local development:
+
+### GitHub Actions Example
+
+```yaml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.25.4-alpine
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: ezqrin_test
+          POSTGRES_USER: ezqrin
+          POSTGRES_PASSWORD: test_password
+      redis:
+        image: redis:8-alpine
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: go test ./...
+```
+
+---
+
+## Cleanup
+
+### Remove Containers and Volumes
+
+```bash
+# Stop and remove containers
+docker-compose -f .devcontainer/docker-compose.yml down
+
+# Remove volumes (WARNING: deletes data)
+docker-compose -f .devcontainer/docker-compose.yml down -v
+
+# Remove images
+docker-compose -f .devcontainer/docker-compose.yml down --rmi all
+```
+
+### Prune Docker Resources
+
+```bash
+# Remove unused containers
+docker container prune
 
 # Remove unused images
 docker image prune -a
 
-# Remove unused volumes (WARNING: data loss)
+# Remove unused volumes
 docker volume prune
 
-# Complete cleanup (WARNING: removes all Docker resources)
+# Full cleanup (WARNING: removes all unused resources)
 docker system prune -a --volumes
 ```
 
@@ -703,30 +870,23 @@ docker system prune -a --volumes
 
 ## Security Best Practices
 
-### Container Security
+### Development Security
 
-1. **Run as non-root user** (implemented in Dockerfile)
-2. **Use official base images** (alpine variants)
-3. **Keep images updated** regularly
-4. **Scan for vulnerabilities:**
+1. **Never commit `.env` files** with secrets
+2. **Use different credentials** for development and production
+3. **Keep DevContainer images updated** regularly
+4. **Limit exposed ports** to necessary services only
 
-```bash
-docker scan ezqrin/api:latest
-```
+### Production Deployment
 
-### Network Security
+DevContainers are **for development only**. For production:
 
-1. **Use internal networks** for service communication
-2. **Expose only necessary ports**
-3. **Use TLS/SSL** for external communication
-4. **Implement firewall rules**
+- Build optimized Docker images
+- Use secrets management (Docker Secrets, Vault)
+- Enable TLS/SSL
+- Configure firewalls and network policies
 
-### Data Security
-
-1. **Encrypt volumes** (host-level encryption)
-2. **Secure database passwords** (strong, randomized)
-3. **Backup regularly** with encryption
-4. **Use secrets management** (Docker secrets, Vault)
+See production deployment guides for details.
 
 ---
 
@@ -735,3 +895,24 @@ docker scan ezqrin/api:latest
 - [Environment Variables](./environment.md)
 - [System Architecture](../architecture/overview.md)
 - [Security Design](../architecture/security.md)
+- [Testing Guide](../testing.md)
+
+---
+
+## Additional Resources
+
+### DevContainers
+
+- [VS Code DevContainers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+- [DevContainer Specification](https://containers.dev/)
+
+### Go Development
+
+- [Go Documentation](https://go.dev/doc/)
+- [Delve Debugger](https://github.com/go-delve/delve)
+- [Air Hot Reload](https://github.com/cosmtrek/air)
+
+### Docker
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
