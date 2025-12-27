@@ -14,7 +14,7 @@ patterns, and technology stack.
 
 | Component | Technology | Version | Purpose                  |
 | --------- | ---------- | ------- | ------------------------ |
-| Language  | Go         | 1.25.4+ | Backend implementation   |
+| Language  | Go         | 1.25.5+ | Backend implementation   |
 | Database  | PostgreSQL | 18+     | Primary data store       |
 | Cache     | Redis      | 8+      | Session and data caching |
 | API       | REST       | -       | Primary API interface    |

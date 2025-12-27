@@ -72,7 +72,7 @@ Once the container is running, open a terminal inside the container:
 ```bash
 # Check Go version
 go version
-# Expected: go version go1.25.4 linux/amd64
+# Expected: go version go1.25.5 linux/amd64
 
 # Check database connection
 psql -h postgres -U ezqrin -d ezqrin -c "SELECT version();"
@@ -167,7 +167,7 @@ Main configuration file for DevContainer behavior:
 Development container image with Go, Delve, and development tools:
 
 ```dockerfile
-FROM golang:1.25.4-alpine
+FROM golang:1.25.5-alpine
 
 # Install development dependencies
 RUN apk add --no-cache \
@@ -817,7 +817,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.25.4-alpine
+      image: golang:1.25.5-alpine
     services:
       postgres:
         image: postgres:18-alpine
