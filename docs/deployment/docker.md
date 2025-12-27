@@ -75,7 +75,7 @@ go version
 # Expected: go version go1.25.5 linux/amd64
 
 # Check database connection
-psql -h postgres -U ezqrin -d ezqrin -c "SELECT version();"
+psql -h postgres -U ezqrin -d ezqrin_db -c "SELECT version();"
 
 # Check Redis connection
 redis-cli -h redis ping
@@ -115,40 +115,76 @@ Main configuration file for DevContainer behavior:
 
 ```json
 {
-  "name": "ezQRin Development",
+  "name": "ezQRin Server Development",
   "dockerComposeFile": "docker-compose.yml",
   "service": "api",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/workspace",
 
   // VS Code/Cursor customizations
   "customizations": {
     "vscode": {
-      "extensions": ["golang.go", "ms-azuretools.vscode-docker", "eamodio.gitlens"],
+      "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "esbenp.prettier-vscode",
+        "redhat.vscode-yaml"
+      ],
       "settings": {
         "go.toolsManagement.checkForUpdates": "local",
         "go.useLanguageServer": true,
+        "go.gopath": "/go",
+        "go.goroot": "/usr/local/go",
         "go.lintTool": "golangci-lint",
-        "go.lintOnSave": "workspace"
+        "go.lintOnSave": "workspace",
+        "go.formatTool": "gofmt",
+        "go.formatFlags": ["-s"],
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        }
       }
     }
   },
 
   // Port forwarding (host:container)
-  "forwardPorts": [
-    8080, // API server
-    5432, // PostgreSQL
-    6379, // Redis
-    2345 // Delve debugger
-  ],
+  "forwardPorts": [8080, 5432, 6379, 2345],
+  "portsAttributes": {
+    "8080": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "2345": {
+      "label": "Delve Debugger",
+      "onAutoForward": "silent"
+    }
+  },
 
   // Post-creation command
   "postCreateCommand": "go mod download",
 
-  // Keep container running
-  "shutdownAction": "stopCompose",
+  // Environment variables
+  "remoteEnv": {
+    "GO111MODULE": "on",
+    "CGO_ENABLED": "0"
+  },
 
   // Run as non-root user
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+
+  // DevContainer features
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  }
 }
 ```
 
@@ -167,42 +203,50 @@ Main configuration file for DevContainer behavior:
 Development container image with Go, Delve, and development tools:
 
 ```dockerfile
+# Development container for ezQRin Server
 FROM golang:1.25.5-alpine
 
-# Install development dependencies
+# Install system dependencies
 RUN apk add --no-cache \
     git \
     make \
     curl \
-    postgresql-client \
-    redis \
     bash \
-    build-base
+    postgresql-client \
+    redis
 
 # Install Delve debugger
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 # Install Air for hot reload
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
-# Install additional Go tools
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Install golangci-lint
+RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
 
-# Create non-root user
-RUN addgroup -g 1000 vscode && \
-    adduser -u 1000 -G vscode -s /bin/bash -D vscode
+# Create non-root user for VS Code
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+RUN addgroup -g $USER_GID $USERNAME \
+    && adduser -D -u $USER_UID -G $USERNAME $USERNAME \
+    && mkdir -p /home/$USERNAME/.cache \
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 # Set working directory
-WORKDIR /app
-
-# Change ownership
-RUN chown -R vscode:vscode /app
+WORKDIR /workspace
 
 # Switch to non-root user
-USER vscode
+USER $USERNAME
 
-# Default command
-CMD ["bash"]
+# Expose ports
+# 8080: API server
+# 2345: Delve debugger
+EXPOSE 8080 2345
+
+# Default command (will be overridden by devcontainer.json)
+CMD ["sleep", "infinity"]
 ```
 
 **Installed Tools:**
@@ -220,81 +264,76 @@ CMD ["bash"]
 Multi-service development environment:
 
 ```yaml
-version: "3.8"
-
 services:
   api:
     build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-    container_name: ezqrin-dev
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ..:/app:cached
-      - go-modules:/go/pkg/mod
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=ezqrin_dev
-      - DB_USER=ezqrin
-      - DB_PASSWORD=dev_password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=dev_secret_key_do_not_use_in_production_min_32_chars
-      - ENV=development
-      - LOG_LEVEL=debug
+      - ..:/workspace:cached
+    command: sleep infinity
     ports:
-      - "8080:8080" # API server
-      - "2345:2345" # Delve debugger
+      - "8080:8080"   # API server
+      - "2345:2345"   # Delve debugger
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=ezqrin
+      - DATABASE_PASSWORD=ezqrin_dev
+      - DATABASE_NAME=ezqrin_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
-      - ezqrin-network
-    command: sleep infinity
+      - devcontainer-network
 
   postgres:
     image: postgres:18-alpine
-    container_name: ezqrin-postgres-dev
-    environment:
-      - POSTGRES_DB=ezqrin_dev
-      - POSTGRES_USER=ezqrin
-      - POSTGRES_PASSWORD=dev_password
-    ports:
-      - "5432:5432"
+    restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ezqrin
+      POSTGRES_PASSWORD: ezqrin_dev
+      POSTGRES_DB: ezqrin_db
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ezqrin"]
+      test: ["CMD-SHELL", "pg_isready -U ezqrin -d ezqrin_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
-      - ezqrin-network
+      - devcontainer-network
 
   redis:
     image: redis:8-alpine
-    container_name: ezqrin-redis-dev
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
     volumes:
       - redis-data:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+      start_period: 5s
     networks:
-      - ezqrin-network
+      - devcontainer-network
 
 volumes:
   postgres-data:
   redis-data:
-  go-modules:
 
 networks:
-  ezqrin-network:
+  devcontainer-network:
     driver: bridge
 ```
 
@@ -331,16 +370,13 @@ Create `.vscode/launch.json` for debugging:
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/api",
       "env": {
-        "DB_HOST": "postgres",
-        "DB_PORT": "5432",
-        "DB_NAME": "ezqrin_dev",
-        "DB_USER": "ezqrin",
-        "DB_PASSWORD": "dev_password",
+        "DATABASE_HOST": "postgres",
+        "DATABASE_PORT": "5432",
+        "DATABASE_NAME": "ezqrin_db",
+        "DATABASE_USER": "ezqrin",
+        "DATABASE_PASSWORD": "ezqrin_dev",
         "REDIS_HOST": "redis",
-        "REDIS_PORT": "6379",
-        "JWT_SECRET": "dev_secret_key_do_not_use_in_production_min_32_chars",
-        "ENV": "development",
-        "LOG_LEVEL": "debug"
+        "REDIS_PORT": "6379"
       },
       "args": []
     },
@@ -351,11 +387,11 @@ Create `.vscode/launch.json` for debugging:
       "mode": "test",
       "program": "${workspaceFolder}",
       "env": {
-        "DB_HOST": "postgres",
-        "DB_PORT": "5432",
-        "DB_NAME": "ezqrin_test",
-        "DB_USER": "ezqrin",
-        "DB_PASSWORD": "dev_password"
+        "DATABASE_HOST": "postgres",
+        "DATABASE_PORT": "5432",
+        "DATABASE_NAME": "ezqrin_test",
+        "DATABASE_USER": "ezqrin",
+        "DATABASE_PASSWORD": "ezqrin_dev"
       }
     },
     {
@@ -363,7 +399,7 @@ Create `.vscode/launch.json` for debugging:
       "type": "go",
       "request": "attach",
       "mode": "remote",
-      "remotePath": "/app",
+      "remotePath": "/workspace",
       "port": 2345,
       "host": "localhost"
     }
@@ -504,14 +540,14 @@ tmp_dir = "tmp"
 ### Access PostgreSQL
 
 ```bash
-# Connect via psql
-psql -h postgres -U ezqrin -d ezqrin_dev
+# Connect via psql (using service name 'postgres')
+psql -h postgres -U ezqrin -d ezqrin_db
 
 # Run SQL file
-psql -h postgres -U ezqrin -d ezqrin_dev < schema.sql
+psql -h postgres -U ezqrin -d ezqrin_db < schema.sql
 
 # Dump database
-pg_dump -h postgres -U ezqrin ezqrin_dev > backup.sql
+pg_dump -h postgres -U ezqrin ezqrin_db > backup.sql
 ```
 
 ### Run Migrations
@@ -533,9 +569,9 @@ Access PostgreSQL from host machine:
 
 - **Host**: `localhost`
 - **Port**: `5432`
-- **Database**: `ezqrin_dev`
+- **Database**: `ezqrin_db`
 - **User**: `ezqrin`
-- **Password**: `dev_password`
+- **Password**: `ezqrin_dev`
 
 **Recommended Tools:**
 
@@ -550,7 +586,7 @@ Access PostgreSQL from host machine:
 ### Access Redis CLI
 
 ```bash
-# Connect to Redis
+# Connect to Redis (using service name 'redis')
 redis-cli -h redis
 
 # Common commands
@@ -691,13 +727,13 @@ docker ps | grep postgres
 **Test connection:**
 
 ```bash
-psql -h postgres -U ezqrin -d ezqrin_dev
+psql -h postgres -U ezqrin -d ezqrin_db
 ```
 
 **Check environment variables:**
 
 ```bash
-env | grep DB_
+env | grep DATABASE_
 ```
 
 ### Port Already in Use
