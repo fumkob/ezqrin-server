@@ -1,0 +1,363 @@
+package config_test
+
+import (
+	"os"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/fumkob/eqzrin-server/config"
+)
+
+func TestConfig(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Config Suite")
+}
+
+var _ = Describe("Config", func() {
+	var originalEnv map[string]string
+
+	BeforeEach(func() {
+		// Save original environment variables
+		originalEnv = make(map[string]string)
+		envVars := []string{
+			"SERVER_PORT", "SERVER_ENV",
+			"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSL_MODE",
+			"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
+			"REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD", "REDIS_DB",
+			"JWT_SECRET", "JWT_ACCESS_TOKEN_EXPIRY", "JWT_REFRESH_TOKEN_EXPIRY_WEB", "JWT_REFRESH_TOKEN_EXPIRY_MOBILE",
+			"LOG_LEVEL", "LOG_FORMAT",
+			"CORS_ALLOWED_ORIGINS", "CORS_ALLOWED_METHODS", "CORS_ALLOWED_HEADERS", "CORS_ALLOW_CREDENTIALS",
+		}
+		for _, key := range envVars {
+			originalEnv[key] = os.Getenv(key)
+			os.Unsetenv(key)
+		}
+	})
+
+	AfterEach(func() {
+		// Restore original environment variables
+		for key, value := range originalEnv {
+			if value != "" {
+				os.Setenv(key, value)
+			} else {
+				os.Unsetenv(key)
+			}
+		}
+	})
+
+	Describe("Load", func() {
+		Context("with all required environment variables set", func() {
+			BeforeEach(func() {
+				os.Setenv("DB_USER", "testuser")
+				os.Setenv("DB_PASSWORD", "testpass")
+				os.Setenv("DB_NAME", "testdb")
+				os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+			})
+
+			It("should load configuration successfully", func() {
+				cfg, err := config.Load()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cfg).ToNot(BeNil())
+			})
+
+			It("should use default values for optional settings", func() {
+				cfg, err := config.Load()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(cfg.Server.Port).To(Equal(8080))
+				Expect(cfg.Server.Environment).To(Equal("development"))
+				Expect(cfg.Database.Host).To(Equal("localhost"))
+				Expect(cfg.Database.Port).To(Equal(5432))
+				Expect(cfg.Redis.Host).To(Equal("localhost"))
+				Expect(cfg.Redis.Port).To(Equal(6379))
+			})
+		})
+
+		Context("with custom values", func() {
+			BeforeEach(func() {
+				os.Setenv("SERVER_PORT", "9000")
+				os.Setenv("SERVER_ENV", "production")
+				os.Setenv("DB_HOST", "db.example.com")
+				os.Setenv("DB_PORT", "5433")
+				os.Setenv("DB_USER", "produser")
+				os.Setenv("DB_PASSWORD", "prodpass")
+				os.Setenv("DB_NAME", "proddb")
+				os.Setenv("DB_SSL_MODE", "require")
+				os.Setenv("DB_MAX_OPEN_CONNS", "50")
+				os.Setenv("DB_MAX_IDLE_CONNS", "10")
+				os.Setenv("DB_CONN_MAX_LIFETIME", "10m")
+				os.Setenv("REDIS_HOST", "redis.example.com")
+				os.Setenv("REDIS_PORT", "6380")
+				os.Setenv("REDIS_PASSWORD", "redispass")
+				os.Setenv("REDIS_DB", "1")
+				os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
+				os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "30m")
+				os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_WEB", "336h")
+				os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_MOBILE", "4320h")
+				os.Setenv("LOG_LEVEL", "warn")
+				os.Setenv("LOG_FORMAT", "text")
+			})
+
+			It("should load all custom values correctly", func() {
+				cfg, err := config.Load()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(cfg.Server.Port).To(Equal(9000))
+				Expect(cfg.Server.Environment).To(Equal("production"))
+				Expect(cfg.Database.Host).To(Equal("db.example.com"))
+				Expect(cfg.Database.Port).To(Equal(5433))
+				Expect(cfg.Database.User).To(Equal("produser"))
+				Expect(cfg.Database.Password).To(Equal("prodpass"))
+				Expect(cfg.Database.Name).To(Equal("proddb"))
+				Expect(cfg.Database.SSLMode).To(Equal("require"))
+				Expect(cfg.Database.MaxOpenConns).To(Equal(50))
+				Expect(cfg.Database.MaxIdleConns).To(Equal(10))
+				Expect(cfg.Redis.Host).To(Equal("redis.example.com"))
+				Expect(cfg.Redis.Port).To(Equal(6380))
+				Expect(cfg.Redis.Password).To(Equal("redispass"))
+				Expect(cfg.Redis.DB).To(Equal(1))
+				Expect(cfg.Logging.Level).To(Equal("warn"))
+				Expect(cfg.Logging.Format).To(Equal("text"))
+			})
+		})
+
+		Context("with missing required environment variables", func() {
+			When("DB_USER is missing", func() {
+				BeforeEach(func() {
+					os.Setenv("DB_PASSWORD", "testpass")
+					os.Setenv("DB_NAME", "testdb")
+					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				})
+
+				It("should panic", func() {
+					Expect(func() {
+						config.Load()
+					}).To(Panic())
+				})
+			})
+
+			When("DB_PASSWORD is missing", func() {
+				BeforeEach(func() {
+					os.Setenv("DB_USER", "testuser")
+					os.Setenv("DB_NAME", "testdb")
+					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				})
+
+				It("should panic", func() {
+					Expect(func() {
+						config.Load()
+					}).To(Panic())
+				})
+			})
+
+			When("DB_NAME is missing", func() {
+				BeforeEach(func() {
+					os.Setenv("DB_USER", "testuser")
+					os.Setenv("DB_PASSWORD", "testpass")
+					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				})
+
+				It("should panic", func() {
+					Expect(func() {
+						config.Load()
+					}).To(Panic())
+				})
+			})
+
+			When("JWT_SECRET is missing", func() {
+				BeforeEach(func() {
+					os.Setenv("DB_USER", "testuser")
+					os.Setenv("DB_PASSWORD", "testpass")
+					os.Setenv("DB_NAME", "testdb")
+				})
+
+				It("should panic", func() {
+					Expect(func() {
+						config.Load()
+					}).To(Panic())
+				})
+			})
+		})
+
+		Context("with invalid values", func() {
+			BeforeEach(func() {
+				os.Setenv("DB_USER", "testuser")
+				os.Setenv("DB_PASSWORD", "testpass")
+				os.Setenv("DB_NAME", "testdb")
+				os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+			})
+
+			When("SERVER_PORT is invalid", func() {
+				BeforeEach(func() {
+					os.Setenv("SERVER_PORT", "invalid")
+				})
+
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("invalid integer value"))
+				})
+			})
+
+			When("DB_PORT is invalid", func() {
+				BeforeEach(func() {
+					os.Setenv("DB_PORT", "not-a-number")
+				})
+
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("invalid integer value"))
+				})
+			})
+
+			When("JWT_ACCESS_TOKEN_EXPIRY is invalid", func() {
+				BeforeEach(func() {
+					os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "invalid-duration")
+				})
+
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("invalid duration value"))
+				})
+			})
+		})
+	})
+
+	Describe("Validate", func() {
+		var cfg *config.Config
+
+		BeforeEach(func() {
+			os.Setenv("DB_USER", "testuser")
+			os.Setenv("DB_PASSWORD", "testpass")
+			os.Setenv("DB_NAME", "testdb")
+			os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+
+			var err error
+			cfg, err = config.Load()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("with valid configuration", func() {
+			It("should validate successfully", func() {
+				err := cfg.Validate()
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("with invalid server port", func() {
+			It("should return validation error for port 0", func() {
+				cfg.Server.Port = 0
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("server port must be between 1 and 65535"))
+			})
+
+			It("should return validation error for port > 65535", func() {
+				cfg.Server.Port = 70000
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("server port must be between 1 and 65535"))
+			})
+		})
+
+		Context("with invalid server environment", func() {
+			It("should return validation error", func() {
+				cfg.Server.Environment = "invalid"
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("server environment must be"))
+			})
+		})
+
+		Context("with invalid JWT secret", func() {
+			It("should return validation error for short secret", func() {
+				cfg.JWT.Secret = "short"
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("jwt secret must be at least 32 characters"))
+			})
+
+			It("should return validation error for empty secret", func() {
+				cfg.JWT.Secret = ""
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("jwt secret is required"))
+			})
+		})
+
+		Context("with invalid log level", func() {
+			It("should return validation error", func() {
+				cfg.Logging.Level = "invalid"
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("log level must be one of"))
+			})
+		})
+
+		Context("with invalid log format", func() {
+			It("should return validation error", func() {
+				cfg.Logging.Format = "invalid"
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("log format must be"))
+			})
+		})
+	})
+
+	Describe("Helper Methods", func() {
+		var cfg *config.Config
+
+		BeforeEach(func() {
+			os.Setenv("SERVER_ENV", "production")
+			os.Setenv("DB_HOST", "db.example.com")
+			os.Setenv("DB_PORT", "5433")
+			os.Setenv("DB_USER", "produser")
+			os.Setenv("DB_PASSWORD", "prodpass")
+			os.Setenv("DB_NAME", "proddb")
+			os.Setenv("DB_SSL_MODE", "require")
+			os.Setenv("REDIS_HOST", "redis.example.com")
+			os.Setenv("REDIS_PORT", "6380")
+			os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
+
+			var err error
+			cfg, err = config.Load()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Describe("GetDatabaseDSN", func() {
+			It("should return correct PostgreSQL connection string", func() {
+				dsn := cfg.GetDatabaseDSN()
+				Expect(dsn).To(Equal("host=db.example.com port=5433 user=produser password=prodpass dbname=proddb sslmode=require"))
+			})
+		})
+
+		Describe("GetRedisAddr", func() {
+			It("should return correct Redis address", func() {
+				addr := cfg.GetRedisAddr()
+				Expect(addr).To(Equal("redis.example.com:6380"))
+			})
+		})
+
+		Describe("IsProduction", func() {
+			When("environment is production", func() {
+				It("should return true", func() {
+					Expect(cfg.IsProduction()).To(BeTrue())
+				})
+			})
+
+			When("environment is development", func() {
+				BeforeEach(func() {
+					cfg.Server.Environment = "development"
+				})
+
+				It("should return false", func() {
+					Expect(cfg.IsProduction()).To(BeFalse())
+				})
+			})
+		})
+	})
+})
