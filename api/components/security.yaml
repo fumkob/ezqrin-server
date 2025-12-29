@@ -1,0 +1,10 @@
+# Security Schemes
+# Defines authentication and authorization schemes used by the API
+
+bearerAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: |
+    JWT access token obtained from the login endpoint.
+    Include in the Authorization header as: `Bearer <token>`

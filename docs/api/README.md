@@ -12,11 +12,19 @@ The ezQRin API is defined using **OpenAPI 3.0+ specification** as the **Single S
 (SSOT)** for all API contracts. This specification serves as the authoritative source from which
 server code, client SDKs, and documentation are generated.
 
-**OpenAPI Specification File:**
+**OpenAPI Specification Files:**
+
+The specification is organized as modular YAML files for improved maintainability:
 
 ```
-docs/api/openapi.yaml          # Main OpenAPI 3.0+ specification
+api/
+├── openapi.yaml              # Main entry point (aggregator)
+├── schemas/                  # Reusable schemas (entities, enums, responses)
+├── components/               # Reusable components (security, responses, parameters)
+└── paths/                    # API endpoint definitions (by module)
 ```
+
+**For detailed structure and usage**, see [`api/README.md`](../../api/README.md)
 
 **Code Generation:**
 

@@ -10,6 +10,8 @@ RUN apk add --no-cache \
     postgresql-client \
     redis \
     github-cli \
+    nodejs \
+    npm \
     --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 # Install Delve debugger
@@ -20,6 +22,12 @@ RUN go install github.com/air-verse/air@latest
 
 # Install golangci-lint
 RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
+
+# Install oapi-codegen for API code generation
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
+
+# Install swagger-cli for OpenAPI bundling
+RUN npm install -g @apidevtools/swagger-cli@4.0.4
 
 # Create non-root user for VS Code
 ARG USERNAME=vscode

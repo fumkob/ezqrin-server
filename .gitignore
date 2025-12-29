@@ -39,3 +39,10 @@ CLAUDE.md
 # Node modules
 node_modules/
 package-lock.json
+
+# Generated code (API code generation from OpenAPI spec)
+# Note: We commit generated code to ensure build reproducibility
+# internal/interface/api/generated/api.gen.go
+
+# Temporary files
+.tmp/
