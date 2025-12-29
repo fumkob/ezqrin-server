@@ -1,0 +1,11 @@
+# oapi-codegen v2 configuration for ezQRin API
+# This configuration generates type-safe Go code from the OpenAPI specification
+# See: https://github.com/oapi-codegen/oapi-codegen
+
+package: generated
+generate:
+  gin-server: true
+  models: true
+  embedded-spec: true
+output-options:
+  skip-prune: true

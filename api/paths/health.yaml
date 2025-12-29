@@ -1,0 +1,126 @@
+# Health Check Endpoints
+# System health and readiness probes
+
+/health:
+  get:
+    summary: Basic health check
+    description: Returns simple health status of the API server
+    operationId: getHealth
+    tags:
+      - health
+    security: []
+    responses:
+      '200':
+        description: Service is healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - success
+                - data
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  required:
+                    - status
+                  properties:
+                    status:
+                      type: string
+                      example: "healthy"
+                    timestamp:
+                      type: string
+                      format: date-time
+                      example: "2025-11-08T10:00:00Z"
+      '503':
+        $ref: '../components/responses.yaml#/ServiceUnavailable'
+
+/health/ready:
+  get:
+    summary: Readiness probe
+    description: |
+      Kubernetes readiness probe endpoint. Returns 200 when the service is ready to accept traffic.
+      Checks database connectivity and required dependencies.
+    operationId: getHealthReady
+    tags:
+      - health
+    security: []
+    responses:
+      '200':
+        description: Service is ready
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - success
+                - data
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  required:
+                    - status
+                    - checks
+                  properties:
+                    status:
+                      type: string
+                      example: "ready"
+                    checks:
+                      type: object
+                      properties:
+                        database:
+                          type: string
+                          example: "ok"
+                        redis:
+                          type: string
+                          example: "ok"
+      '503':
+        description: Service is not ready
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ErrorResponse'
+
+/health/live:
+  get:
+    summary: Liveness probe
+    description: |
+      Kubernetes liveness probe endpoint. Returns 200 when the service process is alive.
+      Used to detect if the service needs to be restarted.
+    operationId: getHealthLive
+    tags:
+      - health
+    security: []
+    responses:
+      '200':
+        description: Service is alive
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - success
+                - data
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  required:
+                    - status
+                  properties:
+                    status:
+                      type: string
+                      example: "alive"
+                    uptime_seconds:
+                      type: integer
+                      example: 3600
+      '503':
+        $ref: '../components/responses.yaml#/ServiceUnavailable'

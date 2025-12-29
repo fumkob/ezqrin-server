@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build
+.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all
 
 #
 # Container Runtime Detection (Docker/Podman)
@@ -47,6 +47,11 @@ help:
 	@echo "  make migrate-reset   - Reset database (down all + up all)"
 	@echo "  make db-shell        - Open PostgreSQL shell (psql)"
 	@echo "  make db-reset        - Drop and recreate database"
+	@echo ""
+	@echo "Code Generation:"
+	@echo "  make gen-api         - Generate API code from OpenAPI specification"
+	@echo "  make gen-mock        - Generate test mocks (coming in Task 1.3)"
+	@echo "  make gen-all         - Generate all code (API + mocks)"
 	@echo ""
 	@echo "Development:"
 	@echo "  make test            - Run all tests"
@@ -227,3 +232,24 @@ verify-setup: check-runtime
 	@echo ""
 	@echo "If no tables are shown, run:"
 	@echo "  make migrate-up"
+
+#
+# Code Generation
+#
+# Required tools are pre-installed in DevContainer (.devcontainer/Dockerfile)
+# Run 'make dev-rebuild' after Dockerfile changes
+
+# Generate API code from OpenAPI specification
+gen-api:
+	@echo "Generating API code from OpenAPI specification..."
+	@bash scripts/gen-api.sh
+
+# Generate test mocks (placeholder for Task 1.3)
+gen-mock:
+	@echo "Mock generation will be implemented in Task 1.3"
+	@echo "This will use go.uber.org/mock to generate mocks for interfaces"
+
+# Generate all code (API + mocks)
+gen-all: gen-api gen-mock
+	@echo ""
+	@echo "=== All Code Generation Complete ==="

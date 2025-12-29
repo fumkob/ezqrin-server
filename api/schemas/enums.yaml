@@ -1,0 +1,60 @@
+# Enum Schemas
+# These define enumeration types used throughout the API
+
+UserRole:
+  type: string
+  enum:
+    - admin
+    - organizer
+    - staff
+  description: User role
+  example: "organizer"
+
+EventStatus:
+  type: string
+  enum:
+    - draft
+    - published
+    - ongoing
+    - completed
+    - cancelled
+  description: Event status
+  example: "published"
+
+ParticipantStatus:
+  type: string
+  enum:
+    - tentative
+    - confirmed
+    - cancelled
+    - declined
+  description: Participant status
+  example: "confirmed"
+  default: "tentative"
+
+PaymentStatus:
+  type: string
+  enum:
+    - unpaid
+    - paid
+  description: Payment status
+  example: "unpaid"
+  default: "unpaid"
+
+CheckInMethod:
+  type: string
+  enum:
+    - qrcode
+    - manual
+  description: Check-in method
+  example: "qrcode"
+  default: "qrcode"
+
+OrderParam:
+  type: string
+  enum:
+    - asc
+    - desc
+  description: Sort order (ascending or descending)
+  example: "desc"
+  default: "desc"

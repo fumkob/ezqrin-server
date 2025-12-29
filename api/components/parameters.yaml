@@ -1,0 +1,75 @@
+# Reusable Parameters
+# Common query and path parameters used across multiple endpoints
+
+# Pagination parameters
+PageParam:
+  name: page
+  in: query
+  description: Page number (min 1)
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    default: 1
+    example: 1
+
+PerPageParam:
+  name: per_page
+  in: query
+  description: Items per page (min 1, max 100)
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+    example: 20
+
+SortParam:
+  name: sort
+  in: query
+  description: Sort field name
+  required: false
+  schema:
+    type: string
+    default: "created_at"
+    example: "created_at"
+
+OrderParam:
+  name: order
+  in: query
+  description: Sort order (asc or desc)
+  required: false
+  schema:
+    $ref: '../schemas/enums.yaml#/OrderParam'
+
+# Path parameters
+EventIDParam:
+  name: id
+  in: path
+  description: Event unique identifier (UUID)
+  required: true
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440000"
+
+ParticipantIDParam:
+  name: pid
+  in: path
+  description: Participant unique identifier (UUID)
+  required: true
+  schema:
+    type: string
+    format: uuid
+    example: "770e8400-e29b-41d4-a716-446655440000"
+
+CheckInIDParam:
+  name: cid
+  in: path
+  description: Check-in unique identifier (UUID)
+  required: true
+  schema:
+    type: string
+    format: uuid
+    example: "880e8400-e29b-41d4-a716-446655440000"

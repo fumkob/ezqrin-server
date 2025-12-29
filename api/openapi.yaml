@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: ezQRin API
+  version: 1.0.0
+  description: |
+    Event management and QR check-in system API
+
+    ## Overview
+
+    The ezQRin API is a comprehensive event management platform that enables organizers to:
+    - Create and manage events
+    - Register participants and distribute QR codes
+    - Track check-ins and generate reports
+    - Manage user accounts and authentication
+
+    ## Authentication
+
+    The API uses JWT Bearer tokens for authentication. Include the token in the Authorization header:
+
+    ```
+    Authorization: Bearer <access_token>
+    ```
+
+    **Token Types:**
+    - Access Token: Valid for 15 minutes
+    - Refresh Token: Valid for 7 days
+
+    ## API-First Development
+
+    This OpenAPI specification serves as the **Single Source of Truth (SSOT)** for all API contracts.
+    Server code, client SDKs, and validation schemas are generated from this specification using `oapi-codegen`.
+
+    ## Rate Limiting
+
+    API requests are rate-limited to prevent abuse. Rate limit information is included in response headers:
+    - `X-RateLimit-Limit`: Maximum requests per window
+    - `X-RateLimit-Remaining`: Remaining requests in current window
+    - `X-RateLimit-Reset`: Unix timestamp when limit resets
+
+    For detailed rate limits, see the [Rate Limiting documentation](./docs/api/rate_limits.md).
+
+  contact:
+    name: ezQRin Support
+    email: support@ezqrin.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.ezqrin.com/v1
+    description: Production server
+
+tags:
+  - name: health
+    description: Health check and system status endpoints
+  - name: auth
+    description: Authentication and authorization
+  - name: users
+    description: User account management
+  - name: events
+    description: Event lifecycle management
+  - name: participants
+    description: Participant registration and management
+  - name: qrcode
+    description: QR code generation and distribution
+  - name: checkin
+    description: Check-in operations and tracking
+
+paths:
+  # Health check endpoints
+  /health:
+    $ref: './paths/health.yaml#/~1health'
+  /health/ready:
+    $ref: './paths/health.yaml#/~1health~1ready'
+  /health/live:
+    $ref: './paths/health.yaml#/~1health~1live'
+
+  # Future endpoints will be added here as separate YAML files:
+  # Authentication: ./paths/auth.yaml
+  # Users: ./paths/users.yaml
+  # Events: ./paths/events.yaml
+  # Participants: ./paths/participants.yaml
+  # QR Codes: ./paths/qrcode.yaml
+  # Check-ins: ./paths/checkin.yaml
+
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: './components/security.yaml#/bearerAuth'
+
+  schemas:
+    # Core entities
+    User:
+      $ref: './schemas/entities.yaml#/User'
+    Event:
+      $ref: './schemas/entities.yaml#/Event'
+    Participant:
+      $ref: './schemas/entities.yaml#/Participant'
+    CheckIn:
+      $ref: './schemas/entities.yaml#/CheckIn'
+
+    # Enums
+    UserRole:
+      $ref: './schemas/enums.yaml#/UserRole'
+    EventStatus:
+      $ref: './schemas/enums.yaml#/EventStatus'
+    ParticipantStatus:
+      $ref: './schemas/enums.yaml#/ParticipantStatus'
+    PaymentStatus:
+      $ref: './schemas/enums.yaml#/PaymentStatus'
+    CheckInMethod:
+      $ref: './schemas/enums.yaml#/CheckInMethod'
+
+    # Response wrappers
+    StandardResponse:
+      $ref: './schemas/responses.yaml#/StandardResponse'
+    ErrorResponse:
+      $ref: './schemas/responses.yaml#/ErrorResponse'
+    PaginationMeta:
+      $ref: './schemas/responses.yaml#/PaginationMeta'
+
+  responses:
+    BadRequest:
+      $ref: './components/responses.yaml#/BadRequest'
+    Unauthorized:
+      $ref: './components/responses.yaml#/Unauthorized'
+    Forbidden:
+      $ref: './components/responses.yaml#/Forbidden'
+    NotFound:
+      $ref: './components/responses.yaml#/NotFound'
+    Conflict:
+      $ref: './components/responses.yaml#/Conflict'
+    ValidationError:
+      $ref: './components/responses.yaml#/ValidationError'
+    RateLimitExceeded:
+      $ref: './components/responses.yaml#/RateLimitExceeded'
+    InternalError:
+      $ref: './components/responses.yaml#/InternalError'
+    ServiceUnavailable:
+      $ref: './components/responses.yaml#/ServiceUnavailable'
+
+  parameters:
+    PageParam:
+      $ref: './components/parameters.yaml#/PageParam'
+    PerPageParam:
+      $ref: './components/parameters.yaml#/PerPageParam'
+    SortParam:
+      $ref: './components/parameters.yaml#/SortParam'
+    OrderParam:
+      $ref: './components/parameters.yaml#/OrderParam'
+    EventIDParam:
+      $ref: './components/parameters.yaml#/EventIDParam'
+    ParticipantIDParam:
+      $ref: './components/parameters.yaml#/ParticipantIDParam'
+    CheckInIDParam:
+      $ref: './components/parameters.yaml#/CheckInIDParam'
+
+security:
+  - bearerAuth: []

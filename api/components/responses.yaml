@@ -1,0 +1,134 @@
+# Reusable Response Definitions
+# Common HTTP response templates used across all endpoints
+
+BadRequest:
+  description: Bad request - invalid input or malformed request
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "VALIDATION_FAILED"
+          message: "Request validation failed"
+          details:
+            - field: "email"
+              message: "Invalid email format"
+
+Unauthorized:
+  description: Authentication required or token invalid
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "AUTH_INVALID_TOKEN"
+          message: "Invalid or expired authentication token"
+
+Forbidden:
+  description: Insufficient permissions to perform this action
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "AUTH_FORBIDDEN"
+          message: "You do not have permission to access this resource"
+
+NotFound:
+  description: The requested resource was not found
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "EVENT_NOT_FOUND"
+          message: "The requested event was not found"
+
+Conflict:
+  description: Resource conflict (duplicate, constraint violation)
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "PARTICIPANT_DUPLICATE_EMAIL"
+          message: "A participant with this email is already registered for this event"
+
+ValidationError:
+  description: Request validation failed
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "VALIDATION_FAILED"
+          message: "One or more validation errors occurred"
+          details:
+            - field: "start_date"
+              message: "Start date must be in the future"
+            - field: "name"
+              message: "Name is required"
+
+RateLimitExceeded:
+  description: Rate limit exceeded
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "RATE_LIMIT_EXCEEDED"
+          message: "Too many requests. Please try again later."
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests per window
+      schema:
+        type: integer
+        example: 100
+    X-RateLimit-Remaining:
+      description: Remaining requests in current window
+      schema:
+        type: integer
+        example: 0
+    X-RateLimit-Reset:
+      description: Unix timestamp when limit resets
+      schema:
+        type: integer
+        example: 1636372800
+
+InternalError:
+  description: Internal server error
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "INTERNAL_ERROR"
+          message: "An unexpected error occurred. Please try again later."
+
+ServiceUnavailable:
+  description: Service temporarily unavailable
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/responses.yaml#/ErrorResponse'
+      example:
+        success: false
+        error:
+          code: "SERVICE_UNAVAILABLE"
+          message: "The service is temporarily unavailable. Please try again later."
