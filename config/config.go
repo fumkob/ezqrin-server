@@ -47,9 +47,9 @@ type RedisConfig struct {
 
 // JWTConfig contains JWT token configuration
 type JWTConfig struct {
-	Secret                  string
-	AccessTokenExpiry       time.Duration
-	RefreshTokenExpiryWeb   time.Duration
+	Secret                   string
+	AccessTokenExpiry        time.Duration
+	RefreshTokenExpiryWeb    time.Duration
 	RefreshTokenExpiryMobile time.Duration
 }
 
