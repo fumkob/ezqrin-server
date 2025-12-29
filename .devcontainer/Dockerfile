@@ -29,7 +29,8 @@ ARG USER_GID=$USER_UID
 RUN addgroup -g $USER_GID $USERNAME \
     && adduser -D -u $USER_UID -G $USERNAME $USERNAME \
     && mkdir -p /home/$USERNAME/.cache \
-    && chown -R $USERNAME:$USERNAME /home/$USERNAME
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME \
+    && chown -R $USERNAME:$USERNAME /go
 
 # Set working directory
 WORKDIR /workspace
