@@ -1,0 +1,12 @@
+# ezQRin Server - Production Environment Configuration
+# This file overrides default.yaml settings for production environments.
+
+server:
+  environment: production
+
+database:
+  ssl_mode: require
+
+logging:
+  level: info
+  format: json

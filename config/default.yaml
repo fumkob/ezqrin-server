@@ -1,0 +1,46 @@
+# ezQRin Server - Default Configuration
+# This file contains base configuration values that apply to all environments.
+# Environment-specific overrides are in development.yaml and production.yaml.
+# Secrets (DB_USER, DB_PASSWORD, JWT_SECRET) should be set via environment variables.
+
+server:
+  port: 8080
+  read_timeout: 15s
+  write_timeout: 15s
+  idle_timeout: 60s
+
+database:
+  host: localhost
+  port: 5432
+  ssl_mode: disable
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+
+jwt:
+  access_token_expiry: 15m
+  refresh_token_expiry_web: 168h    # 7 days
+  refresh_token_expiry_mobile: 2160h # 90 days
+
+logging:
+  level: info
+  format: json
+
+cors:
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed_headers:
+    - Origin
+    - Content-Type
+    - Accept
+    - Authorization
+  allow_credentials: true

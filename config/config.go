@@ -1,11 +1,13 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 // Config holds all application configuration
@@ -70,38 +72,42 @@ type CORSConfig struct {
 	AllowCredentials bool
 }
 
-// Load reads configuration from environment variables
+// Load reads configuration from YAML files and environment variables.
+// Configuration is loaded in the following priority (highest to lowest):
+//  1. Environment variables (secrets and overrides)
+//  2. Environment-specific YAML file (development.yaml or production.yaml)
+//  3. Default YAML file (default.yaml)
 func Load() (*Config, error) {
+	v := viper.New()
+
+	// Load .env.secrets file if it exists (for local development)
+	_ = loadEnvFile(v, ".env.secrets")
+
+	// Bind environment variables explicitly with correct keys
+	bindEnvVars(v)
+
+	// Determine environment
+	environment := getEnvOrDefault("SERVER_ENV", "development")
+
+	// Load default.yaml (base configuration)
+	v.SetConfigName("default")
+	v.SetConfigType("yaml")
+	v.AddConfigPath("./config")
+	v.AddConfigPath("../config")
+	v.AddConfigPath("../../config")
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("failed to read default.yaml: %w", err)
+	}
+
+	// Merge environment-specific YAML
+	v.SetConfigName(environment)
+	_ = v.MergeInConfig() // Not an error if file doesn't exist
+
+	// Map viper config to Config struct
 	cfg := &Config{}
-
-	// Load Server configuration
-	if err := loadServerConfig(&cfg.Server); err != nil {
-		return nil, fmt.Errorf("server config: %w", err)
-	}
-
-	// Load Database configuration
-	if err := loadDatabaseConfig(&cfg.Database); err != nil {
-		return nil, fmt.Errorf("database config: %w", err)
-	}
-
-	// Load Redis configuration
-	if err := loadRedisConfig(&cfg.Redis); err != nil {
-		return nil, fmt.Errorf("redis config: %w", err)
-	}
-
-	// Load JWT configuration
-	if err := loadJWTConfig(&cfg.JWT); err != nil {
-		return nil, fmt.Errorf("jwt config: %w", err)
-	}
-
-	// Load Logging configuration
-	if err := loadLoggingConfig(&cfg.Logging); err != nil {
-		return nil, fmt.Errorf("logging config: %w", err)
-	}
-
-	// Load CORS configuration
-	if err := loadCORSConfig(&cfg.CORS); err != nil {
-		return nil, fmt.Errorf("cors config: %w", err)
+	if err := unmarshalConfig(v, cfg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	// Validate configuration
@@ -112,138 +118,173 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func loadServerConfig(cfg *ServerConfig) error {
-	port, err := getEnvAsInt("SERVER_PORT", 8080)
+// loadEnvFile loads environment variables from a file
+func loadEnvFile(v *viper.Viper, filepath string) error {
+	file, err := os.Open(filepath)
 	if err != nil {
 		return err
 	}
-	cfg.Port = port
+	defer file.Close()
 
-	cfg.Environment = getEnv("SERVER_ENV", "development")
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 
-	readTimeout, err := getEnvAsDuration("SERVER_READ_TIMEOUT", "15s")
-	if err != nil {
-		return err
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		viperKey := convertEnvKeyToViperKey(key)
+		v.Set(viperKey, value)
 	}
-	cfg.ReadTimeout = readTimeout
 
-	writeTimeout, err := getEnvAsDuration("SERVER_WRITE_TIMEOUT", "15s")
-	if err != nil {
-		return err
-	}
-	cfg.WriteTimeout = writeTimeout
+	return scanner.Err()
+}
 
-	idleTimeout, err := getEnvAsDuration("SERVER_IDLE_TIMEOUT", "60s")
-	if err != nil {
-		return err
+// envKeyMap defines the mapping between environment variables and viper configuration keys.
+// This is the single source of truth for all environment variable bindings.
+var envKeyMap = map[string]string{
+	// Server
+	"SERVER_PORT":         "server.port",
+	"SERVER_ENV":          "server.environment",
+	"SERVER_READ_TIMEOUT": "server.read_timeout",
+	"SERVER_WRITE_TIMEOUT": "server.write_timeout",
+	"SERVER_IDLE_TIMEOUT": "server.idle_timeout",
+
+	// Database
+	"DB_HOST":              "database.host",
+	"DB_PORT":              "database.port",
+	"DB_USER":              "database.user",
+	"DB_PASSWORD":          "database.password",
+	"DB_NAME":              "database.name",
+	"DB_SSL_MODE":          "database.ssl_mode",
+	"DB_MAX_OPEN_CONNS":    "database.max_open_conns",
+	"DB_MAX_IDLE_CONNS":    "database.max_idle_conns",
+	"DB_CONN_MAX_LIFETIME": "database.conn_max_lifetime",
+
+	// Redis
+	"REDIS_HOST":     "redis.host",
+	"REDIS_PORT":     "redis.port",
+	"REDIS_PASSWORD": "redis.password",
+	"REDIS_DB":       "redis.db",
+
+	// JWT
+	"JWT_SECRET":                      "jwt.secret",
+	"JWT_ACCESS_TOKEN_EXPIRY":         "jwt.access_token_expiry",
+	"JWT_REFRESH_TOKEN_EXPIRY_WEB":    "jwt.refresh_token_expiry_web",
+	"JWT_REFRESH_TOKEN_EXPIRY_MOBILE": "jwt.refresh_token_expiry_mobile",
+
+	// Logging
+	"LOG_LEVEL":  "logging.level",
+	"LOG_FORMAT": "logging.format",
+
+	// CORS
+	"CORS_ALLOWED_ORIGINS":   "cors.allowed_origins",
+	"CORS_ALLOWED_METHODS":   "cors.allowed_methods",
+	"CORS_ALLOWED_HEADERS":   "cors.allowed_headers",
+	"CORS_ALLOW_CREDENTIALS": "cors.allow_credentials",
+}
+
+// convertEnvKeyToViperKey converts environment variable key to viper key
+func convertEnvKeyToViperKey(envKey string) string {
+	if viperKey, ok := envKeyMap[envKey]; ok {
+		return viperKey
 	}
-	cfg.IdleTimeout = idleTimeout
+	return strings.ToLower(strings.ReplaceAll(envKey, "_", "."))
+}
+
+// bindEnvVars explicitly binds environment variables to viper keys
+func bindEnvVars(v *viper.Viper) {
+	for envVar, viperKey := range envKeyMap {
+		_ = v.BindEnv(viperKey, envVar)
+	}
+}
+
+// unmarshalConfig maps viper configuration to Config struct
+func unmarshalConfig(v *viper.Viper, cfg *Config) error {
+	cfg.Server.Port = v.GetInt("server.port")
+	cfg.Server.Environment = v.GetString("server.environment")
+	cfg.Server.ReadTimeout = v.GetDuration("server.read_timeout")
+	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
+	cfg.Server.IdleTimeout = v.GetDuration("server.idle_timeout")
+
+	cfg.Database.Host = v.GetString("database.host")
+	cfg.Database.Port = v.GetInt("database.port")
+	cfg.Database.User = v.GetString("database.user")
+	cfg.Database.Password = v.GetString("database.password")
+	cfg.Database.Name = v.GetString("database.name")
+	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
+	cfg.Database.MaxOpenConns = v.GetInt("database.max_open_conns")
+	cfg.Database.MaxIdleConns = v.GetInt("database.max_idle_conns")
+	cfg.Database.ConnMaxLifetime = v.GetDuration("database.conn_max_lifetime")
+
+	cfg.Redis.Host = v.GetString("redis.host")
+	cfg.Redis.Port = v.GetInt("redis.port")
+	cfg.Redis.Password = v.GetString("redis.password")
+	cfg.Redis.DB = v.GetInt("redis.db")
+
+	cfg.JWT.Secret = v.GetString("jwt.secret")
+	cfg.JWT.AccessTokenExpiry = v.GetDuration("jwt.access_token_expiry")
+	cfg.JWT.RefreshTokenExpiryWeb = v.GetDuration("jwt.refresh_token_expiry_web")
+	cfg.JWT.RefreshTokenExpiryMobile = v.GetDuration("jwt.refresh_token_expiry_mobile")
+
+	cfg.Logging.Level = v.GetString("logging.level")
+	cfg.Logging.Format = v.GetString("logging.format")
+
+	// Handle CORS allowed_origins - can be string (comma-separated) or slice
+	if originsStr := v.GetString("cors.allowed_origins"); originsStr != "" {
+		// Environment variable format: comma-separated string
+		cfg.CORS.AllowedOrigins = splitAndTrim(originsStr, ",")
+	} else {
+		// YAML format: array
+		cfg.CORS.AllowedOrigins = v.GetStringSlice("cors.allowed_origins")
+	}
+
+	cfg.CORS.AllowedMethods = v.GetStringSlice("cors.allowed_methods")
+	cfg.CORS.AllowedHeaders = v.GetStringSlice("cors.allowed_headers")
+	cfg.CORS.AllowCredentials = v.GetBool("cors.allow_credentials")
+
+	// Validate required fields
+	if cfg.Database.User == "" {
+		return fmt.Errorf("database user is required (set DB_USER)")
+	}
+	if cfg.Database.Password == "" {
+		return fmt.Errorf("database password is required (set DB_PASSWORD)")
+	}
+	if cfg.Database.Name == "" {
+		return fmt.Errorf("database name is required (set DB_NAME)")
+	}
+	if cfg.JWT.Secret == "" {
+		return fmt.Errorf("jwt secret is required (set JWT_SECRET)")
+	}
 
 	return nil
 }
 
-func loadDatabaseConfig(cfg *DatabaseConfig) error {
-	cfg.Host = getEnv("DB_HOST", "localhost")
-
-	port, err := getEnvAsInt("DB_PORT", 5432)
-	if err != nil {
-		return err
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
-	cfg.Port = port
-
-	cfg.User = requireEnv("DB_USER")
-	cfg.Password = requireEnv("DB_PASSWORD")
-	cfg.Name = requireEnv("DB_NAME")
-	cfg.SSLMode = getEnv("DB_SSL_MODE", "disable")
-
-	maxOpenConns, err := getEnvAsInt("DB_MAX_OPEN_CONNS", 25)
-	if err != nil {
-		return err
-	}
-	cfg.MaxOpenConns = maxOpenConns
-
-	maxIdleConns, err := getEnvAsInt("DB_MAX_IDLE_CONNS", 5)
-	if err != nil {
-		return err
-	}
-	cfg.MaxIdleConns = maxIdleConns
-
-	connMaxLifetime, err := getEnvAsDuration("DB_CONN_MAX_LIFETIME", "5m")
-	if err != nil {
-		return err
-	}
-	cfg.ConnMaxLifetime = connMaxLifetime
-
-	return nil
+	return defaultValue
 }
 
-func loadRedisConfig(cfg *RedisConfig) error {
-	cfg.Host = getEnv("REDIS_HOST", "localhost")
-
-	port, err := getEnvAsInt("REDIS_PORT", 6379)
-	if err != nil {
-		return err
+func splitAndTrim(s, sep string) []string {
+	parts := strings.Split(s, sep)
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
 	}
-	cfg.Port = port
-
-	cfg.Password = getEnv("REDIS_PASSWORD", "")
-
-	db, err := getEnvAsInt("REDIS_DB", 0)
-	if err != nil {
-		return err
-	}
-	cfg.DB = db
-
-	return nil
-}
-
-func loadJWTConfig(cfg *JWTConfig) error {
-	cfg.Secret = requireEnv("JWT_SECRET")
-
-	accessExpiry, err := getEnvAsDuration("JWT_ACCESS_TOKEN_EXPIRY", "15m")
-	if err != nil {
-		return err
-	}
-	cfg.AccessTokenExpiry = accessExpiry
-
-	refreshWebExpiry, err := getEnvAsDuration("JWT_REFRESH_TOKEN_EXPIRY_WEB", "168h")
-	if err != nil {
-		return err
-	}
-	cfg.RefreshTokenExpiryWeb = refreshWebExpiry
-
-	refreshMobileExpiry, err := getEnvAsDuration("JWT_REFRESH_TOKEN_EXPIRY_MOBILE", "2160h")
-	if err != nil {
-		return err
-	}
-	cfg.RefreshTokenExpiryMobile = refreshMobileExpiry
-
-	return nil
-}
-
-func loadLoggingConfig(cfg *LoggingConfig) error {
-	cfg.Level = getEnv("LOG_LEVEL", "info")
-	cfg.Format = getEnv("LOG_FORMAT", "json")
-	return nil
-}
-
-func loadCORSConfig(cfg *CORSConfig) error {
-	originsStr := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
-	cfg.AllowedOrigins = splitAndTrim(originsStr, ",")
-
-	methodsStr := getEnv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS")
-	cfg.AllowedMethods = splitAndTrim(methodsStr, ",")
-
-	headersStr := getEnv("CORS_ALLOWED_HEADERS", "Origin,Content-Type,Accept,Authorization")
-	cfg.AllowedHeaders = splitAndTrim(headersStr, ",")
-
-	allowCreds, err := getEnvAsBool("CORS_ALLOW_CREDENTIALS", true)
-	if err != nil {
-		return err
-	}
-	cfg.AllowCredentials = allowCreds
-
-	return nil
+	return result
 }
 
 // Validate validates the configuration
@@ -357,71 +398,4 @@ func (c *Config) GetRedisAddr() string {
 // IsProduction returns true if running in production environment
 func (c *Config) IsProduction() bool {
 	return c.Server.Environment == "production"
-}
-
-// Helper functions
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func requireEnv(key string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		panic(fmt.Sprintf("required environment variable %s is not set", key))
-	}
-	return value
-}
-
-func getEnvAsInt(key string, defaultValue int) (int, error) {
-	valueStr := os.Getenv(key)
-	if valueStr == "" {
-		return defaultValue, nil
-	}
-
-	value, err := strconv.Atoi(valueStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid integer value for %s: %s", key, valueStr)
-	}
-	return value, nil
-}
-
-func getEnvAsBool(key string, defaultValue bool) (bool, error) {
-	valueStr := os.Getenv(key)
-	if valueStr == "" {
-		return defaultValue, nil
-	}
-
-	value, err := strconv.ParseBool(valueStr)
-	if err != nil {
-		return false, fmt.Errorf("invalid boolean value for %s: %s", key, valueStr)
-	}
-	return value, nil
-}
-
-func getEnvAsDuration(key, defaultValue string) (time.Duration, error) {
-	valueStr := os.Getenv(key)
-	if valueStr == "" {
-		valueStr = defaultValue
-	}
-
-	duration, err := time.ParseDuration(valueStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid duration value for %s: %s", key, valueStr)
-	}
-	return duration, nil
-}
-
-func splitAndTrim(s, sep string) []string {
-	parts := strings.Split(s, sep)
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
 }
