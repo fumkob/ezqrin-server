@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/fumkob/eqzrin-server/config"
+	"github.com/fumkob/ezqrin-server/config"
 )
 
 func TestConfig(t *testing.T) {

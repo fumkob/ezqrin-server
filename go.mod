@@ -1,4 +1,4 @@
-module github.com/fumkob/eqzrin-server
+module github.com/fumkob/ezqrin-server
 
 go 1.25.5
 

@@ -7,19 +7,21 @@ set -e
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
     echo "Loading environment variables from .env..."
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source <(grep -v '^#' .env | sed 's/#.*$//' | grep -v '^$')
+    set +a
 fi
 
 # Set default values if not provided
-export DATABASE_HOST=${DATABASE_HOST:-postgres}
-export DATABASE_PORT=${DATABASE_PORT:-5432}
-export DATABASE_USER=${DATABASE_USER:-ezqrin}
-export DATABASE_PASSWORD=${DATABASE_PASSWORD:-ezqrin_dev}
-export DATABASE_NAME=${DATABASE_NAME:-ezqrin_db}
-export DATABASE_SSLMODE=${DATABASE_SSLMODE:-disable}
+export DB_HOST=${DB_HOST:-postgres}
+export DB_PORT=${DB_PORT:-5432}
+export DB_USER=${DB_USER:-ezqrin}
+export DB_PASSWORD=${DB_PASSWORD:-ezqrin_dev}
+export DB_NAME=${DB_NAME:-ezqrin_db}
+export DB_SSL_MODE=${DB_SSL_MODE:-disable}
 
 echo "Running migrations..."
-echo "Database: $DATABASE_USER@$DATABASE_HOST:$DATABASE_PORT/$DATABASE_NAME"
+echo "Database: $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME"
 
 # Run migrations
 go run cmd/migrate/main.go up
