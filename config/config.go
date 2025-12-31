@@ -153,11 +153,11 @@ func loadEnvFile(v *viper.Viper, filepath string) error {
 // This is the single source of truth for all environment variable bindings.
 var envKeyMap = map[string]string{
 	// Server
-	"SERVER_PORT":         "server.port",
-	"SERVER_ENV":          "server.environment",
-	"SERVER_READ_TIMEOUT": "server.read_timeout",
+	"SERVER_PORT":          "server.port",
+	"SERVER_ENV":           "server.environment",
+	"SERVER_READ_TIMEOUT":  "server.read_timeout",
 	"SERVER_WRITE_TIMEOUT": "server.write_timeout",
-	"SERVER_IDLE_TIMEOUT": "server.idle_timeout",
+	"SERVER_IDLE_TIMEOUT":  "server.idle_timeout",
 
 	// Database
 	"DB_HOST":              "database.host",

@@ -82,7 +82,7 @@ var _ = Describe("Config", func() {
 				Expect(cfg.Database.SSLMode).To(Equal("disable"))
 				Expect(cfg.Redis.Host).To(Equal("redis")) // From development.yaml (DevContainer)
 				Expect(cfg.Redis.Port).To(Equal(6379))
-				Expect(cfg.Logging.Level).To(Equal("debug"))  // From development.yaml
+				Expect(cfg.Logging.Level).To(Equal("debug")) // From development.yaml
 				Expect(cfg.Logging.Format).To(Equal("json")) // From default.yaml
 			})
 		})
