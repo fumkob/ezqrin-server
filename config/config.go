@@ -20,8 +20,11 @@ type Config struct {
 
 // ServerConfig contains server-related configuration
 type ServerConfig struct {
-	Port        int
-	Environment string
+	Port         int
+	Environment  string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 }
 
 // DatabaseConfig contains database connection configuration
@@ -117,6 +120,25 @@ func loadServerConfig(cfg *ServerConfig) error {
 	cfg.Port = port
 
 	cfg.Environment = getEnv("SERVER_ENV", "development")
+
+	readTimeout, err := getEnvAsDuration("SERVER_READ_TIMEOUT", "15s")
+	if err != nil {
+		return err
+	}
+	cfg.ReadTimeout = readTimeout
+
+	writeTimeout, err := getEnvAsDuration("SERVER_WRITE_TIMEOUT", "15s")
+	if err != nil {
+		return err
+	}
+	cfg.WriteTimeout = writeTimeout
+
+	idleTimeout, err := getEnvAsDuration("SERVER_IDLE_TIMEOUT", "60s")
+	if err != nil {
+		return err
+	}
+	cfg.IdleTimeout = idleTimeout
+
 	return nil
 }
 
@@ -234,6 +256,16 @@ func (c *Config) Validate() error {
 	validEnvs := map[string]bool{"development": true, "production": true}
 	if !validEnvs[c.Server.Environment] {
 		return fmt.Errorf("server environment must be 'development' or 'production', got '%s'", c.Server.Environment)
+	}
+
+	if c.Server.ReadTimeout <= 0 {
+		return fmt.Errorf("server read timeout must be positive")
+	}
+	if c.Server.WriteTimeout <= 0 {
+		return fmt.Errorf("server write timeout must be positive")
+	}
+	if c.Server.IdleTimeout <= 0 {
+		return fmt.Errorf("server idle timeout must be positive")
 	}
 
 	// Validate Database

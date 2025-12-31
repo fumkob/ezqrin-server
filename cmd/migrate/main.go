@@ -18,12 +18,12 @@ func main() {
 	}
 
 	// Build database connection string from environment variables
-	dbHost := getEnv("DATABASE_HOST", "postgres")
-	dbPort := getEnv("DATABASE_PORT", "5432")
-	dbUser := getEnv("DATABASE_USER", "ezqrin")
-	dbPassword := getEnv("DATABASE_PASSWORD", "ezqrin_dev")
-	dbName := getEnv("DATABASE_NAME", "ezqrin_db")
-	sslMode := getEnv("DATABASE_SSLMODE", "disable")
+	dbHost := getEnv("DB_HOST", "postgres")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "ezqrin")
+	dbPassword := getEnv("DB_PASSWORD", "ezqrin_dev")
+	dbName := getEnv("DB_NAME", "ezqrin_db")
+	sslMode := getEnv("DB_SSL_MODE", "disable")
 
 	databaseURL := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
@@ -108,12 +108,12 @@ func printUsage() {
 	fmt.Println("  version         Show current migration version")
 	fmt.Println("  force <version> Force set migration version (use with caution)")
 	fmt.Println("\nEnvironment Variables:")
-	fmt.Println("  DATABASE_HOST     Database host (default: postgres)")
-	fmt.Println("  DATABASE_PORT     Database port (default: 5432)")
-	fmt.Println("  DATABASE_USER     Database user (default: ezqrin)")
-	fmt.Println("  DATABASE_PASSWORD Database password (default: ezqrin_dev)")
-	fmt.Println("  DATABASE_NAME     Database name (default: ezqrin_db)")
-	fmt.Println("  DATABASE_SSLMODE  SSL mode (default: disable)")
+	fmt.Println("  DB_HOST     Database host (default: postgres)")
+	fmt.Println("  DB_PORT     Database port (default: 5432)")
+	fmt.Println("  DB_USER     Database user (default: ezqrin)")
+	fmt.Println("  DB_PASSWORD Database password (default: ezqrin_dev)")
+	fmt.Println("  DB_NAME     Database name (default: ezqrin_db)")
+	fmt.Println("  DB_SSL_MODE SSL mode (default: disable)")
 }
 
 func getEnv(key, defaultValue string) string {

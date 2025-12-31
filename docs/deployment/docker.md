@@ -281,13 +281,19 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=ezqrin
-      - DATABASE_PASSWORD=ezqrin_dev
-      - DATABASE_NAME=ezqrin_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=ezqrin
+      - DB_PASSWORD=ezqrin_dev
+      - DB_NAME=ezqrin_db
+      - DB_SSL_MODE=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - JWT_SECRET=dev-secret-key-minimum-32-chars-long-for-development-only
+      - SERVER_PORT=8080
+      - SERVER_ENV=development
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
     networks:
       - devcontainer-network
 
@@ -370,13 +376,18 @@ Create `.vscode/launch.json` for debugging:
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/api",
       "env": {
-        "DATABASE_HOST": "postgres",
-        "DATABASE_PORT": "5432",
-        "DATABASE_NAME": "ezqrin_db",
-        "DATABASE_USER": "ezqrin",
-        "DATABASE_PASSWORD": "ezqrin_dev",
+        "DB_HOST": "postgres",
+        "DB_PORT": "5432",
+        "DB_NAME": "ezqrin_db",
+        "DB_USER": "ezqrin",
+        "DB_PASSWORD": "ezqrin_dev",
+        "DB_SSL_MODE": "disable",
         "REDIS_HOST": "redis",
-        "REDIS_PORT": "6379"
+        "REDIS_PORT": "6379",
+        "JWT_SECRET": "dev-secret-key-minimum-32-chars-long-for-development-only",
+        "SERVER_PORT": "8080",
+        "SERVER_ENV": "development",
+        "LOG_LEVEL": "debug"
       },
       "args": []
     },
@@ -387,11 +398,12 @@ Create `.vscode/launch.json` for debugging:
       "mode": "test",
       "program": "${workspaceFolder}",
       "env": {
-        "DATABASE_HOST": "postgres",
-        "DATABASE_PORT": "5432",
-        "DATABASE_NAME": "ezqrin_test",
-        "DATABASE_USER": "ezqrin",
-        "DATABASE_PASSWORD": "ezqrin_dev"
+        "DB_HOST": "postgres",
+        "DB_PORT": "5432",
+        "DB_NAME": "ezqrin_test",
+        "DB_USER": "ezqrin",
+        "DB_PASSWORD": "ezqrin_dev",
+        "DB_SSL_MODE": "disable"
       }
     },
     {
@@ -733,7 +745,7 @@ psql -h postgres -U ezqrin -d ezqrin_db
 **Check environment variables:**
 
 ```bash
-env | grep DATABASE_
+env | grep DB_
 ```
 
 ### Port Already in Use
