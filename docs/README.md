@@ -41,8 +41,8 @@ for managing events, participants, and check-ins.
 
 ### 🚀 Deployment
 
-- [Docker Setup](./deployment/docker.md) - Docker and docker-compose configuration
-- [Environment Variables](./deployment/environment.md) - Configuration options
+- [Docker Setup](./deployment/docker.md) - DevContainer and docker-compose configuration
+- [Configuration Reference](./deployment/environment.md) - Hierarchical YAML configuration and environment variables
 
 ## Quick Start
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/fumkob/ezqrin-server/config"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -17,26 +18,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Build database connection string from environment variables
-	dbHost := getEnv("DB_HOST", "postgres")
-	dbPort := getEnv("DB_PORT", "5432")
-	dbUser := getEnv("DB_USER", "ezqrin")
-	dbPassword := getEnv("DB_PASSWORD", "ezqrin_dev")
-	dbName := getEnv("DB_NAME", "ezqrin_db")
-	sslMode := getEnv("DB_SSL_MODE", "disable")
+	// Load configuration using centralized config package
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
+	// Build database connection string from config
 	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbUser, dbPassword, dbHost, dbPort, dbName, sslMode,
+		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Name,
+		cfg.Database.SSLMode,
 	)
 
 	// Migration files directory
 	migrationsPath := "file://internal/infrastructure/database/migrations"
 
 	// Create migrate instance
-	m, err := migrate.New(migrationsPath, databaseURL)
-	if err != nil {
-		log.Fatalf("Failed to create migrate instance: %v", err)
+	m, migErr := migrate.New(migrationsPath, databaseURL)
+	if migErr != nil {
+		log.Fatalf("Failed to create migrate instance: %v", migErr)
 	}
 	defer m.Close()
 
@@ -107,18 +112,10 @@ func printUsage() {
 	fmt.Println("  step <n>        Apply next n migrations (use negative for rollback)")
 	fmt.Println("  version         Show current migration version")
 	fmt.Println("  force <version> Force set migration version (use with caution)")
-	fmt.Println("\nEnvironment Variables:")
-	fmt.Println("  DB_HOST     Database host (default: postgres)")
-	fmt.Println("  DB_PORT     Database port (default: 5432)")
-	fmt.Println("  DB_USER     Database user (default: ezqrin)")
-	fmt.Println("  DB_PASSWORD Database password (default: ezqrin_dev)")
-	fmt.Println("  DB_NAME     Database name (default: ezqrin_db)")
-	fmt.Println("  DB_SSL_MODE SSL mode (default: disable)")
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
+	fmt.Println("\nConfiguration:")
+	fmt.Println("  Database configuration is loaded from:")
+	fmt.Println("  1. config/default.yaml (base configuration)")
+	fmt.Println("  2. config/development.yaml or config/production.yaml (environment-specific)")
+	fmt.Println("  3. Environment variables (DB_USER, DB_PASSWORD, DB_NAME, etc.)")
+	fmt.Println("\n  See .env.secrets.example for required environment variables.")
 }

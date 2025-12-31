@@ -662,14 +662,63 @@ ginkgo watch -r
 
 ## Common Tasks
 
-### Environment Variables
+### Configuration Management
 
-Environment variables are set in `docker-compose.yml`. To modify:
+DevContainer uses **hierarchical YAML configuration** with environment variable overrides. Configuration is loaded in the following priority (highest to lowest):
 
-1. Edit `.devcontainer/docker-compose.yml`
+1. **Environment variables** from `docker-compose.yml` (highest priority)
+2. **Environment-specific YAML** (`config/development.yaml`)
+3. **Base YAML** (`config/default.yaml`)
+
+#### How It Works
+
+**Base Configuration** (`config/default.yaml`):
+- Contains environment-agnostic default values
+- Committed to repository
+- Provides sensible defaults for all environments
+
+**Development Overrides** (`config/development.yaml`):
+- Overrides base configuration for development environment
+- Sets `database.host: postgres` and `redis.host: redis` (DevContainer service names)
+- Enables debug logging
+- Committed to repository
+
+**Environment Variables** (`.devcontainer/docker-compose.yml`):
+- **Highest priority** - overrides all YAML configuration
+- Contains secrets (DB_PASSWORD, JWT_SECRET)
+- Set in docker-compose.yml `environment` section:
+
+```yaml
+environment:
+  - DB_HOST=postgres          # Overrides config/development.yaml
+  - DB_PASSWORD=ezqrin_dev    # Secret - not in YAML files
+  - JWT_SECRET=dev-secret-... # Secret - not in YAML files
+  - LOG_LEVEL=debug           # Overrides config/default.yaml
+```
+
+#### Secret Management
+
+**In DevContainer:**
+- Secrets are managed via `docker-compose.yml` environment variables
+- No `.env.secrets` file needed (secrets in docker-compose.yml)
+- Non-secret configuration in YAML files
+
+**For Local Development** (outside DevContainer):
+- Use `.env.secrets` file for secrets (gitignored)
+- Copy from `.env.secrets.example` template
+
+#### Modifying Configuration
+
+**To change non-secret configuration:**
+1. Edit `config/development.yaml` for development-specific values
+2. Edit `config/default.yaml` for values shared across all environments
+3. Restart application (Air will auto-reload)
+
+**To change secrets or override any configuration:**
+1. Edit `.devcontainer/docker-compose.yml` environment variables
 2. Rebuild container: `Dev Containers: Rebuild Container`
 
-For production-like settings, create `.env` file (see [Environment Variables](./environment.md)).
+For detailed configuration reference, see [Configuration Reference](./environment.md).
 
 ### Install Go Packages
 

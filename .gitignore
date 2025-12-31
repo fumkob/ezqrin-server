@@ -21,8 +21,13 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# env files and secrets
 .env
+.env.secrets
+config/local.yaml
+
+# Keep examples
+!.env.secrets.example
 
 # Editor/IDE
 .vscode/

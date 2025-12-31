@@ -1,26 +1,77 @@
-# Environment Variables
+# Configuration Reference
 
 ## Overview
 
-ezQRin uses environment variables for configuration management. This document describes the **MVP
-essential configuration** needed to run the application.
+ezQRin uses **hierarchical YAML configuration** with environment variable overrides for flexible and secure configuration management. This document describes the MVP configuration needed to run the application.
 
-> **Note**: Additional configuration options (production settings, cloud storage, wallet
-> integration, etc.) will be added as features are implemented.
+> **Note**: Additional configuration options (production settings, cloud storage, wallet integration, etc.) will be added as features are implemented.
+
+---
+
+## Configuration Structure
+
+### File-Based Configuration
+
+ezQRin uses a layered configuration approach:
+
+1. **`config/default.yaml`** - Base configuration values (committed to repository)
+2. **`config/development.yaml`** - Development environment overrides (committed to repository)
+3. **`config/production.yaml`** - Production environment overrides (committed to repository)
+4. **Environment variables** - Secrets and runtime overrides (highest priority)
+
+### Configuration Priority
+
+Configuration values are loaded in the following order (highest priority first):
+
+```
+1. Environment variables (DB_USER, DB_PASSWORD, etc.)
+   ↓ overrides
+2. Environment-specific YAML (development.yaml or production.yaml)
+   ↓ overrides
+3. Base YAML (default.yaml)
+```
+
+**Example:**
+- `config/default.yaml` sets `server.port: 8080`
+- `config/development.yaml` overrides with `database.host: postgres`
+- Environment variable `SERVER_PORT=9000` overrides both
+
+### Secret Management
+
+**Secrets** (passwords, API keys, tokens) are managed separately:
+
+- **`.env.secrets`** - For local development (gitignored)
+- **`docker-compose.yml` environment** - For DevContainer
+- **Environment variables** - For production deployments
+
+**Non-secrets** (timeouts, connection limits, URLs) are in YAML files and committed to the repository.
 
 ---
 
 ## Environment File Setup
 
-### .env.example
+### For DevContainer Users
 
-Create your local configuration file:
+If using DevContainer (`.devcontainer/`), secrets are automatically set via `docker-compose.yml`. **No additional setup required.**
+
+### For Local Development
+
+Create your secrets file:
 
 ```bash
-cp .env.example .env
+cp .env.secrets.example .env.secrets
 ```
 
-Edit `.env` with your specific values. **Never commit `.env` to version control.**
+Edit `.env.secrets` with your actual values:
+
+```bash
+DB_USER=ezqrin
+DB_PASSWORD=your-secure-password
+DB_NAME=ezqrin_db
+JWT_SECRET=your-jwt-secret-minimum-32-characters
+```
+
+**Never commit `.env.secrets` to version control.**
 
 ---
 

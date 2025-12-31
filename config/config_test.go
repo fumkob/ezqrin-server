@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 
 	"github.com/fumkob/ezqrin-server/config"
 )
@@ -19,10 +20,14 @@ var _ = Describe("Config", func() {
 	var originalEnv map[string]string
 
 	BeforeEach(func() {
+		// Reset viper to ensure clean state
+		viper.Reset()
+
 		// Save original environment variables
 		originalEnv = make(map[string]string)
 		envVars := []string{
 			"SERVER_PORT", "SERVER_ENV",
+			"SERVER_READ_TIMEOUT", "SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT",
 			"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSL_MODE",
 			"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
 			"REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD", "REDIS_DB",
@@ -45,6 +50,9 @@ var _ = Describe("Config", func() {
 				os.Unsetenv(key)
 			}
 		}
+
+		// Reset viper again for good measure
+		viper.Reset()
 	})
 
 	Describe("Load", func() {
@@ -62,16 +70,20 @@ var _ = Describe("Config", func() {
 				Expect(cfg).ToNot(BeNil())
 			})
 
-			It("should use default values for optional settings", func() {
+			It("should use default values from YAML files", func() {
 				cfg, err := config.Load()
 				Expect(err).ToNot(HaveOccurred())
 
+				// Values from default.yaml
 				Expect(cfg.Server.Port).To(Equal(8080))
-				Expect(cfg.Server.Environment).To(Equal("development"))
-				Expect(cfg.Database.Host).To(Equal("localhost"))
+				Expect(cfg.Server.Environment).To(Equal("development")) // From development.yaml (default env)
+				Expect(cfg.Database.Host).To(Equal("postgres"))         // From development.yaml (DevContainer)
 				Expect(cfg.Database.Port).To(Equal(5432))
-				Expect(cfg.Redis.Host).To(Equal("localhost"))
+				Expect(cfg.Database.SSLMode).To(Equal("disable"))
+				Expect(cfg.Redis.Host).To(Equal("redis")) // From development.yaml (DevContainer)
 				Expect(cfg.Redis.Port).To(Equal(6379))
+				Expect(cfg.Logging.Level).To(Equal("debug")) // From development.yaml
+				Expect(cfg.Logging.Format).To(Equal("json")) // From default.yaml
 			})
 		})
 
@@ -131,10 +143,10 @@ var _ = Describe("Config", func() {
 					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
-				It("should panic", func() {
-					Expect(func() {
-						config.Load()
-					}).To(Panic())
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("database user is required"))
 				})
 			})
 
@@ -145,10 +157,10 @@ var _ = Describe("Config", func() {
 					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
-				It("should panic", func() {
-					Expect(func() {
-						config.Load()
-					}).To(Panic())
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("database password is required"))
 				})
 			})
 
@@ -159,10 +171,10 @@ var _ = Describe("Config", func() {
 					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
-				It("should panic", func() {
-					Expect(func() {
-						config.Load()
-					}).To(Panic())
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("database name is required"))
 				})
 			})
 
@@ -173,10 +185,10 @@ var _ = Describe("Config", func() {
 					os.Setenv("DB_NAME", "testdb")
 				})
 
-				It("should panic", func() {
-					Expect(func() {
-						config.Load()
-					}).To(Panic())
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("jwt secret is required"))
 				})
 			})
 		})
@@ -197,7 +209,7 @@ var _ = Describe("Config", func() {
 				It("should return an error", func() {
 					_, err := config.Load()
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("invalid integer value"))
+					Expect(err.Error()).To(ContainSubstring("server port must be between 1 and 65535"))
 				})
 			})
 
@@ -209,7 +221,7 @@ var _ = Describe("Config", func() {
 				It("should return an error", func() {
 					_, err := config.Load()
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("invalid integer value"))
+					Expect(err.Error()).To(ContainSubstring("database port must be between 1 and 65535"))
 				})
 			})
 
@@ -221,7 +233,7 @@ var _ = Describe("Config", func() {
 				It("should return an error", func() {
 					_, err := config.Load()
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("invalid duration value"))
+					Expect(err.Error()).To(ContainSubstring("jwt access token expiry must be positive"))
 				})
 			})
 		})

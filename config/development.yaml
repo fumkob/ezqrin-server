@@ -1,0 +1,23 @@
+# ezQRin Server - Development Environment Configuration
+# This file overrides default.yaml settings for development environments.
+
+server:
+  environment: development
+
+database:
+  host: postgres  # DevContainer service name
+  port: 5432
+  ssl_mode: disable
+
+redis:
+  host: redis  # DevContainer service name
+  port: 6379
+
+logging:
+  level: debug
+  format: json
+
+cors:
+  allowed_origins:
+    - http://localhost:3000
+    - http://localhost:5173

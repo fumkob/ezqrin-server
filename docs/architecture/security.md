@@ -954,6 +954,176 @@ func SanitizeForLog(email string) string {
 
 ---
 
+## Secret Management Best Practices
+
+### Development Environment
+
+**Local Development:**
+
+```bash
+# Use .env.secrets file (gitignored)
+cp .env.secrets.example .env.secrets
+
+# Generate strong secrets
+openssl rand -base64 32  # For JWT_SECRET
+openssl rand -base64 32  # For DB_PASSWORD
+```
+
+**Security Requirements:**
+
+- **Never commit secrets** to version control
+  - `.env.secrets` is gitignored
+  - Use `.env.secrets.example` as template (without actual secrets)
+- **Generate strong random values**
+  - JWT Secret: Minimum 48 characters (recommended 64 characters)
+  - Database Password: Minimum 32 characters
+  - Use cryptographically secure random generators
+- **Separate secrets from configuration**
+  - Secrets in `.env.secrets` (gitignored)
+  - Non-secret configuration in YAML files (committed)
+
+**DevContainer:**
+
+- Secrets managed via `docker-compose.yml` environment variables
+- Development secrets only (never use production secrets)
+- No `.env.secrets` file needed in DevContainer
+
+### Production Environment
+
+**Secrets Management:**
+
+Production secrets should **never** be stored in configuration files or environment variable files. Use dedicated secret management services:
+
+**Recommended Services:**
+
+| Service                   | Use Case                        | Features                                     |
+| ------------------------- | ------------------------------- | -------------------------------------------- |
+| **AWS Secrets Manager**   | AWS-hosted applications         | Automatic rotation, audit logging, KMS       |
+| **GCP Secret Manager**    | GCP-hosted applications         | Versioning, IAM integration, audit logs      |
+| **Azure Key Vault**       | Azure-hosted applications       | HSM-backed, managed identities, RBAC         |
+| **HashiCorp Vault**       | Multi-cloud, on-premise         | Dynamic secrets, encryption as a service     |
+| **Kubernetes Secrets**    | Kubernetes deployments          | Native integration, etcd encryption          |
+| **Docker Secrets**        | Docker Swarm deployments        | Encrypted in transit and at rest             |
+
+**Implementation Example (AWS Secrets Manager):**
+
+```go
+import (
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/secretsmanager"
+)
+
+func GetSecret(secretName string) (string, error) {
+    sess := session.Must(session.NewSession())
+    svc := secretsmanager.New(sess)
+
+    input := &secretsmanager.GetSecretValueInput{
+        SecretId: aws.String(secretName),
+    }
+
+    result, err := svc.GetSecretValue(input)
+    if err != nil {
+        return "", err
+    }
+
+    return *result.SecretString, nil
+}
+
+// Usage in config loading
+jwtSecret, err := GetSecret("ezqrin/production/jwt-secret")
+dbPassword, err := GetSecret("ezqrin/production/db-password")
+```
+
+**Best Practices:**
+
+1. **Use Environment Variables** from orchestration platform:
+   ```yaml
+   # Kubernetes example
+   env:
+     - name: JWT_SECRET
+       valueFrom:
+         secretKeyRef:
+           name: ezqrin-secrets
+           key: jwt-secret
+   ```
+
+2. **Enable Secret Rotation**:
+   - Configure automatic rotation policies
+   - Update application to handle rotation gracefully
+   - Test rotation procedures regularly
+
+3. **Least Privilege Access**:
+   - Grant minimal permissions required
+   - Use IAM roles instead of access keys
+   - Implement MFA for secret management operations
+
+4. **Audit Secret Access**:
+   - Enable audit logging for all secret access
+   - Monitor for unusual access patterns
+   - Alert on unauthorized access attempts
+
+### Secret Rotation Strategy
+
+**JWT Secret Rotation:**
+
+```go
+// Support multiple valid secrets during rotation
+type JWTConfig struct {
+    CurrentSecret  string   // Primary signing key
+    PreviousSecrets []string // Still valid for verification
+}
+
+func ValidateToken(token string, config *JWTConfig) (*Claims, error) {
+    // Try current secret first
+    claims, err := validateWithSecret(token, config.CurrentSecret)
+    if err == nil {
+        return claims, nil
+    }
+
+    // Fall back to previous secrets
+    for _, secret := range config.PreviousSecrets {
+        claims, err := validateWithSecret(token, secret)
+        if err == nil {
+            return claims, nil
+        }
+    }
+
+    return nil, errors.New("invalid token")
+}
+```
+
+**Rotation Schedule:**
+
+- JWT Secret: Every 90 days
+- Database Password: Every 180 days (with application restart)
+- Redis Password: Every 180 days
+- API Keys: Every 365 days or on compromise
+
+### Security Checklist
+
+**Development:**
+- [ ] `.env.secrets` is in `.gitignore`
+- [ ] `.env.secrets.example` exists without actual secrets
+- [ ] All secrets are at least 32 characters
+- [ ] Different secrets for each environment
+
+**Production:**
+- [ ] Secrets stored in dedicated secret management service
+- [ ] No secrets in environment variable files
+- [ ] Secret rotation enabled
+- [ ] Audit logging configured
+- [ ] Backup and disaster recovery tested
+- [ ] Access control policies enforced
+
+**Never:**
+- ❌ Commit secrets to version control
+- ❌ Share secrets via email/chat
+- ❌ Use development secrets in production
+- ❌ Log secrets in application logs
+- ❌ Store secrets in plain text files
+
+---
+
 ## Future Enhancements
 
 ### Planned Security Features
