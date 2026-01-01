@@ -15,7 +15,7 @@ redis:
 
 logging:
   level: debug
-  format: json
+  format: text  # Human-readable console output with colors
 
 cors:
   allowed_origins:

@@ -88,9 +88,16 @@ func New(cfg Config) (*Logger, error) {
 		zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	} else {
 		zapCfg.Encoding = "console"
-		// Use colored encoder for console format in non-production environments
+		// Customize console output for better readability in development
 		if cfg.Environment != "production" {
+			// Use colored level encoder
 			zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+			// Use short time format (HH:MM:SS.mmm) instead of ISO8601
+			zapCfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05.000")
+			// Disable caller (file:line) for cleaner output
+			zapCfg.DisableCaller = true
+			// Disable stack traces for cleaner output
+			zapCfg.DisableStacktrace = true
 		}
 	}
 
