@@ -161,16 +161,16 @@ var envKeyMap = map[string]string{
 	"SERVER_IDLE_TIMEOUT":  "server.idle_timeout",
 
 	// Database
-	"DB_HOST":                "database.host",
-	"DB_PORT":                "database.port",
-	"DB_USER":                "database.user",
-	"DB_PASSWORD":            "database.password",
-	"DB_NAME":                "database.name",
-	"DB_SSL_MODE":            "database.ssl_mode",
-	"DB_MAX_CONNS":           "database.max_conns",
-	"DB_MIN_CONNS":           "database.min_conns",
-	"DB_MAX_CONN_LIFETIME":   "database.max_conn_lifetime",
-	"DB_MAX_CONN_IDLE_TIME":  "database.max_conn_idle_time",
+	"DB_HOST":               "database.host",
+	"DB_PORT":               "database.port",
+	"DB_USER":               "database.user",
+	"DB_PASSWORD":           "database.password",
+	"DB_NAME":               "database.name",
+	"DB_SSL_MODE":           "database.ssl_mode",
+	"DB_MAX_CONNS":          "database.max_conns",
+	"DB_MIN_CONNS":          "database.min_conns",
+	"DB_MAX_CONN_LIFETIME":  "database.max_conn_lifetime",
+	"DB_MAX_CONN_IDLE_TIME": "database.max_conn_idle_time",
 
 	// Redis
 	"REDIS_HOST":     "redis.host",
