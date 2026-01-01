@@ -15,6 +15,7 @@ import (
 
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 )
 
@@ -48,10 +49,17 @@ func main() {
 	}
 	defer cleanup()
 
+	// Setup router with dependencies
+	router := api.SetupRouter(&api.RouterDependencies{
+		Config: cfg,
+		Logger: appLogger,
+		DB:     appDB,
+	})
+
 	// Create HTTP server
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler:      setupRouter(cfg),
+		Handler:      router,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
@@ -149,23 +157,8 @@ func cleanup() {
 	}
 
 	if appLogger != nil {
+		// Sync logger before exit to flush any buffered logs
+		_ = appLogger.Sync()
 		appLogger.Info("cleanup completed")
 	}
-}
-
-// setupRouter configures and returns the HTTP router.
-// This will be implemented in Task 1.5 with Gin framework.
-func setupRouter(cfg *config.Config) http.Handler {
-	// TODO: Implement router with Gin (Task 1.5)
-	// For now, return a simple handler for testing
-	mux := http.NewServeMux()
-
-	// Basic health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"ok","environment":"%s"}`, cfg.Server.Environment)
-	})
-
-	return mux
 }
