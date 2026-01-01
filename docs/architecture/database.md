@@ -614,10 +614,10 @@ SELECT EXISTS(
 
 ```go
 config, _ := pgxpool.ParseConfig(connString)
-config.MaxConns = 25              // Max concurrent connections
-config.MinConns = 5               // Min idle connections
-config.MaxConnLifetime = 1 * time.Hour
-config.MaxConnIdleTime = 30 * time.Minute
+config.MaxConns = 25                        // Maximum connections in pool
+config.MinConns = 5                         // Minimum connections to maintain
+config.MaxConnLifetime = 1 * time.Hour      // Maximum lifetime of a connection
+config.MaxConnIdleTime = 30 * time.Minute   // Maximum idle time before closing
 ```
 
 **Benefits:**

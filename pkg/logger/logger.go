@@ -72,7 +72,6 @@ func New(cfg Config) (*Logger, error) {
 		zapCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	} else {
 		zapCfg = zap.NewDevelopmentConfig()
-		zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
 
 	// Set log level
@@ -85,8 +84,14 @@ func New(cfg Config) (*Logger, error) {
 	// Set output format
 	if cfg.Format == "json" {
 		zapCfg.Encoding = "json"
+		// Use non-colored encoder for JSON format to avoid escaped ANSI codes
+		zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	} else {
 		zapCfg.Encoding = "console"
+		// Use colored encoder for console format in non-production environments
+		if cfg.Environment != "production" {
+			zapCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		}
 	}
 
 	// Build logger

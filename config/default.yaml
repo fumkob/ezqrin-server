@@ -13,9 +13,10 @@ database:
   host: localhost
   port: 5432
   ssl_mode: disable
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: 5m
+  max_conns: 25
+  min_conns: 5
+  max_conn_lifetime: 1h
+  max_conn_idle_time: 30m
 
 redis:
   host: localhost

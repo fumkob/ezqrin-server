@@ -29,7 +29,7 @@ var _ = Describe("Config", func() {
 			"SERVER_PORT", "SERVER_ENV",
 			"SERVER_READ_TIMEOUT", "SERVER_WRITE_TIMEOUT", "SERVER_IDLE_TIMEOUT",
 			"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSL_MODE",
-			"DB_MAX_OPEN_CONNS", "DB_MAX_IDLE_CONNS", "DB_CONN_MAX_LIFETIME",
+			"DB_MAX_CONNS", "DB_MIN_CONNS", "DB_MAX_CONN_LIFETIME", "DB_MAX_CONN_IDLE_TIME",
 			"REDIS_HOST", "REDIS_PORT", "REDIS_PASSWORD", "REDIS_DB",
 			"JWT_SECRET", "JWT_ACCESS_TOKEN_EXPIRY", "JWT_REFRESH_TOKEN_EXPIRY_WEB", "JWT_REFRESH_TOKEN_EXPIRY_MOBILE",
 			"LOG_LEVEL", "LOG_FORMAT",
@@ -97,9 +97,10 @@ var _ = Describe("Config", func() {
 				os.Setenv("DB_PASSWORD", "prodpass")
 				os.Setenv("DB_NAME", "proddb")
 				os.Setenv("DB_SSL_MODE", "require")
-				os.Setenv("DB_MAX_OPEN_CONNS", "50")
-				os.Setenv("DB_MAX_IDLE_CONNS", "10")
-				os.Setenv("DB_CONN_MAX_LIFETIME", "10m")
+				os.Setenv("DB_MAX_CONNS", "50")
+				os.Setenv("DB_MIN_CONNS", "10")
+				os.Setenv("DB_MAX_CONN_LIFETIME", "10m")
+				os.Setenv("DB_MAX_CONN_IDLE_TIME", "5m")
 				os.Setenv("REDIS_HOST", "redis.example.com")
 				os.Setenv("REDIS_PORT", "6380")
 				os.Setenv("REDIS_PASSWORD", "redispass")
@@ -124,8 +125,8 @@ var _ = Describe("Config", func() {
 				Expect(cfg.Database.Password).To(Equal("prodpass"))
 				Expect(cfg.Database.Name).To(Equal("proddb"))
 				Expect(cfg.Database.SSLMode).To(Equal("require"))
-				Expect(cfg.Database.MaxOpenConns).To(Equal(50))
-				Expect(cfg.Database.MaxIdleConns).To(Equal(10))
+				Expect(cfg.Database.MaxConns).To(Equal(50))
+				Expect(cfg.Database.MinConns).To(Equal(10))
 				Expect(cfg.Redis.Host).To(Equal("redis.example.com"))
 				Expect(cfg.Redis.Port).To(Equal(6380))
 				Expect(cfg.Redis.Password).To(Equal("redispass"))

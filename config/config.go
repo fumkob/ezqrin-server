@@ -37,9 +37,10 @@ type DatabaseConfig struct {
 	Password        string
 	Name            string
 	SSLMode         string
-	MaxOpenConns    int
-	MaxIdleConns    int
-	ConnMaxLifetime time.Duration
+	MaxConns        int           // Maximum connections in pool (maps to pgxpool.MaxConns)
+	MinConns        int           // Minimum connections to maintain in pool (maps to pgxpool.MinConns)
+	MaxConnLifetime time.Duration // Maximum lifetime of a connection (maps to pgxpool.MaxConnLifetime)
+	MaxConnIdleTime time.Duration // Maximum idle time of a connection (maps to pgxpool.MaxConnIdleTime)
 }
 
 // RedisConfig contains Redis connection configuration
@@ -160,15 +161,16 @@ var envKeyMap = map[string]string{
 	"SERVER_IDLE_TIMEOUT":  "server.idle_timeout",
 
 	// Database
-	"DB_HOST":              "database.host",
-	"DB_PORT":              "database.port",
-	"DB_USER":              "database.user",
-	"DB_PASSWORD":          "database.password",
-	"DB_NAME":              "database.name",
-	"DB_SSL_MODE":          "database.ssl_mode",
-	"DB_MAX_OPEN_CONNS":    "database.max_open_conns",
-	"DB_MAX_IDLE_CONNS":    "database.max_idle_conns",
-	"DB_CONN_MAX_LIFETIME": "database.conn_max_lifetime",
+	"DB_HOST":               "database.host",
+	"DB_PORT":               "database.port",
+	"DB_USER":               "database.user",
+	"DB_PASSWORD":           "database.password",
+	"DB_NAME":               "database.name",
+	"DB_SSL_MODE":           "database.ssl_mode",
+	"DB_MAX_CONNS":          "database.max_conns",
+	"DB_MIN_CONNS":          "database.min_conns",
+	"DB_MAX_CONN_LIFETIME":  "database.max_conn_lifetime",
+	"DB_MAX_CONN_IDLE_TIME": "database.max_conn_idle_time",
 
 	// Redis
 	"REDIS_HOST":     "redis.host",
@@ -222,9 +224,10 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Database.Password = v.GetString("database.password")
 	cfg.Database.Name = v.GetString("database.name")
 	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
-	cfg.Database.MaxOpenConns = v.GetInt("database.max_open_conns")
-	cfg.Database.MaxIdleConns = v.GetInt("database.max_idle_conns")
-	cfg.Database.ConnMaxLifetime = v.GetDuration("database.conn_max_lifetime")
+	cfg.Database.MaxConns = v.GetInt("database.max_conns")
+	cfg.Database.MinConns = v.GetInt("database.min_conns")
+	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
+	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
 
 	cfg.Redis.Host = v.GetString("redis.host")
 	cfg.Redis.Port = v.GetInt("redis.port")
@@ -325,14 +328,20 @@ func (c *Config) Validate() error {
 	if c.Database.Name == "" {
 		return fmt.Errorf("database name is required")
 	}
-	if c.Database.MaxOpenConns < 1 {
-		return fmt.Errorf("database max open connections must be at least 1, got %d", c.Database.MaxOpenConns)
+	if c.Database.MaxConns < 1 {
+		return fmt.Errorf("database max open connections must be at least 1, got %d", c.Database.MaxConns)
 	}
-	if c.Database.MaxIdleConns < 0 {
-		return fmt.Errorf("database max idle connections cannot be negative, got %d", c.Database.MaxIdleConns)
+	if c.Database.MinConns < 0 {
+		return fmt.Errorf("database min connections cannot be negative, got %d", c.Database.MinConns)
 	}
-	if c.Database.ConnMaxLifetime < 0 {
+	if c.Database.MinConns > c.Database.MaxConns {
+		return fmt.Errorf("database min connections (%d) cannot exceed max connections (%d)", c.Database.MinConns, c.Database.MaxConns)
+	}
+	if c.Database.MaxConnLifetime < 0 {
 		return fmt.Errorf("database connection max lifetime cannot be negative")
+	}
+	if c.Database.MaxConnIdleTime < 0 {
+		return fmt.Errorf("database connection max idle time cannot be negative")
 	}
 
 	// Validate Redis

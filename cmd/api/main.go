@@ -11,7 +11,17 @@ import (
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
+)
+
+// Application dependencies
+var (
+	appDB     *database.PostgresDB
+	appLogger *logger.Logger
 )
 
 func main() {
@@ -21,11 +31,22 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Initialize dependencies (database, cache, etc.)
-	// This will be implemented in later tasks using a DI container
-	if err := initializeDependencies(cfg); err != nil {
-		log.Fatalf("Failed to initialize dependencies: %v", err)
+	// Initialize logger first (before other dependencies)
+	appLogger, err = logger.New(logger.Config{
+		Level:       cfg.Logging.Level,
+		Format:      cfg.Logging.Format,
+		Environment: cfg.Server.Environment,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
 	}
+
+	// Initialize dependencies (database, cache, etc.)
+	ctx := context.Background()
+	if err := initializeDependencies(ctx, cfg); err != nil {
+		appLogger.Fatal("failed to initialize dependencies", zap.Error(err))
+	}
+	defer cleanup()
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -39,7 +60,10 @@ func main() {
 	// Start server in a goroutine
 	serverErrors := make(chan error, 1)
 	go func() {
-		log.Printf("Starting server on port %d (environment: %s)", cfg.Server.Port, cfg.Server.Environment)
+		appLogger.Info("starting HTTP server",
+			zap.Int("port", cfg.Server.Port),
+			zap.String("environment", cfg.Server.Environment),
+		)
 		serverErrors <- srv.ListenAndServe()
 	}()
 
@@ -50,39 +74,83 @@ func main() {
 	// Block until we receive a signal or server error
 	select {
 	case err := <-serverErrors:
-		log.Fatalf("Server error: %v", err)
+		appLogger.Fatal("server error", zap.Error(err))
 
 	case sig := <-shutdown:
-		log.Printf("Received signal: %v. Starting graceful shutdown...", sig)
+		appLogger.Info("received shutdown signal, starting graceful shutdown",
+			zap.String("signal", sig.String()),
+		)
 
 		// Create context with timeout for shutdown
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
 		// Attempt graceful shutdown
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Error during shutdown: %v", err)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			appLogger.Error("error during shutdown", zap.Error(err))
 			if err := srv.Close(); err != nil {
-				log.Fatalf("Failed to close server: %v", err)
+				appLogger.Fatal("failed to close server", zap.Error(err))
 			}
 		}
 
-		log.Println("Server stopped gracefully")
+		appLogger.Info("server stopped gracefully")
 	}
 }
 
 // initializeDependencies initializes all application dependencies.
 // This includes database connections, cache, repositories, use cases, etc.
-// Implementation will be added in later tasks using dependency injection container.
-func initializeDependencies(cfg *config.Config) error {
-	// TODO: Initialize database connection (Task 1.4)
-	// TODO: Initialize Redis cache
-	// TODO: Initialize repositories
-	// TODO: Initialize use cases
-	// TODO: Initialize handlers
+// Note: Logger must be initialized before calling this function.
+func initializeDependencies(ctx context.Context, cfg *config.Config) error {
+	appLogger.Info("initializing application dependencies")
 
-	log.Println("Dependencies initialized (placeholder)")
+	// Initialize database
+	if err := initializeDatabase(ctx, cfg); err != nil {
+		return err
+	}
+
+	// TODO: Initialize Redis cache (Task 1.6)
+	// TODO: Initialize repositories (future tasks)
+	// TODO: Initialize use cases (future tasks)
+	// TODO: Initialize handlers (future tasks)
+
+	appLogger.Info("dependencies initialized successfully")
 	return nil
+}
+
+// initializeDatabase establishes database connection and waits for it to become healthy.
+func initializeDatabase(ctx context.Context, cfg *config.Config) error {
+	var err error
+	appDB, err = database.NewPostgresDB(ctx, &cfg.Database, appLogger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize database: %w", err)
+	}
+
+	// Wait for database to become healthy (30 second timeout, 5 second retry interval)
+	healthCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if err := appDB.WaitForHealthy(healthCtx, 5*time.Second); err != nil {
+		appDB.Close()
+		return fmt.Errorf("database not healthy: %w", err)
+	}
+
+	appLogger.Info("database connection established and healthy")
+	return nil
+}
+
+// cleanup gracefully closes all application dependencies.
+func cleanup() {
+	if appLogger != nil {
+		appLogger.Info("shutting down application dependencies")
+	}
+
+	if appDB != nil {
+		appDB.Close()
+	}
+
+	if appLogger != nil {
+		appLogger.Info("cleanup completed")
+	}
 }
 
 // setupRouter configures and returns the HTTP router.
