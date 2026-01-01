@@ -6,6 +6,7 @@ import (
 
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -20,6 +21,7 @@ type RouterDependencies struct {
 
 // SetupRouter creates and configures the Gin HTTP router with all middleware and routes.
 // It applies middleware in the correct order: RequestID → Logging → Recovery → CORS.
+// Routes are registered using OpenAPI-generated code for type safety and spec compliance.
 func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	// Set Gin mode based on environment
 	if deps.Config.IsProduction() {
@@ -43,22 +45,13 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	router.Use(middleware.Recovery(deps.Logger))   // Recover from panics
 	router.Use(middleware.CORS(&deps.Config.CORS)) // Handle CORS
 
-	// Register routes
-	registerHealthRoutes(router, deps)
+	// Register OpenAPI-generated routes
+	// This automatically registers all routes defined in the OpenAPI specification
+	healthHandler := handler.NewHealthHandler(deps.DB, deps.Logger)
+	generated.RegisterHandlers(router, healthHandler)
+
 	// TODO: Register API routes (Task 2.3, 3.2, 4.3, 5.2)
+	// Future handlers will also implement generated.ServerInterface and be registered here
 
 	return router
-}
-
-// registerHealthRoutes registers health check endpoints
-func registerHealthRoutes(router *gin.Engine, deps *RouterDependencies) {
-	healthHandler := handler.NewHealthHandler(deps.DB, deps.Logger)
-
-	// Health check routes (no authentication required)
-	health := router.Group("/health")
-	{
-		health.GET("", healthHandler.Health)      // Basic health check
-		health.GET("/ready", healthHandler.Ready) // Readiness probe
-		health.GET("/live", healthHandler.Live)   // Liveness probe
-	}
 }

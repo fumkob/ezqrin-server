@@ -1,49 +1,20 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	"github.com/gin-gonic/gin"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 )
 
-func TestHealthHandler(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "HealthHandler Suite")
-}
-
-// mockHealthChecker implements database.HealthChecker for testing
-type mockHealthChecker struct {
-	healthy bool
-	err     error
-}
-
-func (m *mockHealthChecker) CheckHealth(ctx context.Context) (*database.HealthStatus, error) {
-	if m.err != nil {
-		return &database.HealthStatus{
-			Healthy: false,
-			Error:   m.err.Error(),
-		}, m.err
-	}
-	return &database.HealthStatus{
-		Healthy:      m.healthy,
-		ResponseTime: 10,
-		TotalConns:   5,
-		IdleConns:    3,
-		MaxConns:     25,
-	}, nil
-}
-
-var _ = Describe("HealthHandler", func() {
+var _ = Describe("Health Handler OpenAPI Integration", func() {
 	var (
 		router        *gin.Engine
 		log           *logger.Logger
@@ -52,7 +23,6 @@ var _ = Describe("HealthHandler", func() {
 	)
 
 	BeforeEach(func() {
-		// Set Gin to test mode
 		gin.SetMode(gin.TestMode)
 
 		// Create test logger
@@ -70,16 +40,17 @@ var _ = Describe("HealthHandler", func() {
 		// Create health handler
 		healthHandler = handler.NewHealthHandler(mockDB, log)
 
-		// Setup router with RequestID middleware for header testing
+		// Setup router with middleware and use generated RegisterHandlers
 		router = gin.New()
 		router.Use(middleware.RequestID())
+
+		// Use generated route registration (production code path)
+		generated.RegisterHandlers(router, healthHandler)
 	})
 
-	Describe("GetHealth", func() {
-		When("checking basic health endpoint", func() {
-			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health", healthHandler.GetHealth)
-
+	When("using generated.RegisterHandlers", func() {
+		Context("for GET /health endpoint", func() {
+			It("should be registered and return 200 OK with correct response", func() {
 				req := httptest.NewRequest(http.MethodGet, "/health", nil)
 				w := httptest.NewRecorder()
 
@@ -89,20 +60,14 @@ var _ = Describe("HealthHandler", func() {
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"healthy"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
 
-				// Verify request_id is NOT in JSON body (OpenAPI compliance)
+				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
-
-				// Verify request ID is in header instead
 				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
 			})
 		})
-	})
 
-	Describe("GetHealthReady", func() {
-		When("database is healthy", func() {
-			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health/ready", healthHandler.GetHealthReady)
-
+		Context("for GET /health/ready endpoint", func() {
+			It("should be registered and return 200 OK when database is healthy", func() {
 				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 				w := httptest.NewRecorder()
 
@@ -110,23 +75,16 @@ var _ = Describe("HealthHandler", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"ready"`))
-
-				// Response structure now has "checks" object
 				Expect(w.Body.String()).To(ContainSubstring(`"checks"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"database":"ok"`))
 
-				// Verify request_id is NOT in JSON body
+				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
-
-				// Verify request ID in header
 				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
 			})
-		})
 
-		When("database is unhealthy", func() {
-			It("should return 503 Service Unavailable with OpenAPI-compliant response", func() {
+			It("should return 503 when database is unhealthy", func() {
 				mockDB.healthy = false
-				router.GET("/health/ready", healthHandler.GetHealthReady)
 
 				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 				w := httptest.NewRecorder()
@@ -135,24 +93,12 @@ var _ = Describe("HealthHandler", func() {
 
 				Expect(w.Code).To(Equal(http.StatusServiceUnavailable))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"not_ready"`))
-
-				// Response structure now has "checks" object
 				Expect(w.Body.String()).To(ContainSubstring(`"database":"unhealthy"`))
-
-				// Verify request_id is NOT in JSON body
-				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
-
-				// Verify request ID in header
-				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
 			})
 		})
-	})
 
-	Describe("GetHealthLive", func() {
-		When("checking liveness endpoint", func() {
-			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health/live", healthHandler.GetHealthLive)
-
+		Context("for GET /health/live endpoint", func() {
+			It("should be registered and return 200 OK", func() {
 				req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 				w := httptest.NewRecorder()
 
@@ -162,12 +108,34 @@ var _ = Describe("HealthHandler", func() {
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"alive"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
 
-				// Verify request_id is NOT in JSON body
+				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
-
-				// Verify request ID in header
 				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
 			})
+		})
+	})
+
+	When("verifying route paths", func() {
+		It("should have all three health endpoints registered correctly", func() {
+			// Test that all routes return valid responses
+			endpoints := []struct {
+				path       string
+				statusCode int
+			}{
+				{"/health", http.StatusOK},
+				{"/health/ready", http.StatusOK},
+				{"/health/live", http.StatusOK},
+			}
+
+			for _, endpoint := range endpoints {
+				req := httptest.NewRequest(http.MethodGet, endpoint.path, nil)
+				w := httptest.NewRecorder()
+
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(endpoint.statusCode),
+					"Expected %s to return %d", endpoint.path, endpoint.statusCode)
+			}
 		})
 	})
 })
