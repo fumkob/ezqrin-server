@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"testing"
 
+	pkgerrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	pkgerrors "github.com/fumkob/ezqrin-server/pkg/errors"
 )
 
 func TestErrors(t *testing.T) {

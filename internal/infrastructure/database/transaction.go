@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 )
 
 // txKey is the context key for storing pgx.Tx

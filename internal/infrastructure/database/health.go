@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
-
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // HealthChecker defines the interface for database health checking

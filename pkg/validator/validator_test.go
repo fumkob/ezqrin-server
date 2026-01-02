@@ -3,11 +3,10 @@ package validator_test
 import (
 	"testing"
 
+	"github.com/fumkob/ezqrin-server/pkg/validator"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/fumkob/ezqrin-server/pkg/validator"
 )
 
 func TestValidator(t *testing.T) {

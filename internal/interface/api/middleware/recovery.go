@@ -5,12 +5,11 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // Recovery is a middleware that recovers from panics and logs the stack trace.

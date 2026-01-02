@@ -2,14 +2,13 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"github.com/gin-gonic/gin"
 )
 
 // RouterDependencies holds all dependencies required to setup the router

@@ -1,12 +1,17 @@
 package middleware
 
 import (
+	"net/http"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+)
 
-	"github.com/fumkob/ezqrin-server/pkg/logger"
+const (
+	httpStatusServerError = http.StatusInternalServerError // 500
+	httpStatusClientError = http.StatusBadRequest          // 400
 )
 
 // Logging is a middleware that logs HTTP request and response information.
@@ -50,9 +55,9 @@ func Logging(log *logger.Logger) gin.HandlerFunc {
 
 		// Log at appropriate level based on status code
 		statusCode := c.Writer.Status()
-		if statusCode >= 500 {
+		if statusCode >= httpStatusServerError {
 			log.WithRequestID(reqID).Error("request completed with server error", fields...)
-		} else if statusCode >= 400 {
+		} else if statusCode >= httpStatusClientError {
 			log.WithRequestID(reqID).Warn("request completed with client error", fields...)
 		} else {
 			log.WithRequestID(reqID).Info("request completed", fields...)

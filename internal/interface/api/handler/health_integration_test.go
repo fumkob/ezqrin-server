@@ -4,14 +4,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/gin-gonic/gin"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"github.com/gin-gonic/gin"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Health Handler OpenAPI Integration", func() {

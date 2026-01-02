@@ -11,12 +11,17 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"go.uber.org/zap"
+)
+
+const (
+	shutdownTimeout      = 15 * time.Second
+	dbHealthCheckTimeout = 30 * time.Second
+	dbRetryInterval      = 5 * time.Second
 )
 
 // Application dependencies
@@ -56,15 +61,24 @@ func main() {
 		DB:     appDB,
 	})
 
-	// Create HTTP server
-	srv := &http.Server{
+	// Create and run HTTP server
+	srv := createServer(cfg, router)
+	runServerWithGracefulShutdown(srv, cfg)
+}
+
+// createServer creates and configures the HTTP server.
+func createServer(cfg *config.Config, handler http.Handler) *http.Server {
+	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler:      router,
+		Handler:      handler,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
+}
 
+// runServerWithGracefulShutdown starts the server and handles graceful shutdown.
+func runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
 	// Start server in a goroutine
 	serverErrors := make(chan error, 1)
 	go func() {
@@ -90,7 +104,7 @@ func main() {
 		)
 
 		// Create context with timeout for shutdown
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
 		// Attempt graceful shutdown
@@ -133,11 +147,11 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	// Wait for database to become healthy (30 second timeout, 5 second retry interval)
-	healthCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// Wait for database to become healthy
+	healthCtx, cancel := context.WithTimeout(ctx, dbHealthCheckTimeout)
 	defer cancel()
 
-	if err := appDB.WaitForHealthy(healthCtx, 5*time.Second); err != nil {
+	if err := appDB.WaitForHealthy(healthCtx, dbRetryInterval); err != nil {
 		appDB.Close()
 		return fmt.Errorf("database not healthy: %w", err)
 	}

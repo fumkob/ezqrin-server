@@ -2,10 +2,9 @@
 package middleware
 
 import (
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"github.com/fumkob/ezqrin-server/pkg/logger"
 )
 
 const (
