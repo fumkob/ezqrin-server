@@ -4,21 +4,30 @@ Complete list of error codes returned by the ezQRin API with detailed explanatio
 
 ## Error Response Format
 
-All errors follow a standard format:
+All errors follow [RFC 9457 Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html):
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": {
-      "field": "Details about the error"
-    }
-  },
-  "request_id": "req_123456789"
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "The requested event was not found",
+  "instance": "/api/v1/events/evt_123",
+  "code": "NOT_FOUND"
 }
 ```
+
+**RFC 9457 Fields:**
+
+- `type` (required): URI identifying the problem type
+- `title` (required): Short, human-readable summary
+- `status` (required): HTTP status code
+- `detail` (required): Human-readable explanation
+- `instance` (required): URI identifying this occurrence
+- `code` (extension): Machine-readable error code for backward compatibility
+- `errors` (extension): Validation error details (if applicable)
+
+**Note:** Request IDs are provided in the `X-Request-ID` HTTP header, not in the response body.
 
 **Standard HTTP Status Codes:**
 

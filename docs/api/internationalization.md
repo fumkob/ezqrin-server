@@ -83,18 +83,20 @@ For authenticated users, language preference stored in user profile:
 
 ## Response Language
 
-All responses include language information:
+All responses include language information in headers:
 
+**Headers:**
+```
+Content-Language: ja-JP
+X-Locale-Timezone: Asia/Tokyo
+```
+
+**Response body:**
 ```json
 {
-  "success": true,
-  "data": { ... },
-  "language": "ja-JP",
-  "locale": {
-    "language_code": "ja",
-    "country_code": "JP",
-    "timezone": "Asia/Tokyo"
-  }
+  "id": "evt_123",
+  "name": "イベント名",
+  "description": "..."
 }
 ```
 
@@ -220,14 +222,11 @@ GET /api/v1/events/123?lang=ja-JP
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "テックカンファレンス2025",
-    "description": "毎年開催されるテクノロジーカンファレンス...",
-    "location": "サンフランシスコ・コンベンションセンター",
-    "language": "ja-JP"
-  }
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "テックカンファレンス2025",
+  "description": "毎年開催されるテクノロジーカンファレンス...",
+  "location": "サンフランシスコ・コンベンションセンター",
+  "language": "ja-JP"
 }
 ```
 
@@ -273,7 +272,6 @@ GET /api/v1/events/123/email-templates?language=ja-JP
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "tpl_default_jp",
@@ -282,7 +280,10 @@ GET /api/v1/events/123/email-templates?language=ja-JP
       "subject": "Your QR Code for {event_name}",
       "is_system": true
     }
-  ]
+  ],
+  "meta": {
+    "total": 1
+  }
 }
 ```
 
@@ -482,13 +483,18 @@ Accept-Language: ja-JP
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "EVENT_NOT_FOUND",
-    "message": "イベントが見つかりません"
-  },
-  "language": "ja-JP"
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "リソースが見つかりません",
+  "status": 404,
+  "detail": "イベントが見つかりません",
+  "instance": "/api/v1/events/550e8400",
+  "code": "EVENT_NOT_FOUND"
 }
+```
+
+**Response Headers:**
+```
+Content-Language: ja-JP
 ```
 
 ### Send Emails (Multilingual)

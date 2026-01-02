@@ -1,86 +1,100 @@
-// Package response provides standard HTTP response structures for the API.
+// Package response provides RFC 9457 Problem Details responses and direct data responses.
 //
-// This package defines consistent response formats for both success and error cases.
+// This package implements RFC 9457 (Problem Details for HTTP APIs) for error responses
+// and returns data directly (without wrappers) for successful responses.
+//
 // Request IDs are provided in the X-Request-ID HTTP header (added by middleware),
 // not in response bodies, following OpenAPI specification and industry standards.
 //
 // Example usage:
 //
-//	// Success response
-//	response.Success(c, http.StatusOK, userData, "User retrieved successfully")
+//	// Success response (single entity)
+//	response.Data(c, http.StatusOK, userData)
 //
-//	// Error response
-//	response.Error(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
+//	// Success response (collection with pagination)
+//	response.List(c, http.StatusOK, events, paginationMeta)
 //
-//	// Error from AppError
-//	if err := userUsecase.GetUser(id); err != nil {
-//		response.ErrorFromAppError(c, err)
-//		return
-//	}
+//	// Empty success response
+//	response.NoContent(c)
+//
+//	// Error response from AppError
+//	response.ProblemFromError(c, err)
+//
+//	// Validation error
+//	response.ValidationProblem(c, validationErrors)
 package response
 
 import (
 	"errors"
 	"net/http"
 
+	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/gin-gonic/gin"
 )
 
-// SuccessResponse represents a successful API response
-// Request ID is provided in the X-Request-ID HTTP header, not in the response body
-type SuccessResponse struct {
-	Success bool        `json:"success"`
-	Data    interface{} `json:"data,omitempty"`
-	Message string      `json:"message,omitempty"`
+// ProblemDetails represents an RFC 9457 Problem Details response
+type ProblemDetails struct {
+	Type     string                      `json:"type"`             // URI reference identifying the problem type
+	Title    string                      `json:"title"`            // Short, human-readable summary
+	Status   int                         `json:"status"`           // HTTP status code
+	Detail   string                      `json:"detail"`           // Human-readable explanation
+	Instance string                      `json:"instance"`         // URI reference identifying the specific occurrence
+	Code     string                      `json:"code,omitempty"`   // Extension: Application error code
+	Errors   []generated.ValidationError `json:"errors,omitempty"` // Extension: Validation errors array
 }
 
-// ErrorResponse represents an error API response
-// Request ID is provided in the X-Request-ID HTTP header, not in the response body
-type ErrorResponse struct {
-	Success bool        `json:"success"`
-	Error   ErrorDetail `json:"error"`
+// ListResponse represents a paginated list response with data and metadata
+type ListResponse struct {
+	Data interface{}              `json:"data"`
+	Meta generated.PaginationMeta `json:"meta"`
 }
 
-// ErrorDetail contains detailed error information
-type ErrorDetail struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
+// Data sends a successful JSON response with the data directly (no wrapper)
+func Data(c *gin.Context, statusCode int, data interface{}) {
+	c.JSON(statusCode, data)
 }
 
-// Success sends a successful JSON response with the given data and message
-// Request ID is automatically added to response headers by the RequestID middleware
-func Success(c *gin.Context, statusCode int, data interface{}, message string) {
-	c.JSON(statusCode, SuccessResponse{
-		Success: true,
-		Data:    data,
-		Message: message,
+// List sends a successful JSON response with paginated data
+func List(c *gin.Context, statusCode int, data interface{}, meta generated.PaginationMeta) {
+	c.JSON(statusCode, ListResponse{
+		Data: data,
+		Meta: meta,
 	})
 }
 
-// Error sends an error JSON response with the given status code, error code, and message
-func Error(c *gin.Context, statusCode int, errorCode, message string) {
-	ErrorWithDetails(c, statusCode, errorCode, message, nil)
+// NoContent sends a 204 No Content response with no body
+func NoContent(c *gin.Context) {
+	c.Status(http.StatusNoContent)
 }
 
-// ErrorWithDetails sends an error JSON response with additional details
-// Request ID is automatically added to response headers by the RequestID middleware
-func ErrorWithDetails(c *gin.Context, statusCode int, errorCode, message string, details interface{}) {
-	c.JSON(statusCode, ErrorResponse{
-		Success: false,
-		Error: ErrorDetail{
-			Code:    errorCode,
-			Message: message,
-			Details: details,
-		},
+// Problem sends an RFC 9457 Problem Details error response
+func Problem(c *gin.Context, statusCode int, problemType, title, detail string) {
+	c.JSON(statusCode, ProblemDetails{
+		Type:     problemType,
+		Title:    title,
+		Status:   statusCode,
+		Detail:   detail,
+		Instance: c.Request.URL.Path,
 	})
 }
 
-// ErrorFromAppError sends an error response based on an AppError
-func ErrorFromAppError(c *gin.Context, err error) {
+// ProblemWithCode sends an RFC 9457 Problem Details error response with error code extension
+func ProblemWithCode(c *gin.Context, statusCode int, code, detail string) {
+	c.JSON(statusCode, ProblemDetails{
+		Type:     apperrors.ToTypeURL(code),
+		Title:    apperrors.GetTitle(code),
+		Status:   statusCode,
+		Detail:   detail,
+		Instance: c.Request.URL.Path,
+		Code:     code,
+	})
+}
+
+// ProblemFromError sends an RFC 9457 Problem Details response based on an AppError
+func ProblemFromError(c *gin.Context, err error) {
 	if err == nil {
-		Success(c, http.StatusOK, nil, "")
+		NoContent(c)
 		return
 	}
 
@@ -91,27 +105,58 @@ func ErrorFromAppError(c *gin.Context, err error) {
 	// Get the error message
 	message := err.Error()
 
-	// Check if it's an AppError to extract clean message
+	// Check if it's an AppError to extract details
 	var appErr *apperrors.AppError
 	if errors.As(err, &appErr) {
 		message = appErr.Message
+
+		// If validation errors exist, include them
+		if len(appErr.ValidationErrors) > 0 {
+			c.JSON(statusCode, ProblemDetails{
+				Type:     apperrors.ToTypeURL(errorCode),
+				Title:    apperrors.GetTitle(errorCode),
+				Status:   statusCode,
+				Detail:   message,
+				Instance: c.Request.URL.Path,
+				Code:     errorCode,
+				Errors:   appErr.ValidationErrors,
+			})
+			return
+		}
 	}
 
-	Error(c, statusCode, errorCode, message)
+	ProblemWithCode(c, statusCode, errorCode, message)
 }
 
-// ValidationErrors sends a validation error response with field-level details
-func ValidationErrors(c *gin.Context, validationErrors interface{}) {
-	ErrorWithDetails(
-		c,
-		http.StatusBadRequest,
-		apperrors.CodeValidation,
-		"Validation failed",
-		validationErrors,
-	)
+// ValidationProblem sends an RFC 9457 Problem Details validation error response
+func ValidationProblem(c *gin.Context, validationErrors []generated.ValidationError) {
+	c.JSON(http.StatusBadRequest, ProblemDetails{
+		Type:     apperrors.ToTypeURL(apperrors.CodeValidation),
+		Title:    apperrors.GetTitle(apperrors.CodeValidation),
+		Status:   http.StatusBadRequest,
+		Detail:   "One or more validation errors occurred",
+		Instance: c.Request.URL.Path,
+		Code:     apperrors.CodeValidation,
+		Errors:   validationErrors,
+	})
 }
 
-// InternalError sends a 500 Internal Server Error response
-func InternalError(c *gin.Context, message string) {
-	Error(c, http.StatusInternalServerError, apperrors.CodeInternal, message)
+// InternalProblem sends an RFC 9457 Problem Details 500 Internal Server Error response
+func InternalProblem(c *gin.Context, detail string) {
+	ProblemWithCode(c, http.StatusInternalServerError, apperrors.CodeInternal, detail)
+}
+
+// NotFoundProblem sends an RFC 9457 Problem Details 404 Not Found response
+func NotFoundProblem(c *gin.Context, detail string) {
+	ProblemWithCode(c, http.StatusNotFound, apperrors.CodeNotFound, detail)
+}
+
+// UnauthorizedProblem sends an RFC 9457 Problem Details 401 Unauthorized response
+func UnauthorizedProblem(c *gin.Context, detail string) {
+	ProblemWithCode(c, http.StatusUnauthorized, apperrors.CodeUnauthorized, detail)
+}
+
+// ForbiddenProblem sends an RFC 9457 Problem Details 403 Forbidden response
+func ForbiddenProblem(c *gin.Context, detail string) {
+	ProblemWithCode(c, http.StatusForbidden, apperrors.CodeForbidden, detail)
 }

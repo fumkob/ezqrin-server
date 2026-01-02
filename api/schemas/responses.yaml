@@ -1,62 +1,55 @@
-# Response Wrapper Schemas
-# These define the standard response structures used across all API endpoints
+# Response Schemas
+# RFC 9457 Problem Details for errors, direct data for success responses
 
-StandardResponse:
+ProblemDetails:
   type: object
-  required:
-    - success
+  description: RFC 9457 Problem Details - all fields are optional
   properties:
-    success:
-      type: boolean
-      description: Indicates if the operation was successful
-      example: true
-    data:
-      description: Response payload (entity or collection)
-    message:
+    type:
       type: string
-      description: Human-readable success message
-      example: "Operation successful"
-    meta:
-      description: Metadata (pagination, counts, etc.)
+      format: uri
+      description: URI reference identifying the problem type
+      example: "https://api.ezqrin.com/problems/not-found"
+    title:
+      type: string
+      description: Short, human-readable summary of the problem type
+      example: "Resource Not Found"
+    status:
+      type: integer
+      description: HTTP status code
+      example: 404
+    detail:
+      type: string
+      description: Human-readable explanation specific to this occurrence
+      example: "The requested event was not found"
+    instance:
+      type: string
+      format: uri-reference
+      description: URI reference identifying the specific occurrence of the problem
+      example: "/api/v1/events/123"
+    code:
+      type: string
+      description: Machine-readable error code (extension for backward compatibility)
+      example: "NOT_FOUND"
+    errors:
+      type: array
+      description: Validation errors (extension for validation problems)
+      items:
+        $ref: '#/ValidationError'
 
-ErrorResponse:
+ListResponse:
   type: object
   required:
-    - success
-    - error
+    - data
+    - meta
   properties:
-    success:
-      type: boolean
-      description: Always false for error responses
-      example: false
-    error:
-      type: object
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: string
-          description: Machine-readable error code (UPPER_SNAKE_CASE)
-          example: "EVENT_NOT_FOUND"
-        message:
-          type: string
-          description: Human-readable error description
-          example: "The requested event was not found"
-        details:
-          type: array
-          description: Additional error details (validation errors, etc.)
-          items:
-            type: object
-            properties:
-              field:
-                type: string
-                description: Field name that caused the error
-                example: "email"
-              message:
-                type: string
-                description: Field-specific error message
-                example: "Invalid email format"
+    data:
+      type: array
+      description: Array of items
+      items:
+        type: object
+    meta:
+      $ref: '#/PaginationMeta'
 
 PaginationMeta:
   type: object
@@ -87,3 +80,18 @@ PaginationMeta:
       minimum: 0
       description: Total number of pages
       example: 8
+
+ValidationError:
+  type: object
+  required:
+    - field
+    - message
+  properties:
+    field:
+      type: string
+      description: Field name that caused the error
+      example: "email"
+    message:
+      type: string
+      description: Field-specific error message
+      example: "Invalid email format"

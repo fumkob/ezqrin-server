@@ -2,18 +2,16 @@ package middleware
 
 import (
 	"fmt"
-	"net/http"
 	"runtime/debug"
 
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
-	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 // Recovery is a middleware that recovers from panics and logs the stack trace.
-// It returns a 500 Internal Server Error response to the client and logs
+// It returns an RFC 9457 Problem Details response to the client and logs
 // the panic details for debugging.
 func Recovery(log *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -34,15 +32,13 @@ func Recovery(log *logger.Logger) gin.HandlerFunc {
 					zap.String("path", c.Request.URL.Path),
 				)
 
-				// Abort request with 500 error response
+				// Abort request
 				c.Abort()
 
-				// Send error response if headers not already sent
+				// Send RFC 9457 Problem Details response if headers not already sent
 				if !c.Writer.Written() {
-					response.Error(
+					response.InternalProblem(
 						c,
-						http.StatusInternalServerError,
-						apperrors.CodeInternal,
 						fmt.Sprintf("Internal server error: %v", err),
 					)
 				}

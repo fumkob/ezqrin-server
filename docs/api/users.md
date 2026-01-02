@@ -41,32 +41,28 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "success": true,
-  "data": {
-    "users": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "email": "john@example.com",
-        "name": "John Doe",
-        "role": "organizer",
-        "created_at": "2025-11-01T10:00:00Z"
-      },
-      {
-        "id": "660e8400-e29b-41d4-a716-446655440001",
-        "email": "jane@example.com",
-        "name": "Jane Smith",
-        "role": "admin",
-        "created_at": "2025-11-02T14:30:00Z"
-      }
-    ]
-  },
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "john@example.com",
+      "name": "John Doe",
+      "role": "organizer",
+      "created_at": "2025-11-01T10:00:00Z"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "email": "jane@example.com",
+      "name": "Jane Smith",
+      "role": "admin",
+      "created_at": "2025-11-02T14:30:00Z"
+    }
+  ],
   "meta": {
     "page": 1,
     "per_page": 20,
     "total": 47,
     "total_pages": 3
-  },
-  "message": "Users retrieved successfully"
+  }
 }
 ```
 
@@ -106,17 +102,11 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "john@example.com",
-      "name": "John Doe",
-      "role": "organizer",
-      "created_at": "2025-11-01T10:00:00Z"
-    }
-  },
-  "message": "User retrieved successfully"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "john@example.com",
+  "name": "John Doe",
+  "role": "organizer",
+  "created_at": "2025-11-01T10:00:00Z"
 }
 ```
 
@@ -178,18 +168,12 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "john.new@example.com",
-      "name": "John Updated Doe",
-      "role": "organizer",
-      "created_at": "2025-11-01T10:00:00Z",
-      "updated_at": "2025-11-08T16:45:00Z"
-    }
-  },
-  "message": "User updated successfully"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "john.new@example.com",
+  "name": "John Updated Doe",
+  "role": "organizer",
+  "created_at": "2025-11-01T10:00:00Z",
+  "updated_at": "2025-11-08T16:45:00Z"
 }
 ```
 
@@ -242,17 +226,13 @@ Delete a user account and anonymize all personal information while preserving ev
 
 ```json
 {
-  "success": true,
-  "message": "User account deleted and anonymized successfully",
-  "data": {
-    "user_id": "660e8400-e29b-41d4-a716-446655440000",
-    "anonymized": true,
-    "deletion_type": "soft_delete_with_anonymization",
-    "events_count": 5,
-    "events_status": "preserved with anonymized owner",
-    "staff_assignments_removed": 3,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "user_id": "660e8400-e29b-41d4-a716-446655440000",
+  "anonymized": true,
+  "deletion_type": "soft_delete_with_anonymization",
+  "events_count": 5,
+  "events_status": "preserved with anonymized owner",
+  "staff_assignments_removed": 3,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -311,30 +291,31 @@ Deletion is recorded in `deletion_audit_log` table with:
 
 ```json
 {
-  "success": false,
-  "error": "USER_HAS_ACTIVE_EVENTS",
-  "message": "User has active events. Complete or delete events before deleting user account.",
-  "data": {
-    "user_id": "660e8400-e29b-41d4-a716-446655440000",
-    "active_events_count": 3,
-    "active_events": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Tech Conference 2025",
-        "status": "published",
-        "start_date": "2025-12-15T09:00:00Z",
-        "participants_count": 150
-      },
-      {
-        "id": "660e8400-e29b-41d4-a716-446655440001",
-        "name": "Workshop Series",
-        "status": "draft",
-        "start_date": "2026-01-10T10:00:00Z",
-        "participants_count": 25
-      }
-    ],
-    "suggestion": "Delete or complete events first, then retry user deletion"
-  }
+  "type": "https://api.ezqrin.com/problems/user-has-active-events",
+  "title": "User Has Active Events",
+  "status": 409,
+  "detail": "User has 3 active events. Complete or delete events before deleting user account",
+  "instance": "/api/v1/users/660e8400-e29b-41d4-a716-446655440000",
+  "code": "USER_HAS_ACTIVE_EVENTS",
+  "user_id": "660e8400-e29b-41d4-a716-446655440000",
+  "active_events_count": 3,
+  "active_events": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Tech Conference 2025",
+      "status": "published",
+      "start_date": "2025-12-15T09:00:00Z",
+      "participants_count": 150
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "name": "Workshop Series",
+      "status": "draft",
+      "start_date": "2026-01-10T10:00:00Z",
+      "participants_count": 25
+    }
+  ],
+  "suggestion": "Delete or complete events first, then retry user deletion"
 }
 ```
 
@@ -479,17 +460,13 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "message": "User account deleted and anonymized successfully",
-  "data": {
-    "user_id": "660e8400-e29b-41d4-a716-446655440000",
-    "anonymized": true,
-    "deletion_type": "soft_delete_with_anonymization",
-    "events_count": 5,
-    "events_status": "preserved with anonymized owner",
-    "staff_assignments_removed": 3,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "user_id": "660e8400-e29b-41d4-a716-446655440000",
+  "anonymized": true,
+  "deletion_type": "soft_delete_with_anonymization",
+  "events_count": 5,
+  "events_status": "preserved with anonymized owner",
+  "staff_assignments_removed": 3,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -512,20 +489,21 @@ Content-Type: application/json
 
 ```json
 {
-  "success": false,
-  "error": "USER_HAS_ACTIVE_EVENTS",
-  "message": "User has 3 active events. Complete or delete events before deleting user account.",
-  "data": {
-    "user_id": "660e8400-e29b-41d4-a716-446655440000",
-    "active_events_count": 3,
-    "active_events": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Tech Conference 2025",
-        "status": "published"
-      }
-    ]
-  }
+  "type": "https://api.ezqrin.com/problems/user-has-active-events",
+  "title": "User Has Active Events",
+  "status": 409,
+  "detail": "User has 3 active events. Complete or delete events before deleting user account",
+  "instance": "/api/v1/users/660e8400-e29b-41d4-a716-446655440000",
+  "code": "USER_HAS_ACTIVE_EVENTS",
+  "user_id": "660e8400-e29b-41d4-a716-446655440000",
+  "active_events_count": 3,
+  "active_events": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Tech Conference 2025",
+      "status": "published"
+    }
+  ]
 }
 ```
 

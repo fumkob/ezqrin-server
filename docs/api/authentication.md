@@ -43,27 +43,49 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "role": "organizer",
-      "created_at": "2025-11-08T10:00:00Z"
-    },
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 900
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "organizer",
+    "created_at": "2025-11-08T10:00:00Z"
   },
-  "message": "User registered successfully"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 900
 }
 ```
 
 **Errors:**
 
 - `400 Bad Request` - Invalid request data or validation failed
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "One or more validation errors occurred",
+  "instance": "/api/v1/auth/register",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {"field": "password", "message": "Password must be at least 8 characters and include uppercase, lowercase, and numbers"}
+  ]
+}
+```
+
 - `409 Conflict` - Email already registered
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/conflict",
+  "title": "Email Already Registered",
+  "status": 409,
+  "detail": "The email address is already registered",
+  "instance": "/api/v1/auth/register",
+  "code": "EMAIL_ALREADY_REGISTERED"
+}
+```
 
 ---
 
@@ -101,26 +123,46 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "role": "organizer"
-    },
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 900
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "organizer"
   },
-  "message": "Login successful"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 900
 }
 ```
 
 **Errors:**
 
 - `401 Unauthorized` - Invalid credentials
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/unauthorized",
+  "title": "Invalid Credentials",
+  "status": 401,
+  "detail": "The email or password provided is incorrect",
+  "instance": "/api/v1/auth/login",
+  "code": "INVALID_CREDENTIALS"
+}
+```
+
 - `429 Too Many Requests` - Rate limit exceeded (5 attempts per 15 minutes)
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/rate-limit-exceeded",
+  "title": "Rate Limit Exceeded",
+  "status": 429,
+  "detail": "Too many login attempts. Please try again in 15 minutes",
+  "instance": "/api/v1/auth/login",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retry_after": 900
+}
+```
 
 ---
 
@@ -154,19 +196,26 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 900
-  },
-  "message": "Token refreshed successfully"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 900
 }
 ```
 
 **Errors:**
 
 - `401 Unauthorized` - Invalid or expired refresh token
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/unauthorized",
+  "title": "Invalid Refresh Token",
+  "status": 401,
+  "detail": "The refresh token is invalid or has expired",
+  "instance": "/api/v1/auth/refresh",
+  "code": "INVALID_REFRESH_TOKEN"
+}
+```
 
 ---
 
@@ -190,18 +239,24 @@ Authorization: Bearer <access_token>
 }
 ```
 
-**Response:** `200 OK`
+**Response:** `204 No Content`
 
-```json
-{
-  "success": true,
-  "message": "Logout successful"
-}
-```
+No response body.
 
 **Errors:**
 
 - `401 Unauthorized` - Invalid access token
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/unauthorized",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "Invalid or expired access token",
+  "instance": "/api/v1/auth/logout",
+  "code": "UNAUTHORIZED"
+}
+```
 
 ---
 

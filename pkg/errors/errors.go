@@ -34,6 +34,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 )
 
 // Common error codes for API responses
@@ -49,12 +52,36 @@ const (
 	CodeServiceUnavailable = "SERVICE_UNAVAILABLE"
 )
 
+// ProblemTypeBaseURL is the base URL for RFC 9457 problem type URIs.
+// This should be configurable via application config in production.
+// For now, using a placeholder URL that will be updated when the production domain is finalized.
+const ProblemTypeBaseURL = "https://api.ezqrin.com/problems"
+
+// ErrorTitles maps error codes to human-readable titles for RFC 9457.
+// These titles provide a short, human-readable summary of the problem type.
+var ErrorTitles = map[string]string{
+	CodeNotFound:           "Resource Not Found",
+	CodeValidation:         "Validation Error",
+	CodeUnauthorized:       "Unauthorized",
+	CodeForbidden:          "Forbidden",
+	CodeInternal:           "Internal Server Error",
+	CodeConflict:           "Conflict",
+	CodeBadRequest:         "Bad Request",
+	CodeTooManyRequests:    "Too Many Requests",
+	CodeServiceUnavailable: "Service Unavailable",
+}
+
+// ValidationError is an alias for the OpenAPI-generated ValidationError type.
+// Used in RFC 9457 Problem Details responses as an extension member.
+type ValidationError = generated.ValidationError
+
 // AppError represents an application-specific error with code and HTTP status
 type AppError struct {
-	Code       string // Error code for API consumption
-	Message    string // Human-readable error message
-	StatusCode int    // HTTP status code
-	Err        error  // Wrapped underlying error
+	Code             string            // Error code for API consumption
+	Message          string            // Human-readable error message
+	StatusCode       int               // HTTP status code
+	Err              error             // Wrapped underlying error
+	ValidationErrors []ValidationError // Field-level validation errors (for validation errors only)
 }
 
 // Error implements the error interface
@@ -313,4 +340,30 @@ func IsConflict(err error) bool {
 		return appErr.Code == CodeConflict
 	}
 	return false
+}
+
+// ToTypeURL converts an error code to an RFC 9457 type URL.
+// Converts UPPER_SNAKE_CASE error codes to lowercase-kebab-case URLs.
+// Example: "NOT_FOUND" -> "https://api.ezqrin.com/problems/not-found"
+func ToTypeURL(code string) string {
+	// Convert UPPER_SNAKE_CASE to lowercase-kebab-case
+	lowerCode := strings.ToLower(strings.ReplaceAll(code, "_", "-"))
+	return fmt.Sprintf("%s/%s", ProblemTypeBaseURL, lowerCode)
+}
+
+// GetTitle returns the human-readable title for an error code.
+// Returns "Error" as a fallback if the code is not found.
+func GetTitle(code string) string {
+	if title, ok := ErrorTitles[code]; ok {
+		return title
+	}
+	return "Error"
+}
+
+// WithValidationErrors adds validation errors to an AppError.
+// This is used for validation error responses that need field-level details.
+// Returns the same AppError for method chaining.
+func (e *AppError) WithValidationErrors(errors []ValidationError) *AppError {
+	e.ValidationErrors = errors
+	return e
 }

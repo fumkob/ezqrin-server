@@ -1,97 +1,108 @@
 # Reusable Response Definitions
-# Common HTTP response templates used across all endpoints
+# RFC 9457 Problem Details for all error responses
 
 BadRequest:
   description: Bad request - invalid input or malformed request
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "VALIDATION_FAILED"
-          message: "Request validation failed"
-          details:
-            - field: "email"
-              message: "Invalid email format"
+        type: "https://api.ezqrin.com/problems/bad-request"
+        title: "Bad Request"
+        status: 400
+        detail: "The request could not be understood due to invalid syntax"
+        instance: "/api/v1/events"
+        code: "BAD_REQUEST"
 
 Unauthorized:
   description: Authentication required or token invalid
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "AUTH_INVALID_TOKEN"
-          message: "Invalid or expired authentication token"
+        type: "https://api.ezqrin.com/problems/unauthorized"
+        title: "Unauthorized"
+        status: 401
+        detail: "Invalid or expired authentication token"
+        instance: "/api/v1/events"
+        code: "UNAUTHORIZED"
 
 Forbidden:
   description: Insufficient permissions to perform this action
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "AUTH_FORBIDDEN"
-          message: "You do not have permission to access this resource"
+        type: "https://api.ezqrin.com/problems/forbidden"
+        title: "Forbidden"
+        status: 403
+        detail: "You do not have permission to access this resource"
+        instance: "/api/v1/events/123"
+        code: "FORBIDDEN"
 
 NotFound:
   description: The requested resource was not found
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "EVENT_NOT_FOUND"
-          message: "The requested event was not found"
+        type: "https://api.ezqrin.com/problems/not-found"
+        title: "Resource Not Found"
+        status: 404
+        detail: "The requested event was not found"
+        instance: "/api/v1/events/123"
+        code: "NOT_FOUND"
 
 Conflict:
   description: Resource conflict (duplicate, constraint violation)
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "PARTICIPANT_DUPLICATE_EMAIL"
-          message: "A participant with this email is already registered for this event"
+        type: "https://api.ezqrin.com/problems/conflict"
+        title: "Conflict"
+        status: 409
+        detail: "A participant with this email is already registered for this event"
+        instance: "/api/v1/events/123/participants"
+        code: "CONFLICT"
 
-ValidationError:
+ValidationErrorResponse:
   description: Request validation failed
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "VALIDATION_FAILED"
-          message: "One or more validation errors occurred"
-          details:
-            - field: "start_date"
-              message: "Start date must be in the future"
-            - field: "name"
-              message: "Name is required"
+        type: "https://api.ezqrin.com/problems/validation-error"
+        title: "Validation Error"
+        status: 400
+        detail: "One or more validation errors occurred"
+        instance: "/api/v1/events"
+        code: "VALIDATION_ERROR"
+        errors:
+          - field: "start_date"
+            message: "Start date must be in the future"
+          - field: "name"
+            message: "Name is required"
 
 RateLimitExceeded:
   description: Rate limit exceeded
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "RATE_LIMIT_EXCEEDED"
-          message: "Too many requests. Please try again later."
+        type: "https://api.ezqrin.com/problems/too-many-requests"
+        title: "Too Many Requests"
+        status: 429
+        detail: "Rate limit exceeded. Please try again later."
+        instance: "/api/v1/auth/login"
+        code: "TOO_MANY_REQUESTS"
   headers:
     X-RateLimit-Limit:
       description: Maximum requests per window
@@ -114,21 +125,25 @@ InternalError:
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "INTERNAL_ERROR"
-          message: "An unexpected error occurred. Please try again later."
+        type: "https://api.ezqrin.com/problems/internal-error"
+        title: "Internal Server Error"
+        status: 500
+        detail: "An unexpected error occurred. Please try again later."
+        instance: "/api/v1/events"
+        code: "INTERNAL_ERROR"
 
 ServiceUnavailable:
   description: Service temporarily unavailable
   content:
     application/json:
       schema:
-        $ref: '../schemas/responses.yaml#/ErrorResponse'
+        $ref: '../schemas/responses.yaml#/ProblemDetails'
       example:
-        success: false
-        error:
-          code: "SERVICE_UNAVAILABLE"
-          message: "The service is temporarily unavailable. Please try again later."
+        type: "https://api.ezqrin.com/problems/service-unavailable"
+        title: "Service Unavailable"
+        status: 503
+        detail: "The service is temporarily unavailable. Please try again later."
+        instance: "/api/v1/health/ready"
+        code: "SERVICE_UNAVAILABLE"

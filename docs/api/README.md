@@ -440,17 +440,20 @@ Quick limits by operation type:
 
 **See:** [Schemas: Error Responses](./schemas.md#error-response-format)
 
-All errors follow standard format:
+All errors follow RFC 9457 Problem Details format:
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable message"
-  }
+  "type": "https://api.ezqrin.com/problems/error-type",
+  "title": "Error Title",
+  "status": 400,
+  "detail": "Human-readable error description",
+  "instance": "/api/v1/endpoint",
+  "code": "ERROR_CODE"
 }
 ```
+
+See [Error Codes Documentation](./error_codes.md) for complete error reference.
 
 **Common error codes:**
 

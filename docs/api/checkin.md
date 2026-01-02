@@ -50,29 +50,25 @@ Check in a participant to an event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "880e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "participant": {
-      "id": "770e8400-e29b-41d4-a716-446655440000",
-      "name": "Jane Smith",
-      "email": "jane@example.com"
-    },
-    "checked_in_at": "2025-12-15T09:15:00Z",
-    "checked_in_by": {
-      "id": "660e8400-e29b-41d4-a716-446655440000",
-      "name": "Staff User"
-    },
-    "checkin_method": "qrcode",
-    "device_info": {
-      "device_type": "mobile",
-      "os": "iOS 17.0",
-      "app_version": "1.0.0"
-    }
+  "id": "880e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "participant": {
+    "id": "770e8400-e29b-41d4-a716-446655440000",
+    "name": "Jane Smith",
+    "email": "jane@example.com"
   },
-  "message": "Check-in successful"
+  "checked_in_at": "2025-12-15T09:15:00Z",
+  "checked_in_by": {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "name": "Staff User"
+  },
+  "checkin_method": "qrcode",
+  "device_info": {
+    "device_type": "mobile",
+    "os": "iOS 17.0",
+    "app_version": "1.0.0"
+  }
 }
 ```
 
@@ -118,7 +114,6 @@ Retrieve check-in records for an event.
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "880e8400-e29b-41d4-a716-446655440000",
@@ -136,7 +131,6 @@ Retrieve check-in records for an event.
       "checkin_method": "qrcode"
     }
   ],
-  "message": "Check-in history retrieved successfully",
   "meta": {
     "page": 1,
     "per_page": 20,
@@ -169,20 +163,22 @@ Remove a check-in record (undo check-in).
 | id        | UUID | Event ID    |
 | cid       | UUID | Check-in ID |
 
-**Response:** `200 OK`
+**Response:** `204 No Content`
 
-```json
-{
-  "success": true,
-  "message": "Check-in cancelled successfully"
-}
-```
+(Empty body)
 
 **Errors:**
 
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - Not authorized to cancel check-in for this event
-- `404 Not Found` - Event or check-in record not found
+```json
+{
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "Event or check-in record not found",
+  "instance": "/api/v1/events/550e8400/checkins/880e8400",
+  "code": "NOT_FOUND"
+}
+```
 
 ---
 

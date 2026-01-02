@@ -55,3 +55,6 @@ package-lock.json
 # Temporary files
 .tmp/
 tmp/
+
+# Git operations
+.wtp.yml

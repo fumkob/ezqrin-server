@@ -113,13 +113,15 @@ components:
     CheckInMethod:
       $ref: './schemas/enums.yaml#/CheckInMethod'
 
-    # Response wrappers
-    StandardResponse:
-      $ref: './schemas/responses.yaml#/StandardResponse'
-    ErrorResponse:
-      $ref: './schemas/responses.yaml#/ErrorResponse'
+    # Response schemas
+    ProblemDetails:
+      $ref: './schemas/responses.yaml#/ProblemDetails'
+    ListResponse:
+      $ref: './schemas/responses.yaml#/ListResponse'
     PaginationMeta:
       $ref: './schemas/responses.yaml#/PaginationMeta'
+    ValidationError:
+      $ref: './schemas/responses.yaml#/ValidationError'
 
   responses:
     BadRequest:
@@ -132,8 +134,8 @@ components:
       $ref: './components/responses.yaml#/NotFound'
     Conflict:
       $ref: './components/responses.yaml#/Conflict'
-    ValidationError:
-      $ref: './components/responses.yaml#/ValidationError'
+    ValidationErrorResponse:
+      $ref: './components/responses.yaml#/ValidationErrorResponse'
     RateLimitExceeded:
       $ref: './components/responses.yaml#/RateLimitExceeded'
     InternalError:

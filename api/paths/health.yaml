@@ -17,24 +17,15 @@
             schema:
               type: object
               required:
-                - success
-                - data
+                - status
               properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  type: object
-                  required:
-                    - status
-                  properties:
-                    status:
-                      type: string
-                      example: "healthy"
-                    timestamp:
-                      type: string
-                      format: date-time
-                      example: "2025-11-08T10:00:00Z"
+                status:
+                  type: string
+                  example: "healthy"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2025-11-08T10:00:00Z"
       '503':
         $ref: '../components/responses.yaml#/ServiceUnavailable'
 
@@ -56,36 +47,34 @@
             schema:
               type: object
               required:
-                - success
-                - data
+                - status
+                - checks
               properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
+                status:
+                  type: string
+                  example: "ready"
+                checks:
                   type: object
-                  required:
-                    - status
-                    - checks
                   properties:
-                    status:
+                    database:
                       type: string
-                      example: "ready"
-                    checks:
-                      type: object
-                      properties:
-                        database:
-                          type: string
-                          example: "ok"
-                        redis:
-                          type: string
-                          example: "ok"
+                      example: "ok"
+                    redis:
+                      type: string
+                      example: "ok"
       '503':
         description: Service is not ready
         content:
           application/json:
             schema:
-              $ref: '../schemas/responses.yaml#/ErrorResponse'
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/service-unavailable"
+              title: "Service Unavailable"
+              status: 503
+              detail: "Service is not ready to accept traffic"
+              instance: "/api/v1/health/ready"
+              code: "SERVICE_UNAVAILABLE"
 
 /health/live:
   get:
@@ -105,22 +94,13 @@
             schema:
               type: object
               required:
-                - success
-                - data
+                - status
               properties:
-                success:
-                  type: boolean
-                  example: true
-                data:
-                  type: object
-                  required:
-                    - status
-                  properties:
-                    status:
-                      type: string
-                      example: "alive"
-                    uptime_seconds:
-                      type: integer
-                      example: 3600
+                status:
+                  type: string
+                  example: "alive"
+                uptime_seconds:
+                  type: integer
+                  example: 3600
       '503':
         $ref: '../components/responses.yaml#/ServiceUnavailable'
