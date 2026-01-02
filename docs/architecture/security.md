@@ -984,7 +984,7 @@ openssl rand -base64 32  # For DB_PASSWORD
 
 **DevContainer:**
 
-- Secrets managed via `docker-compose.yml` environment variables
+- Secrets managed via `docker-compose.yaml` environment variables
 - Development secrets only (never use production secrets)
 - No `.env.secrets` file needed in DevContainer
 

@@ -41,7 +41,7 @@ Configuration values are loaded in the following order (highest priority first):
 **Secrets** (passwords, API keys, tokens) are managed separately:
 
 - **`.env.secrets`** - For local development (gitignored)
-- **`docker-compose.yml` environment** - For DevContainer
+- **`docker-compose.yaml` environment** - For DevContainer
 - **Environment variables** - For production deployments
 
 **Non-secrets** (timeouts, connection limits, URLs) are in YAML files and committed to the repository.
@@ -52,7 +52,7 @@ Configuration values are loaded in the following order (highest priority first):
 
 ### For DevContainer Users
 
-If using DevContainer (`.devcontainer/`), secrets are automatically set via `docker-compose.yml`. **No additional setup required.**
+If using DevContainer (`.devcontainer/`), secrets are automatically set via `docker-compose.yaml`. **No additional setup required.**
 
 ### For Local Development
 
@@ -454,7 +454,7 @@ fi
 
 **Ensure:**
 
-1. `.env` file is in same directory as `docker-compose.yml`
+1. `.env` file is in same directory as `docker-compose.yaml`
 2. Variables use `${VAR_NAME}` syntax in compose file
 3. Restart containers after changing `.env`:
 
