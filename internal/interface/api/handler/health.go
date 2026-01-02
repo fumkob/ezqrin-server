@@ -11,6 +11,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
+	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -41,10 +42,10 @@ func NewHealthHandler(db database.HealthChecker, logger *logger.Logger) *HealthH
 // This always returns 200 OK to indicate the server is running.
 // Implements generated.ServerInterface.GetHealth
 func (h *HealthHandler) GetHealth(c *gin.Context) {
-	response.Success(c, http.StatusOK, map[string]interface{}{
+	response.Data(c, http.StatusOK, map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	}, "Service is healthy")
+	})
 }
 
 // GetHealthReady handles readiness check endpoint (GET /health/ready).
@@ -60,22 +61,22 @@ func (h *HealthHandler) GetHealthReady(c *gin.Context) {
 	dbHealth, err := h.db.CheckHealth(ctx)
 	if err != nil || (dbHealth != nil && !dbHealth.Healthy) {
 		h.logger.WithContext(ctx).Warn("readiness check failed: database unhealthy")
-		response.Success(c, http.StatusServiceUnavailable, map[string]interface{}{
-			"status": "not_ready",
-			"checks": map[string]string{
-				"database": "unhealthy",
-			},
-		}, "Service is not ready")
+		response.ProblemWithCode(
+			c,
+			http.StatusServiceUnavailable,
+			apperrors.CodeServiceUnavailable,
+			"Service is not ready to accept traffic",
+		)
 		return
 	}
 
 	// Service is ready
-	response.Success(c, http.StatusOK, map[string]interface{}{
+	response.Data(c, http.StatusOK, map[string]interface{}{
 		"status": "ready",
 		"checks": map[string]string{
 			"database": "ok",
 		},
-	}, "Service is ready")
+	})
 }
 
 // GetHealthLive handles liveness check endpoint (GET /health/live).
@@ -83,7 +84,7 @@ func (h *HealthHandler) GetHealthReady(c *gin.Context) {
 // Returns 200 if alive, should only fail if the service is completely unresponsive.
 // Implements generated.ServerInterface.GetHealthLive
 func (h *HealthHandler) GetHealthLive(c *gin.Context) {
-	response.Success(c, http.StatusOK, map[string]interface{}{
+	response.Data(c, http.StatusOK, map[string]interface{}{
 		"status": "alive",
-	}, "Service is alive")
+	})
 }

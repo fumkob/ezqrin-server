@@ -9,50 +9,133 @@ across the ezQRin API.
 
 ## Standard Response Format
 
-All API responses follow a consistent structure for predictability and ease of parsing.
+The ezQRin API uses different response patterns based on the operation:
 
-### Success Response
+### Success Responses
+
+#### Single Entity
+
+For operations that return a single resource (GET, POST, PATCH):
 
 ```json
 {
-  "success": true,
-  "data": {},
-  "message": "Operation successful",
-  "meta": {}
+  "id": "evt_123",
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference",
+  "status": "active",
+  "start_date": "2025-06-15T09:00:00Z",
+  "end_date": "2025-06-17T18:00:00Z"
 }
 ```
 
-**Fields:**
+The resource data is returned directly without any wrapper.
 
-| Field   | Type         | Description                                    |
-| ------- | ------------ | ---------------------------------------------- |
-| success | boolean      | Always `true` for successful responses         |
-| data    | object/array | Response payload (entity or collection)        |
-| message | string       | Human-readable success message                 |
-| meta    | object       | Metadata (pagination, counts, etc.) - optional |
+#### Collection with Pagination
 
-### Error Response
+For list operations (GET /events, GET /participants):
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": []
+  "data": [
+    {
+      "id": "evt_123",
+      "name": "Event 1",
+      "status": "active"
+    },
+    {
+      "id": "evt_456",
+      "name": "Event 2",
+      "status": "upcoming"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 150,
+    "total_pages": 8
   }
 }
 ```
 
 **Fields:**
 
-| Field         | Type    | Description                                        |
-| ------------- | ------- | -------------------------------------------------- |
-| success       | boolean | Always `false` for error responses                 |
-| error         | object  | Error information container                        |
-| error.code    | string  | Machine-readable error code (UPPER_SNAKE_CASE)     |
-| error.message | string  | Human-readable error description                   |
-| error.details | array   | Additional error details (validation errors, etc.) |
+| Field | Type  | Description                            |
+| ----- | ----- | -------------------------------------- |
+| data  | array | Array of resources                     |
+| meta  | object | Pagination metadata (see below) |
+
+#### Empty Success
+
+For operations that don't return data (DELETE, some PATCH operations):
+
+```
+HTTP/1.1 204 No Content
+(empty body)
+```
+
+### Error Responses
+
+All errors follow **RFC 9457 Problem Details for HTTP APIs** format:
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "The requested event was not found",
+  "instance": "/api/v1/events/evt_123",
+  "code": "NOT_FOUND"
+}
+```
+
+**Required Fields:**
+
+| Field    | Type    | Description                                        |
+| -------- | ------- | -------------------------------------------------- |
+| type     | string  | URI identifying the problem type                   |
+| title    | string  | Short, human-readable summary                      |
+| status   | integer | HTTP status code                                   |
+| detail   | string  | Human-readable explanation of this occurrence      |
+| instance | string  | URI identifying the specific occurrence            |
+
+**Extension Fields:**
+
+| Field  | Type   | Description                                    |
+| ------ | ------ | ---------------------------------------------- |
+| code   | string | Machine-readable error code (backward compatibility) |
+| errors | array  | Validation error details (validation errors only)    |
+
+#### Validation Errors
+
+Validation errors include an `errors` array with field-level details:
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "One or more validation errors occurred",
+  "instance": "/api/v1/events",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Invalid email format"
+    },
+    {
+      "field": "start_date",
+      "message": "Start date must be in the future"
+    }
+  ]
+}
+```
+
+**Validation Error Fields:**
+
+| Field   | Type   | Description                      |
+| ------- | ------ | -------------------------------- |
+| field   | string | Field name that caused the error |
+| message | string | Field-specific error message     |
 
 ---
 
@@ -79,8 +162,7 @@ GET /api/v1/resource?page=1&per_page=20&sort=created_at&order=desc
 
 ```json
 {
-  "success": true,
-  "data": [],
+  "data": [...],
   "meta": {
     "page": 1,
     "per_page": 20,

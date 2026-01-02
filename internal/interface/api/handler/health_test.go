@@ -86,7 +86,9 @@ var _ = Describe("HealthHandler", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"healthy"`))
-				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
+
+				// Verify no success wrapper
+				Expect(w.Body.String()).ToNot(ContainSubstring(`"success"`))
 
 				// Verify request_id is NOT in JSON body (OpenAPI compliance)
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
@@ -123,7 +125,7 @@ var _ = Describe("HealthHandler", func() {
 		})
 
 		When("database is unhealthy", func() {
-			It("should return 503 Service Unavailable with OpenAPI-compliant response", func() {
+			It("should return 503 Service Unavailable with RFC 9457 Problem Details", func() {
 				mockDB.healthy = false
 				router.GET("/health/ready", healthHandler.GetHealthReady)
 
@@ -133,10 +135,18 @@ var _ = Describe("HealthHandler", func() {
 				router.ServeHTTP(w, req)
 
 				Expect(w.Code).To(Equal(http.StatusServiceUnavailable))
-				Expect(w.Body.String()).To(ContainSubstring(`"status":"not_ready"`))
 
-				// Response structure now has "checks" object
-				Expect(w.Body.String()).To(ContainSubstring(`"database":"unhealthy"`))
+				// Verify RFC 9457 structure
+				Expect(w.Body.String()).To(ContainSubstring(`"type"`))
+				Expect(w.Body.String()).To(ContainSubstring(`problems/service-unavailable`))
+				Expect(w.Body.String()).To(ContainSubstring(`"title"`))
+				Expect(w.Body.String()).To(ContainSubstring(`"status":503`))
+				Expect(w.Body.String()).To(ContainSubstring(`"detail"`))
+				Expect(w.Body.String()).To(ContainSubstring(`"instance"`))
+				Expect(w.Body.String()).To(ContainSubstring(`"code":"SERVICE_UNAVAILABLE"`))
+
+				// Verify no success wrapper
+				Expect(w.Body.String()).ToNot(ContainSubstring(`"success"`))
 
 				// Verify request_id is NOT in JSON body
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
@@ -159,7 +169,9 @@ var _ = Describe("HealthHandler", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"alive"`))
-				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
+
+				// Verify no success wrapper
+				Expect(w.Body.String()).ToNot(ContainSubstring(`"success"`))
 
 				// Verify request_id is NOT in JSON body
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))

@@ -182,17 +182,13 @@ DELETE /api/v1/test/cleanup
 X-Test-Mode: true
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
-  "data": {
-    "events_deleted": 42,
-    "participants_deleted": 2156,
-    "storage_freed_mb": 125
-  },
-  "message": "Test data cleaned up successfully"
+  "events_deleted": 42,
+  "participants_deleted": 2156,
+  "storage_freed_mb": 125
 }
 ```
 
@@ -225,28 +221,25 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "event_id": "test_550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "My Test Conference",
-    "organizer": {
-      "email": "test@example.com"
+  "event_id": "test_550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "My Test Conference",
+  "organizer": {
+    "email": "test@example.com"
+  },
+  "participants": [
+    {
+      "id": "test_770e8400-e29b-41d4-a716-446655440000",
+      "name": "Test Participant 1",
+      "email": "test1+evt@example.com",
+      "qr_code": "evt_test_550e8400_prt_test_770e8400_abc123def456"
     },
-    "participants": [
-      {
-        "id": "test_770e8400-e29b-41d4-a716-446655440000",
-        "name": "Test Participant 1",
-        "email": "test1+evt@example.com",
-        "qr_code": "evt_test_550e8400_prt_test_770e8400_abc123def456"
-      },
-      ...
-    ],
-    "credentials": {
+    ...
+  ],
+  "credentials": {
       "access_token": "test_token_...",
       "refresh_token": "test_refresh_..."
     },
     "note": "This is a TEST event. All data will be deleted after 30 days."
-  }
 }
 ```
 
@@ -305,13 +298,9 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "sent_count": 1,
-    "failed_count": 0,
-    "email_queue_id": "queue_test_123456"
-  },
-  "message": "Emails queued for mock delivery"
+  "sent_count": 1,
+  "failed_count": 0,
+  "email_queue_id": "queue_test_123456"
 }
 ```
 
@@ -324,26 +313,23 @@ GET /api/v1/test/emails/:email_id
 X-Test-Mode: true
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "email_test_123456",
-    "to": "test1+evt@example.com",
-    "subject": "Your QR Code for Tech Conference 2025",
-    "body_preview": "Hello Test Participant 1,\n\nYour event is scheduled for...",
-    "attachments": [
-      {
-        "filename": "event_ticket.pkpass",
-        "size_bytes": 2048,
-        "type": "application/vnd.apple.pkpass"
-      }
-    ],
-    "rendered_html": "Full HTML email content...",
-    "created_at": "2025-11-08T10:00:00Z"
-  }
+  "id": "email_test_123456",
+  "to": "test1+evt@example.com",
+  "subject": "Your QR Code for Tech Conference 2025",
+  "body_preview": "Hello Test Participant 1,\n\nYour event is scheduled for...",
+  "attachments": [
+    {
+      "filename": "event_ticket.pkpass",
+      "size_bytes": 2048,
+      "type": "application/vnd.apple.pkpass"
+    }
+  ],
+  "rendered_html": "Full HTML email content...",
+  "created_at": "2025-11-08T10:00:00Z"
 }
 ```
 
@@ -426,19 +412,16 @@ Content-Type: application/json
 | `event_cancelled`    | Event cancelled  | Test event state        |
 | `tampered`           | Modified token   | Test security           |
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
-  "data": {
-    "scenario": "normal",
-    "is_valid": true,
-    "participant_id": "test_770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "test_550e8400-e29b-41d4-a716-446655440000",
-    "can_check_in": true,
-    "details": "QR code is valid and can be checked in"
-  }
+  "scenario": "normal",
+  "is_valid": true,
+  "participant_id": "test_770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "test_550e8400-e29b-41d4-a716-446655440000",
+  "can_check_in": true,
+  "details": "QR code is valid and can be checked in"
 }
 ```
 
@@ -538,11 +521,10 @@ GET /api/v1/test/webhooks
 X-Test-Mode: true
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "wh_test_123456",
@@ -553,7 +535,10 @@ X-Test-Mode: true
       "next_retry": null,
       "status": "success"
     }
-  ]
+  ],
+  "meta": {
+    "total": 1
+  }
 }
 ```
 
@@ -589,14 +574,11 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "data": {
-    "org_id": "test_org_123456",
-    "name": "QA Test Organization",
-    "api_key": "test_sk_...",
-    "webhook_url": "http://localhost:3000/webhooks",
-    "note": "This is a TEST organization. All data will be deleted after 30 days."
-  }
+  "org_id": "test_org_123456",
+  "name": "QA Test Organization",
+  "api_key": "test_sk_...",
+  "webhook_url": "http://localhost:3000/webhooks",
+  "note": "This is a TEST organization. All data will be deleted after 30 days."
 }
 ```
 

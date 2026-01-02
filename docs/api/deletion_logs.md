@@ -41,7 +41,6 @@ Retrieve a paginated, filterable list of deletion audit records.
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "770e8400-e29b-41d4-a716-446655440000",
@@ -102,7 +101,6 @@ Retrieve a paginated, filterable list of deletion audit records.
       "user_agent": "Chrome/119.0.0.0"
     }
   ],
-  "message": "Deletion logs retrieved successfully",
   "meta": {
     "page": 1,
     "per_page": 20,
@@ -403,11 +401,10 @@ GET /api/v1/deletion-logs?entity_type=user&per_page=5
 Authorization: Bearer [admin_access_token]
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "990e8400-e29b-41d4-a716-446655440000",
@@ -450,13 +447,16 @@ GET /api/v1/deletion-logs
 Authorization: Bearer [organizer_access_token]
 ```
 
-**Response:**
+**Response:** `403 Forbidden`
 
 ```json
 {
-  "success": false,
-  "error": "DELETION_LOG_FORBIDDEN",
-  "message": "Admin access required to view deletion logs"
+  "type": "https://api.ezqrin.com/problems/forbidden",
+  "title": "Forbidden",
+  "status": 403,
+  "detail": "Admin access required to view deletion logs",
+  "instance": "/api/v1/deletion-logs",
+  "code": "DELETION_LOG_FORBIDDEN"
 }
 ```
 

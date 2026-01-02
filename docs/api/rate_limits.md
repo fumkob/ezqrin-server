@@ -250,16 +250,15 @@ Retry-After: 35
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Rate limit exceeded. Maximum 100 requests per minute allowed.",
-    "details": {
-      "limit": 100,
-      "window": "1 minute",
-      "scope": "per_event"
-    }
-  },
+  "type": "https://api.ezqrin.com/problems/rate-limit-exceeded",
+  "title": "Rate Limit Exceeded",
+  "status": 429,
+  "detail": "Rate limit exceeded. Maximum 100 requests per minute allowed.",
+  "instance": "/api/v1/events",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "limit": 100,
+  "window": "1 minute",
+  "scope": "per_event",
   "retry_after_seconds": 45
 }
 ```

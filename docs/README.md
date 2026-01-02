@@ -62,31 +62,65 @@ Authorization: Bearer <access_token>
 
 ### Standard Response Format
 
-All API responses follow this structure:
-
+**Single Entity:**
 ```json
 {
-  "success": true,
-  "data": {},
-  "message": "Operation successful",
+  "id": "evt_123",
+  "name": "Tech Conference 2025",
+  "status": "active"
+}
+```
+
+**Collection with Pagination:**
+```json
+{
+  "data": [
+    {"id": "evt_123", "name": "Event 1"},
+    {"id": "evt_456", "name": "Event 2"}
+  ],
   "meta": {
     "page": 1,
     "per_page": 20,
-    "total": 100
+    "total": 100,
+    "total_pages": 5
   }
 }
 ```
 
+**Empty Success (DELETE, UPDATE):**
+```
+204 No Content
+(empty body)
+```
+
 ### Error Response Format
+
+All errors follow [RFC 9457 Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html):
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": []
-  }
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "The requested event was not found",
+  "instance": "/api/v1/events/123",
+  "code": "NOT_FOUND"
+}
+```
+
+**Validation Errors:**
+```json
+{
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "One or more validation errors occurred",
+  "instance": "/api/v1/events",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {"field": "email", "message": "Invalid email format"},
+    {"field": "start_date", "message": "Must be in the future"}
+  ]
 }
 ```
 

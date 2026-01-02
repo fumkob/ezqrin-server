@@ -57,7 +57,9 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"healthy"`))
-				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
+
+				// Verify no success wrapper
+				Expect(w.Body.String()).ToNot(ContainSubstring(`"success"`))
 
 				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
@@ -82,7 +84,7 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
 			})
 
-			It("should return 503 when database is unhealthy", func() {
+			It("should return 503 with RFC 9457 Problem Details when database is unhealthy", func() {
 				mockDB.healthy = false
 
 				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
@@ -91,8 +93,12 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 				router.ServeHTTP(w, req)
 
 				Expect(w.Code).To(Equal(http.StatusServiceUnavailable))
-				Expect(w.Body.String()).To(ContainSubstring(`"status":"not_ready"`))
-				Expect(w.Body.String()).To(ContainSubstring(`"database":"unhealthy"`))
+
+				// Verify RFC 9457 structure
+				Expect(w.Body.String()).To(ContainSubstring(`"type"`))
+				Expect(w.Body.String()).To(ContainSubstring(`problems/service-unavailable`))
+				Expect(w.Body.String()).To(ContainSubstring(`"status":503`))
+				Expect(w.Body.String()).To(ContainSubstring(`"code":"SERVICE_UNAVAILABLE"`))
 			})
 		})
 
@@ -105,7 +111,9 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"alive"`))
-				Expect(w.Body.String()).To(ContainSubstring(`"success":true`))
+
+				// Verify no success wrapper
+				Expect(w.Body.String()).ToNot(ContainSubstring(`"success"`))
 
 				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))

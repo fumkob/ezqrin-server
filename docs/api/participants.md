@@ -61,30 +61,26 @@ Register a single participant for an event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Jane Smith",
-    "email": "jane@example.com",
-    "qr_email": "jane.work@example.com",
-    "employee_id": "EMP001",
-    "phone": "+1-555-0123",
-    "status": "confirmed",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "payment_date": "2025-11-08T12:30:00Z",
-    "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-    "qr_code_generated_at": "2025-11-08T10:00:00Z",
-    "metadata": {
-      "company": "Tech Corp",
-      "role": "Software Engineer",
-      "dietary_restrictions": "Vegetarian"
-    },
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T10:00:00Z"
+  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "qr_email": "jane.work@example.com",
+  "employee_id": "EMP001",
+  "phone": "+1-555-0123",
+  "status": "confirmed",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "payment_date": "2025-11-08T12:30:00Z",
+  "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
+  "qr_code_generated_at": "2025-11-08T10:00:00Z",
+  "metadata": {
+    "company": "Tech Corp",
+    "role": "Software Engineer",
+    "dietary_restrictions": "Vegetarian"
   },
-  "message": "Participant added successfully"
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T10:00:00Z"
 }
 ```
 
@@ -155,21 +151,17 @@ John Doe,john@example.com,EMP002,+1-555-0124,tentative,unpaid,,,"{""company"":""
 
 ```json
 {
-  "success": true,
-  "data": {
-    "imported_count": 148,
-    "skipped_count": 2,
-    "failed_count": 0,
-    "errors": [],
-    "skipped_rows": [
-      {
-        "row": 5,
-        "email": "duplicate@example.com",
-        "reason": "Email already exists for this event"
-      }
-    ]
-  },
-  "message": "Import completed successfully"
+  "imported_count": 148,
+  "skipped_count": 2,
+  "failed_count": 0,
+  "errors": [],
+  "skipped_rows": [
+    {
+      "row": 5,
+      "email": "duplicate@example.com",
+      "reason": "Email already exists for this event"
+    }
+  ]
 }
 ```
 
@@ -214,7 +206,6 @@ Retrieve a paginated list of event participants.
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "770e8400-e29b-41d4-a716-446655440000",
@@ -233,7 +224,6 @@ Retrieve a paginated list of event participants.
       "updated_at": "2025-11-08T10:00:00Z"
     }
   ],
-  "message": "Participants retrieved successfully",
   "meta": {
     "page": 1,
     "per_page": 20,
@@ -270,44 +260,58 @@ Retrieve detailed information about a specific participant.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "employee_id": "EMP001",
-    "name": "Jane Smith",
-    "email": "jane@example.com",
-    "qr_email": "jane.work@example.com",
-    "phone": "+1-555-0123",
-    "status": "confirmed",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "payment_date": "2025-11-08T12:30:00Z",
-    "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-    "qr_code_generated_at": "2025-11-08T10:00:00Z",
-    "metadata": {
-      "company": "Tech Corp",
-      "role": "Software Engineer",
-      "dietary_restrictions": "Vegetarian"
-    },
-    "checked_in": true,
-    "checked_in_at": "2025-12-15T09:15:00Z",
-    "checked_in_by": {
-      "id": "660e8400-e29b-41d4-a716-446655440000",
-      "name": "Admin User"
-    },
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T10:00:00Z"
+  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "employee_id": "EMP001",
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "qr_email": "jane.work@example.com",
+  "phone": "+1-555-0123",
+  "status": "confirmed",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "payment_date": "2025-11-08T12:30:00Z",
+  "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
+  "qr_code_generated_at": "2025-11-08T10:00:00Z",
+  "metadata": {
+    "company": "Tech Corp",
+    "role": "Software Engineer",
+    "dietary_restrictions": "Vegetarian"
   },
-  "message": "Participant retrieved successfully"
+  "checked_in": true,
+  "checked_in_at": "2025-12-15T09:15:00Z",
+  "checked_in_by": {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "name": "Admin User"
+  },
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T10:00:00Z"
 }
 ```
 
 **Errors:**
 
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - No access to this event
-- `404 Not Found` - Event or participant not found
+```json
+{
+  "type": "https://api.ezqrin.com/problems/unauthorized",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "Authentication required",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "UNAUTHORIZED"
+}
+```
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "Event or participant not found",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "NOT_FOUND"
+}
+```
 
 ---
 
@@ -352,38 +356,53 @@ Update participant information. All fields must be provided (full replacement).
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Jane Smith-Johnson",
-    "email": "jane.johnson@example.com",
-    "qr_email": "jane.work@example.com",
-    "employee_id": "EMP001",
-    "phone": "+1-555-0125",
-    "status": "confirmed",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "payment_date": "2025-11-08T12:30:00Z",
-    "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-    "metadata": {
-      "company": "New Tech Corp",
-      "role": "Senior Engineer"
-    },
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T11:00:00Z"
+  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Jane Smith-Johnson",
+  "email": "jane.johnson@example.com",
+  "qr_email": "jane.work@example.com",
+  "employee_id": "EMP001",
+  "phone": "+1-555-0125",
+  "status": "confirmed",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "payment_date": "2025-11-08T12:30:00Z",
+  "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
+  "metadata": {
+    "company": "New Tech Corp",
+    "role": "Senior Engineer"
   },
-  "message": "Participant updated successfully"
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T11:00:00Z"
 }
 ```
 
 **Errors:**
 
-- `400 Bad Request` - Invalid request data
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - Not authorized to update this participant
-- `404 Not Found` - Event or participant not found
-- `409 Conflict` - Email already used by another participant in this event
+```json
+{
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "One or more validation errors occurred",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {"field": "email", "message": "Invalid email format"}
+  ]
+}
+```
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/conflict",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "Email already used by another participant in this event",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "CONFLICT"
+}
+```
 
 ---
 
@@ -442,38 +461,53 @@ All fields are optional. Only provided fields will be updated.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Jane Smith-Johnson",
-    "email": "jane@example.com",
-    "qr_email": "jane.work@example.com",
-    "employee_id": "EMP001",
-    "phone": "+1-555-0123",
-    "status": "confirmed",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "payment_date": "2025-11-08T12:30:00Z",
-    "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-    "metadata": {
-      "company": "New Tech Corp",
-      "role": "Senior Engineer"
-    },
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T14:30:00Z"
+  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Jane Smith-Johnson",
+  "email": "jane@example.com",
+  "qr_email": "jane.work@example.com",
+  "employee_id": "EMP001",
+  "phone": "+1-555-0123",
+  "status": "confirmed",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "payment_date": "2025-11-08T12:30:00Z",
+  "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
+  "metadata": {
+    "company": "New Tech Corp",
+    "role": "Senior Engineer"
   },
-  "message": "Participant updated successfully"
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T14:30:00Z"
 }
 ```
 
 **Errors:**
 
-- `400 Bad Request` - Invalid request data
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - Not authorized to update this participant
-- `404 Not Found` - Event or participant not found
-- `409 Conflict` - Email already used by another participant in this event
+```json
+{
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "One or more validation errors occurred",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {"field": "status", "message": "Invalid status value"}
+  ]
+}
+```
+
+```json
+{
+  "type": "https://api.ezqrin.com/problems/conflict",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "Email already used by another participant in this event",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "CONFLICT"
+}
+```
 
 ---
 
@@ -497,25 +531,30 @@ participants.
 
 ```json
 {
-  "success": true,
-  "message": "Participant deleted successfully",
-  "data": {
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "participant_name": "Jane Smith",
-    "email": "jane@example.com",
-    "checkin_deleted": true,
-    "qr_code_invalidated": true,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "participant_name": "Jane Smith",
+  "email": "jane@example.com",
+  "checkin_deleted": true,
+  "qr_code_invalidated": true,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
 **Errors:**
 
-- `400 Bad Request` - Cannot delete paid participant
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - Not authorized to delete this participant
-- `404 Not Found` - Event or participant not found
+```json
+{
+  "type": "https://api.ezqrin.com/problems/bad-request",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Cannot delete participant with payment record. Change status to 'cancelled' instead.",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "PARTICIPANT_HAS_PAYMENT",
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "payment_status": "paid",
+  "payment_amount": 150.0
+}
+```
 
 **Validation Rules:**
 
@@ -533,24 +572,25 @@ participants.
 
 ```json
 {
-  "success": false,
-  "error": "PARTICIPANT_HAS_PAYMENT",
-  "message": "Cannot delete participant with payment record. Change status to 'cancelled' instead.",
-  "data": {
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "participant_name": "Jane Smith",
-    "email": "jane@example.com",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "payment_date": "2025-11-08T12:30:00Z",
-    "alternative_action": {
-      "method": "PATCH",
-      "endpoint": "/api/v1/events/:id/participants/:pid",
-      "body": {
-        "status": "cancelled"
-      },
-      "description": "Cancel participant instead of deleting to preserve payment record"
-    }
+  "type": "https://api.ezqrin.com/problems/bad-request",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Cannot delete participant with payment record. Change status to 'cancelled' instead.",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "PARTICIPANT_HAS_PAYMENT",
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "participant_name": "Jane Smith",
+  "email": "jane@example.com",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "payment_date": "2025-11-08T12:30:00Z",
+  "alternative_action": {
+    "method": "PATCH",
+    "endpoint": "/api/v1/events/:id/participants/:pid",
+    "body": {
+      "status": "cancelled"
+    },
+    "description": "Cancel participant instead of deleting to preserve payment record"
   }
 }
 ```
@@ -568,21 +608,17 @@ DELETE /api/v1/events/550e8400-e29b-41d4-a716-446655440000/participants/770e8400
 Authorization: Bearer [access_token]
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
-  "message": "Participant deleted successfully",
-  "data": {
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "participant_name": "Jane Smith",
-    "email": "jane@example.com",
-    "payment_status": "unpaid",
-    "checkin_deleted": false,
-    "qr_code_invalidated": true,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "participant_name": "Jane Smith",
+  "email": "jane@example.com",
+  "payment_status": "unpaid",
+  "checkin_deleted": false,
+  "qr_code_invalidated": true,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -595,19 +631,20 @@ DELETE /api/v1/events/550e8400-e29b-41d4-a716-446655440000/participants/770e8400
 Authorization: Bearer [access_token]
 ```
 
-**Response:**
+**Response:** `400 Bad Request`
 
 ```json
 {
-  "success": false,
-  "error": "PARTICIPANT_HAS_PAYMENT",
-  "message": "Cannot delete participant with payment record",
-  "data": {
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "payment_status": "paid",
-    "payment_amount": 150.0,
-    "alternative_action": "PATCH /api/v1/events/:id/participants/:pid with status='cancelled'"
-  }
+  "type": "https://api.ezqrin.com/problems/bad-request",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Cannot delete participant with payment record",
+  "instance": "/api/v1/events/550e8400/participants/770e8400",
+  "code": "PARTICIPANT_HAS_PAYMENT",
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "payment_status": "paid",
+  "payment_amount": 150.0,
+  "alternative_action": "PATCH /api/v1/events/:id/participants/:pid with status='cancelled'"
 }
 ```
 

@@ -45,21 +45,17 @@ Create a new event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
-    "name": "Tech Conference 2025",
-    "description": "Annual technology conference featuring industry leaders",
-    "start_date": "2025-12-15T09:00:00Z",
-    "end_date": "2025-12-15T18:00:00Z",
-    "location": "San Francisco Convention Center",
-    "timezone": "America/Los_Angeles",
-    "status": "draft",
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T10:00:00Z"
-  },
-  "message": "Event created successfully"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference featuring industry leaders",
+  "start_date": "2025-12-15T09:00:00Z",
+  "end_date": "2025-12-15T18:00:00Z",
+  "location": "San Francisco Convention Center",
+  "timezone": "America/Los_Angeles",
+  "status": "draft",
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T10:00:00Z"
 }
 ```
 
@@ -98,7 +94,6 @@ Retrieve a paginated list of events. The results are filtered based on user role
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -116,7 +111,6 @@ Retrieve a paginated list of events. The results are filtered based on user role
       "updated_at": "2025-11-08T10:00:00Z"
     }
   ],
-  "message": "Events retrieved successfully",
   "meta": {
     "page": 1,
     "per_page": 20,
@@ -150,28 +144,24 @@ Retrieve detailed information about a specific event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
-    "organizer": {
-      "id": "660e8400-e29b-41d4-a716-446655440000",
-      "name": "John Doe",
-      "email": "john@example.com"
-    },
-    "name": "Tech Conference 2025",
-    "description": "Annual technology conference featuring industry leaders",
-    "start_date": "2025-12-15T09:00:00Z",
-    "end_date": "2025-12-15T18:00:00Z",
-    "location": "San Francisco Convention Center",
-    "timezone": "America/Los_Angeles",
-    "status": "published",
-    "participant_count": 150,
-    "checked_in_count": 87,
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T10:00:00Z"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
+  "organizer": {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "name": "John Doe",
+    "email": "john@example.com"
   },
-  "message": "Event retrieved successfully"
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference featuring industry leaders",
+  "start_date": "2025-12-15T09:00:00Z",
+  "end_date": "2025-12-15T18:00:00Z",
+  "location": "San Francisco Convention Center",
+  "timezone": "America/Los_Angeles",
+  "status": "published",
+  "participant_count": 150,
+  "checked_in_count": 87,
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T10:00:00Z"
 }
 ```
 
@@ -215,21 +205,17 @@ Update an existing event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
-    "name": "Tech Conference 2025 - Updated",
-    "description": "Updated description",
-    "start_date": "2025-12-15T09:00:00Z",
-    "end_date": "2025-12-15T18:00:00Z",
-    "location": "Updated Location",
-    "timezone": "America/Los_Angeles",
-    "status": "published",
-    "created_at": "2025-11-08T10:00:00Z",
-    "updated_at": "2025-11-08T11:00:00Z"
-  },
-  "message": "Event updated successfully"
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "organizer_id": "660e8400-e29b-41d4-a716-446655440000",
+  "name": "Tech Conference 2025 - Updated",
+  "description": "Updated description",
+  "start_date": "2025-12-15T09:00:00Z",
+  "end_date": "2025-12-15T18:00:00Z",
+  "location": "Updated Location",
+  "timezone": "America/Los_Angeles",
+  "status": "published",
+  "created_at": "2025-11-08T10:00:00Z",
+  "updated_at": "2025-11-08T11:00:00Z"
 }
 ```
 
@@ -284,19 +270,15 @@ accidental data loss.
 
 ```json
 {
-  "success": true,
-  "message": "Event deleted successfully",
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "Tech Conference 2025",
-    "participants_deleted": 150,
-    "paid_participants_deleted": 87,
-    "unpaid_participants_deleted": 63,
-    "checkins_deleted": 45,
-    "staff_assignments_removed": 3,
-    "qr_codes_invalidated": 150,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "Tech Conference 2025",
+  "participants_deleted": 150,
+  "paid_participants_deleted": 87,
+  "unpaid_participants_deleted": 63,
+  "checkins_deleted": 45,
+  "staff_assignments_removed": 3,
+  "qr_codes_invalidated": 150,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -331,15 +313,16 @@ accidental data loss.
 
 ```json
 {
-  "success": false,
-  "error": "EVENT_IS_ONGOING",
-  "message": "Cannot delete event with status 'ongoing'. Complete or cancel the event first.",
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "Tech Conference 2025",
-    "status": "ongoing",
-    "suggestion": "Change event status to 'completed' or 'cancelled' before deletion"
-  }
+  "type": "https://api.ezqrin.com/problems/event-is-ongoing",
+  "title": "Cannot Delete Ongoing Event",
+  "status": 409,
+  "detail": "Cannot delete event with status 'ongoing'. Complete or cancel the event first",
+  "instance": "/api/v1/events/550e8400-e29b-41d4-a716-446655440000",
+  "code": "EVENT_IS_ONGOING",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "Tech Conference 2025",
+  "event_status": "ongoing",
+  "suggestion": "Change event status to 'completed' or 'cancelled' before deletion"
 }
 ```
 
@@ -347,18 +330,19 @@ accidental data loss.
 
 ```json
 {
-  "success": false,
-  "error": "EVENT_HAS_PAID_PARTICIPANTS",
-  "message": "Event has 87 paid participants. Use force=true to confirm deletion.",
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "Tech Conference 2025",
-    "total_participants": 150,
-    "paid_participants_count": 87,
-    "total_payment_amount": 13050.0,
-    "warning": "Deleting this event will permanently remove payment records",
-    "required_action": "Add ?force=true parameter and confirm in request body"
-  }
+  "type": "https://api.ezqrin.com/problems/event-has-paid-participants",
+  "title": "Event Has Paid Participants",
+  "status": 422,
+  "detail": "Event has 87 paid participants. Use force=true to confirm deletion",
+  "instance": "/api/v1/events/550e8400-e29b-41d4-a716-446655440000",
+  "code": "EVENT_HAS_PAID_PARTICIPANTS",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "Tech Conference 2025",
+  "total_participants": 150,
+  "paid_participants_count": 87,
+  "total_payment_amount": 13050.0,
+  "warning": "Deleting this event will permanently remove payment records",
+  "required_action": "Add ?force=true parameter and confirm in request body"
 }
 ```
 
@@ -379,16 +363,12 @@ Authorization: Bearer [access_token]
 
 ```json
 {
-  "success": true,
-  "message": "Event deleted successfully",
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "Tech Conference 2025",
-    "participants_deleted": 150,
-    "paid_participants_deleted": 0,
-    "checkins_deleted": 45,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "Tech Conference 2025",
+  "participants_deleted": 150,
+  "paid_participants_deleted": 0,
+  "checkins_deleted": 45,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -411,18 +391,14 @@ Content-Type: application/json
 
 ```json
 {
-  "success": true,
-  "message": "Event deleted successfully",
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "event_name": "Tech Conference 2025",
-    "participants_deleted": 150,
-    "paid_participants_deleted": 87,
-    "unpaid_participants_deleted": 63,
-    "checkins_deleted": 45,
-    "staff_assignments_removed": 3,
-    "deleted_at": "2025-11-08T15:30:00Z"
-  }
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "event_name": "Tech Conference 2025",
+  "participants_deleted": 150,
+  "paid_participants_deleted": 87,
+  "unpaid_participants_deleted": 63,
+  "checkins_deleted": 45,
+  "staff_assignments_removed": 3,
+  "deleted_at": "2025-11-08T15:30:00Z"
 }
 ```
 
@@ -462,34 +438,30 @@ Retrieve statistics and metrics for an event.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "total_participants": 150,
-    "checked_in_count": 87,
-    "pending_count": 63,
-    "check_in_rate": 58.0,
-    "status_breakdown": {
-      "confirmed": 120,
-      "tentative": 25,
-      "cancelled": 5
-    },
-    "checkin_timeline": [
-      {
-        "hour": "2025-12-15T09:00:00Z",
-        "count": 25
-      },
-      {
-        "hour": "2025-12-15T10:00:00Z",
-        "count": 42
-      }
-    ],
-    "checkin_methods": {
-      "qrcode": 85,
-      "manual": 2
-    }
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "total_participants": 150,
+  "checked_in_count": 87,
+  "pending_count": 63,
+  "check_in_rate": 58.0,
+  "status_breakdown": {
+    "confirmed": 120,
+    "tentative": 25,
+    "cancelled": 5
   },
-  "message": "Event statistics retrieved successfully"
+  "checkin_timeline": [
+    {
+      "hour": "2025-12-15T09:00:00Z",
+      "count": 25
+    },
+    {
+      "hour": "2025-12-15T10:00:00Z",
+      "count": 42
+    }
+  ],
+  "checkin_methods": {
+    "qrcode": 85,
+    "manual": 2
+  }
 }
 ```
 
@@ -533,21 +505,17 @@ Assign a staff user to an event, granting them access to view participants and p
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "880e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "staff_id": "770e8400-e29b-41d4-a716-446655440000",
-    "staff": {
-      "id": "770e8400-e29b-41d4-a716-446655440000",
-      "name": "Jane Smith",
-      "email": "jane@example.com",
-      "role": "staff"
-    },
-    "assigned_at": "2025-11-08T14:00:00Z",
-    "assigned_by": "660e8400-e29b-41d4-a716-446655440000"
+  "id": "880e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "staff_id": "770e8400-e29b-41d4-a716-446655440000",
+  "staff": {
+    "id": "770e8400-e29b-41d4-a716-446655440000",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "role": "staff"
   },
-  "message": "Staff assigned successfully"
+  "assigned_at": "2025-11-08T14:00:00Z",
+  "assigned_by": "660e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -579,7 +547,6 @@ Get all staff members assigned to an event.
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "880e8400-e29b-41d4-a716-446655440000",
@@ -594,8 +561,7 @@ Get all staff members assigned to an event.
       "assigned_at": "2025-11-08T14:00:00Z",
       "assigned_by": "660e8400-e29b-41d4-a716-446655440000"
     }
-  ],
-  "message": "Staff list retrieved successfully"
+  ]
 }
 ```
 
@@ -622,14 +588,9 @@ Remove a staff member's assignment from an event.
 | id        | UUID | Event ID      |
 | staff_id  | UUID | Staff user ID |
 
-**Response:** `200 OK`
+**Response:** `204 No Content`
 
-```json
-{
-  "success": true,
-  "message": "Staff removed successfully"
-}
-```
+No response body.
 
 **Errors:**
 

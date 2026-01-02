@@ -63,20 +63,16 @@ Send QR codes to participants via email.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "sent_count": 50,
-    "failed_count": 2,
-    "total": 52,
-    "failures": [
-      {
-        "participant_id": "772e8400-e29b-41d4-a716-446655440002",
-        "email": "invalid@example.com",
-        "reason": "Invalid email address format"
-      }
-    ]
-  },
-  "message": "QR codes sent successfully"
+  "sent_count": 50,
+  "failed_count": 2,
+  "total": 52,
+  "failures": [
+    {
+      "participant_id": "772e8400-e29b-41d4-a716-446655440002",
+      "email": "invalid@example.com",
+      "reason": "Invalid email address format"
+    }
+  ]
 }
 ```
 
@@ -84,19 +80,15 @@ Send QR codes to participants via email.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "job_id": "job_550e8400_20251122_143022",
-    "status": "queued",
-    "total_participants": 5000,
-    "estimated_completion": "2025-11-22T14:50:00Z",
-    "progress": {
-      "processed": 0,
-      "sent": 0,
-      "failed": 0
-    }
-  },
-  "message": "Email sending job queued for processing"
+  "job_id": "job_550e8400_20251122_143022",
+  "status": "queued",
+  "total_participants": 5000,
+  "estimated_completion": "2025-11-22T14:50:00Z",
+  "progress": {
+    "processed": 0,
+    "sent": 0,
+    "failed": 0
+  }
 }
 ```
 
@@ -105,20 +97,16 @@ response)
 
 ```json
 {
-  "success": true,
-  "data": {
-    "sent_count": 148,
-    "failed_count": 2,
-    "total": 150,
-    "failures": [
-      {
-        "participant_id": "772e8400-e29b-41d4-a716-446655440002",
-        "email": "invalid@example.com",
-        "reason": "Invalid email address format"
-      }
-    ]
-  },
-  "message": "Email send completed with errors"
+  "sent_count": 148,
+  "failed_count": 2,
+  "total": 150,
+  "failures": [
+    {
+      "participant_id": "772e8400-e29b-41d4-a716-446655440002",
+      "email": "invalid@example.com",
+      "reason": "Invalid email address format"
+    }
+  ]
 }
 ```
 
@@ -150,29 +138,25 @@ Check the status of an asynchronous email sending job.
 
 ```json
 {
-  "success": true,
-  "data": {
-    "job_id": "job_550e8400_20251122_143022",
-    "status": "in_progress",
-    "total_participants": 5000,
-    "progress": {
-      "processed": 3200,
-      "sent": 3150,
-      "failed": 50,
-      "percentage": 64
-    },
-    "estimated_completion": "2025-11-22T14:45:00Z",
-    "started_at": "2025-11-22T14:25:00Z",
-    "recent_failures": [
-      {
-        "participant_id": "772e8400-e29b-41d4-a716-446655440002",
-        "email": "invalid@example.com",
-        "reason": "Invalid email address format",
-        "timestamp": "2025-11-22T14:30:15Z"
-      }
-    ]
+  "job_id": "job_550e8400_20251122_143022",
+  "status": "in_progress",
+  "total_participants": 5000,
+  "progress": {
+    "processed": 3200,
+    "sent": 3150,
+    "failed": 50,
+    "percentage": 64
   },
-  "message": "Job in progress"
+  "estimated_completion": "2025-11-22T14:45:00Z",
+  "started_at": "2025-11-22T14:25:00Z",
+  "recent_failures": [
+    {
+      "participant_id": "772e8400-e29b-41d4-a716-446655440002",
+      "email": "invalid@example.com",
+      "reason": "Invalid email address format",
+      "timestamp": "2025-11-22T14:30:15Z"
+    }
+  ]
 }
 ```
 
@@ -230,20 +214,16 @@ Content-Disposition: inline; filename="qrcode_770e8400.png"
 
 ```json
 {
-  "success": true,
-  "data": {
-    "participant_id": "770e8400-e29b-41d4-a716-446655440000",
-    "event_id": "550e8400-e29b-41d4-a716-446655440000",
-    "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-    "qr_image_url": "https://api.ezqrin.com/qr/770e8400.png",
-    "generated_at": "2025-11-08T10:00:00Z",
-    "event": {
-      "name": "Tech Conference 2025",
-      "start_date": "2025-12-15T09:00:00Z",
-      "location": "San Francisco Convention Center"
-    }
-  },
-  "message": "QR code retrieved successfully"
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
+  "qr_image_url": "https://api.ezqrin.com/qr/770e8400.png",
+  "generated_at": "2025-11-08T10:00:00Z",
+  "event": {
+    "name": "Tech Conference 2025",
+    "start_date": "2025-12-15T09:00:00Z",
+    "location": "San Francisco Convention Center"
+  }
 }
 ```
 
@@ -422,12 +402,9 @@ POST /api/v1/events/:event_id/email-templates
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "tpl_550e8400-e29b-41d4-a716-446655440000",
-    "name": "VIP Welcome Email",
-    "created_at": "2025-11-08T10:00:00Z"
-  }
+  "id": "tpl_550e8400-e29b-41d4-a716-446655440000",
+  "name": "VIP Welcome Email",
+  "created_at": "2025-11-08T10:00:00Z"
 }
 ```
 
@@ -437,11 +414,10 @@ POST /api/v1/events/:event_id/email-templates
 GET /api/v1/events/:event_id/email-templates
 ```
 
-**Response:**
+**Response:** `200 OK`
 
 ```json
 {
-  "success": true,
   "data": [
     {
       "id": "tpl_550e8400-e29b-41d4-a716-446655440000",
@@ -455,7 +431,10 @@ GET /api/v1/events/:event_id/email-templates
       "is_system": false,
       "created_at": "2025-11-08T14:22:00Z"
     }
-  ]
+  ],
+  "meta": {
+    "total": 2
+  }
 }
 ```
 
@@ -477,14 +456,11 @@ POST /api/v1/events/:event_id/email-templates/:template_id/preview
 
 ```json
 {
-  "success": true,
-  "data": {
-    "subject": "Welcome to Tech Conference 2025 - VIP Access",
-    "body_preview": "<html><body>Hello John Doe,<br/><br/>You are invited to Tech Conference 2025 on 2025-12-15...",
-    "rendered_correctly": true,
-    "variables_found": ["{participant_name}", "{event_name}", "{event_date}"],
-    "variables_missing": []
-  }
+  "subject": "Welcome to Tech Conference 2025 - VIP Access",
+  "body_preview": "<html><body>Hello John Doe,<br/><br/>You are invited to Tech Conference 2025 on 2025-12-15...",
+  "rendered_correctly": true,
+  "variables_found": ["{participant_name}", "{event_name}", "{event_date}"],
+  "variables_missing": []
 }
 ```
 
@@ -514,16 +490,16 @@ DELETE /api/v1/events/:event_id/email-templates/:template_id
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "TEMPLATE_VALIDATION_FAILED",
-    "message": "Template validation failed",
-    "details": {
-      "missing_variables": ["participant_email"],
-      "invalid_syntax": ["{invalid_var}"],
-      "length_issues": []
-    }
-  }
+  "type": "https://api.ezqrin.com/problems/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "Template validation failed",
+  "instance": "/api/v1/events/550e8400/email-templates",
+  "code": "TEMPLATE_VALIDATION_FAILED",
+  "errors": [
+    {"field": "variables", "message": "Missing required variable: participant_email"},
+    {"field": "syntax", "message": "Invalid variable syntax: {invalid_var}"}
+  ]
 }
 ```
 
