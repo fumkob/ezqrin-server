@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	readinessCheckTimeout = 5 * time.Second
 )
 
 // HealthHandler handles health check endpoints.
@@ -50,7 +53,7 @@ func (h *HealthHandler) GetHealth(c *gin.Context) {
 // Implements generated.ServerInterface.GetHealthReady
 func (h *HealthHandler) GetHealthReady(c *gin.Context) {
 	// Create context with timeout for database check
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), readinessCheckTimeout)
 	defer cancel()
 
 	// Check database health

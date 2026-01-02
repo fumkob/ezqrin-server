@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all
+.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all lint-fix
 
 #
 # Container Runtime Detection (Docker/Podman)
@@ -61,6 +61,7 @@ help:
 	@echo "Code Quality:"
 	@echo "  make fmt             - Format Go code"
 	@echo "  make lint            - Run linters"
+	@echo "  make lint-fix        - Run linters with auto-fix"
 	@echo "  make vet             - Run go vet"
 	@echo ""
 	@echo "Verification:"
@@ -202,6 +203,10 @@ fmt: check-runtime
 # Run linters
 lint: check-runtime
 	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && golangci-lint run ./..."
+
+# Run linters with auto-fix
+lint-fix: check-runtime
+	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && golangci-lint run --fix ./..."
 
 # Run go vet
 vet: check-runtime

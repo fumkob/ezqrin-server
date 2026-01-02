@@ -1,3 +1,4 @@
+// Package config provides hierarchical configuration management using Viper.
 package config
 
 import (
@@ -8,6 +9,15 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+)
+
+const (
+	envKeyValueParts   = 2
+	jwtSecretMinLength = 32
+	minPort            = 1
+	maxPort            = 65535
+	minDatabaseConns   = 1
+	minRedisDB         = 0
 )
 
 // Config holds all application configuration
@@ -125,7 +135,12 @@ func loadEnvFile(v *viper.Viper, filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log error but don't fail since we're only reading
+			fmt.Fprintf(os.Stderr, "Warning: failed to close file %s: %v\n", filepath, err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -135,8 +150,8 @@ func loadEnvFile(v *viper.Viper, filepath string) error {
 			continue
 		}
 
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(line, "=", envKeyValueParts)
+		if len(parts) != envKeyValueParts {
 			continue
 		}
 
@@ -292,97 +307,21 @@ func splitAndTrim(s, sep string) []string {
 
 // Validate validates the configuration
 func (c *Config) Validate() error {
-	// Validate Server
-	if c.Server.Port < 1 || c.Server.Port > 65535 {
-		return fmt.Errorf("server port must be between 1 and 65535, got %d", c.Server.Port)
+	if err := c.validateServer(); err != nil {
+		return err
 	}
-
-	validEnvs := map[string]bool{"development": true, "production": true}
-	if !validEnvs[c.Server.Environment] {
-		return fmt.Errorf("server environment must be 'development' or 'production', got '%s'", c.Server.Environment)
+	if err := c.validateDatabase(); err != nil {
+		return err
 	}
-
-	if c.Server.ReadTimeout <= 0 {
-		return fmt.Errorf("server read timeout must be positive")
+	if err := c.validateRedis(); err != nil {
+		return err
 	}
-	if c.Server.WriteTimeout <= 0 {
-		return fmt.Errorf("server write timeout must be positive")
+	if err := c.validateJWT(); err != nil {
+		return err
 	}
-	if c.Server.IdleTimeout <= 0 {
-		return fmt.Errorf("server idle timeout must be positive")
+	if err := c.validateLogging(); err != nil {
+		return err
 	}
-
-	// Validate Database
-	if c.Database.Host == "" {
-		return fmt.Errorf("database host is required")
-	}
-	if c.Database.Port < 1 || c.Database.Port > 65535 {
-		return fmt.Errorf("database port must be between 1 and 65535, got %d", c.Database.Port)
-	}
-	if c.Database.User == "" {
-		return fmt.Errorf("database user is required")
-	}
-	if c.Database.Password == "" {
-		return fmt.Errorf("database password is required")
-	}
-	if c.Database.Name == "" {
-		return fmt.Errorf("database name is required")
-	}
-	if c.Database.MaxConns < 1 {
-		return fmt.Errorf("database max open connections must be at least 1, got %d", c.Database.MaxConns)
-	}
-	if c.Database.MinConns < 0 {
-		return fmt.Errorf("database min connections cannot be negative, got %d", c.Database.MinConns)
-	}
-	if c.Database.MinConns > c.Database.MaxConns {
-		return fmt.Errorf("database min connections (%d) cannot exceed max connections (%d)", c.Database.MinConns, c.Database.MaxConns)
-	}
-	if c.Database.MaxConnLifetime < 0 {
-		return fmt.Errorf("database connection max lifetime cannot be negative")
-	}
-	if c.Database.MaxConnIdleTime < 0 {
-		return fmt.Errorf("database connection max idle time cannot be negative")
-	}
-
-	// Validate Redis
-	if c.Redis.Host == "" {
-		return fmt.Errorf("redis host is required")
-	}
-	if c.Redis.Port < 1 || c.Redis.Port > 65535 {
-		return fmt.Errorf("redis port must be between 1 and 65535, got %d", c.Redis.Port)
-	}
-	if c.Redis.DB < 0 {
-		return fmt.Errorf("redis database index cannot be negative, got %d", c.Redis.DB)
-	}
-
-	// Validate JWT
-	if c.JWT.Secret == "" {
-		return fmt.Errorf("jwt secret is required")
-	}
-	if len(c.JWT.Secret) < 32 {
-		return fmt.Errorf("jwt secret must be at least 32 characters, got %d", len(c.JWT.Secret))
-	}
-	if c.JWT.AccessTokenExpiry <= 0 {
-		return fmt.Errorf("jwt access token expiry must be positive")
-	}
-	if c.JWT.RefreshTokenExpiryWeb <= 0 {
-		return fmt.Errorf("jwt refresh token expiry (web) must be positive")
-	}
-	if c.JWT.RefreshTokenExpiryMobile <= 0 {
-		return fmt.Errorf("jwt refresh token expiry (mobile) must be positive")
-	}
-
-	// Validate Logging
-	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
-	if !validLogLevels[c.Logging.Level] {
-		return fmt.Errorf("log level must be one of: debug, info, warn, error; got '%s'", c.Logging.Level)
-	}
-
-	validLogFormats := map[string]bool{"json": true, "text": true}
-	if !validLogFormats[c.Logging.Format] {
-		return fmt.Errorf("log format must be 'json' or 'text', got '%s'", c.Logging.Format)
-	}
-
 	return nil
 }
 
@@ -407,4 +346,137 @@ func (c *Config) GetRedisAddr() string {
 // IsProduction returns true if running in production environment
 func (c *Config) IsProduction() bool {
 	return c.Server.Environment == "production"
+}
+
+// validateServer validates server configuration.
+func (c *Config) validateServer() error {
+	if c.Server.Port < minPort || c.Server.Port > maxPort {
+		return fmt.Errorf("server port must be between %d and %d, got %d", minPort, maxPort, c.Server.Port)
+	}
+
+	validEnvs := map[string]bool{"development": true, "production": true}
+	if !validEnvs[c.Server.Environment] {
+		return fmt.Errorf(
+			"server environment must be 'development' or 'production', got '%s'",
+			c.Server.Environment,
+		)
+	}
+
+	if c.Server.ReadTimeout <= 0 {
+		return fmt.Errorf("server read timeout must be positive")
+	}
+	if c.Server.WriteTimeout <= 0 {
+		return fmt.Errorf("server write timeout must be positive")
+	}
+	if c.Server.IdleTimeout <= 0 {
+		return fmt.Errorf("server idle timeout must be positive")
+	}
+	return nil
+}
+
+// validateDatabase validates database configuration.
+func (c *Config) validateDatabase() error {
+	if err := c.validateDatabaseConnection(); err != nil {
+		return err
+	}
+	return c.validateDatabasePool()
+}
+
+// validateDatabaseConnection validates database connection parameters.
+func (c *Config) validateDatabaseConnection() error {
+	if c.Database.Host == "" {
+		return fmt.Errorf("database host is required")
+	}
+	if c.Database.Port < minPort || c.Database.Port > maxPort {
+		return fmt.Errorf("database port must be between %d and %d, got %d", minPort, maxPort, c.Database.Port)
+	}
+	if c.Database.User == "" {
+		return fmt.Errorf("database user is required")
+	}
+	if c.Database.Password == "" {
+		return fmt.Errorf("database password is required")
+	}
+	if c.Database.Name == "" {
+		return fmt.Errorf("database name is required")
+	}
+	return nil
+}
+
+// validateDatabasePool validates database connection pool parameters.
+func (c *Config) validateDatabasePool() error {
+	if c.Database.MaxConns < minDatabaseConns {
+		return fmt.Errorf(
+			"database max open connections must be at least %d, got %d",
+			minDatabaseConns,
+			c.Database.MaxConns,
+		)
+	}
+	if c.Database.MinConns < minRedisDB {
+		return fmt.Errorf("database min connections cannot be negative, got %d", c.Database.MinConns)
+	}
+	if c.Database.MinConns > c.Database.MaxConns {
+		return fmt.Errorf(
+			"database min connections (%d) cannot exceed max connections (%d)",
+			c.Database.MinConns,
+			c.Database.MaxConns,
+		)
+	}
+	if c.Database.MaxConnLifetime < 0 {
+		return fmt.Errorf("database connection max lifetime cannot be negative")
+	}
+	if c.Database.MaxConnIdleTime < 0 {
+		return fmt.Errorf("database connection max idle time cannot be negative")
+	}
+	return nil
+}
+
+// validateRedis validates Redis configuration.
+func (c *Config) validateRedis() error {
+	if c.Redis.Host == "" {
+		return fmt.Errorf("redis host is required")
+	}
+	if c.Redis.Port < minPort || c.Redis.Port > maxPort {
+		return fmt.Errorf("redis port must be between %d and %d, got %d", minPort, maxPort, c.Redis.Port)
+	}
+	if c.Redis.DB < minRedisDB {
+		return fmt.Errorf("redis database index cannot be negative, got %d", c.Redis.DB)
+	}
+	return nil
+}
+
+// validateJWT validates JWT configuration.
+func (c *Config) validateJWT() error {
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("jwt secret is required")
+	}
+	if len(c.JWT.Secret) < jwtSecretMinLength {
+		return fmt.Errorf("jwt secret must be at least %d characters, got %d", jwtSecretMinLength, len(c.JWT.Secret))
+	}
+	if c.JWT.AccessTokenExpiry <= 0 {
+		return fmt.Errorf("jwt access token expiry must be positive")
+	}
+	if c.JWT.RefreshTokenExpiryWeb <= 0 {
+		return fmt.Errorf("jwt refresh token expiry (web) must be positive")
+	}
+	if c.JWT.RefreshTokenExpiryMobile <= 0 {
+		return fmt.Errorf("jwt refresh token expiry (mobile) must be positive")
+	}
+	return nil
+}
+
+// validateLogging validates logging configuration.
+func (c *Config) validateLogging() error {
+	validLogLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+	if !validLogLevels[c.Logging.Level] {
+		return fmt.Errorf(
+			"log level must be one of: debug, info, warn, error; got '%s'",
+			c.Logging.Level,
+		)
+	}
+
+	validLogFormats := map[string]bool{"json": true, "text": true}
+	if !validLogFormats[c.Logging.Format] {
+		return fmt.Errorf("log format must be 'json' or 'text', got '%s'", c.Logging.Format)
+	}
+	return nil
 }

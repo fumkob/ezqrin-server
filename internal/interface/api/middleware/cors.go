@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/gin-gonic/gin"
 )
 
 // CORS is a middleware that handles Cross-Origin Resource Sharing (CORS).

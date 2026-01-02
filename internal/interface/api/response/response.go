@@ -23,9 +23,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"github.com/gin-gonic/gin"
 )
 
 // SuccessResponse represents a successful API response

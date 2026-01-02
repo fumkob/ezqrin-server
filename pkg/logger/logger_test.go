@@ -4,11 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap"
-
-	"github.com/fumkob/ezqrin-server/pkg/logger"
 )
 
 func TestLogger(t *testing.T) {

@@ -48,15 +48,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	uuidVersion4 = 4
+)
+
 // Validator wraps go-playground/validator with custom validators
 type Validator struct {
 	validate *validator.Validate
 }
 
-var (
-	// emailRegex is a simple email validation regex
-	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-)
+// emailRegex is a simple email validation regex
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 
 // New creates a new Validator instance with custom validators registered
 func New() *Validator {
@@ -98,7 +100,7 @@ func (v *Validator) formatValidationErrors(err error) error {
 		return err
 	}
 
-	var messages []string
+	messages := make([]string, 0, len(validationErrs))
 	for _, e := range validationErrs {
 		messages = append(messages, formatFieldError(e))
 	}
@@ -106,48 +108,56 @@ func (v *Validator) formatValidationErrors(err error) error {
 	return fmt.Errorf("%s", strings.Join(messages, "; "))
 }
 
+// validationMessageFormatter is a function type for formatting validation error messages
+type validationMessageFormatter func(field, param string) string
+
+// validationMessages maps validation tags to their message formatters
+var validationMessages = map[string]validationMessageFormatter{
+	"required":     func(field, _ string) string { return fmt.Sprintf("%s is required", field) },
+	"email":        func(field, _ string) string { return fmt.Sprintf("%s must be a valid email address", field) },
+	"email_format": func(field, _ string) string { return fmt.Sprintf("%s must be a valid email address", field) },
+	"min": func(field, param string) string {
+		return fmt.Sprintf("%s must be at least %s characters", field, param)
+	},
+	"max": func(field, param string) string {
+		return fmt.Sprintf("%s must be at most %s characters", field, param)
+	},
+	"len": func(field, param string) string {
+		return fmt.Sprintf("%s must be exactly %s characters", field, param)
+	},
+	"gt": func(field, param string) string { return fmt.Sprintf("%s must be greater than %s", field, param) },
+	"gte": func(field, param string) string {
+		return fmt.Sprintf("%s must be greater than or equal to %s", field, param)
+	},
+	"lt": func(field, param string) string { return fmt.Sprintf("%s must be less than %s", field, param) },
+	"lte": func(field, param string) string {
+		return fmt.Sprintf("%s must be less than or equal to %s", field, param)
+	},
+	"oneof": func(field, param string) string { return fmt.Sprintf("%s must be one of: %s", field, param) },
+	"uuid4": func(field, _ string) string { return fmt.Sprintf("%s must be a valid UUID v4", field) },
+	"url":   func(field, _ string) string { return fmt.Sprintf("%s must be a valid URL", field) },
+	"alpha": func(field, _ string) string {
+		return fmt.Sprintf("%s must contain only alphabetic characters", field)
+	},
+	"alphanum": func(field, _ string) string {
+		return fmt.Sprintf("%s must contain only alphanumeric characters", field)
+	},
+	"numeric": func(field, _ string) string { return fmt.Sprintf("%s must be a valid number", field) },
+	"datetime": func(field, param string) string {
+		return fmt.Sprintf("%s must be a valid datetime in format %s", field, param)
+	},
+}
+
 // formatFieldError formats a single field validation error
 func formatFieldError(e validator.FieldError) string {
 	field := toSnakeCase(e.Field())
+	tag := e.Tag()
 
-	switch e.Tag() {
-	case "required":
-		return fmt.Sprintf("%s is required", field)
-	case "email":
-		return fmt.Sprintf("%s must be a valid email address", field)
-	case "email_format":
-		return fmt.Sprintf("%s must be a valid email address", field)
-	case "min":
-		return fmt.Sprintf("%s must be at least %s characters", field, e.Param())
-	case "max":
-		return fmt.Sprintf("%s must be at most %s characters", field, e.Param())
-	case "len":
-		return fmt.Sprintf("%s must be exactly %s characters", field, e.Param())
-	case "gt":
-		return fmt.Sprintf("%s must be greater than %s", field, e.Param())
-	case "gte":
-		return fmt.Sprintf("%s must be greater than or equal to %s", field, e.Param())
-	case "lt":
-		return fmt.Sprintf("%s must be less than %s", field, e.Param())
-	case "lte":
-		return fmt.Sprintf("%s must be less than or equal to %s", field, e.Param())
-	case "oneof":
-		return fmt.Sprintf("%s must be one of: %s", field, e.Param())
-	case "uuid4":
-		return fmt.Sprintf("%s must be a valid UUID v4", field)
-	case "url":
-		return fmt.Sprintf("%s must be a valid URL", field)
-	case "alpha":
-		return fmt.Sprintf("%s must contain only alphabetic characters", field)
-	case "alphanum":
-		return fmt.Sprintf("%s must contain only alphanumeric characters", field)
-	case "numeric":
-		return fmt.Sprintf("%s must be a valid number", field)
-	case "datetime":
-		return fmt.Sprintf("%s must be a valid datetime in format %s", field, e.Param())
-	default:
-		return fmt.Sprintf("%s failed validation on tag '%s'", field, e.Tag())
+	if formatter, exists := validationMessages[tag]; exists {
+		return formatter(field, e.Param())
 	}
+
+	return fmt.Sprintf("%s failed validation on tag '%s'", field, tag)
 }
 
 // toSnakeCase converts PascalCase or camelCase to snake_case
@@ -175,7 +185,7 @@ func isUUIDv4(fl validator.FieldLevel) bool {
 	}
 
 	// Check if it's version 4
-	return parsedUUID.Version() == 4
+	return parsedUUID.Version() == uuidVersion4
 }
 
 // isEmailFormat validates email format using regex
@@ -210,7 +220,7 @@ func ValidateUUID(id string) error {
 		return fmt.Errorf("invalid UUID format: %w", err)
 	}
 
-	if parsedUUID.Version() != 4 {
+	if parsedUUID.Version() != uuidVersion4 {
 		return fmt.Errorf("UUID must be version 4")
 	}
 

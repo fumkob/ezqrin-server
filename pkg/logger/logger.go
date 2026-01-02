@@ -132,7 +132,7 @@ func parseLevel(level string) (zapcore.Level, error) {
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	if requestID := GetRequestID(ctx); requestID != "" {
 		return &Logger{
-			Logger: l.Logger.With(zap.String("request_id", requestID)),
+			Logger: l.With(zap.String("request_id", requestID)),
 		}
 	}
 	return l
@@ -141,14 +141,14 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 // WithRequestID returns a logger with the specified request ID
 func (l *Logger) WithRequestID(requestID string) *Logger {
 	return &Logger{
-		Logger: l.Logger.With(zap.String("request_id", requestID)),
+		Logger: l.With(zap.String("request_id", requestID)),
 	}
 }
 
 // WithFields returns a logger with additional fields
 func (l *Logger) WithFields(fields ...zap.Field) *Logger {
 	return &Logger{
-		Logger: l.Logger.With(fields...),
+		Logger: l.With(fields...),
 	}
 }
 

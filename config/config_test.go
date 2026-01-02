@@ -4,11 +4,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fumkob/ezqrin-server/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/viper"
-
-	"github.com/fumkob/ezqrin-server/config"
 )
 
 func TestConfig(t *testing.T) {
@@ -37,7 +36,7 @@ var _ = Describe("Config", func() {
 		}
 		for _, key := range envVars {
 			originalEnv[key] = os.Getenv(key)
-			os.Unsetenv(key)
+			_ = os.Unsetenv(key)
 		}
 	})
 
@@ -45,9 +44,9 @@ var _ = Describe("Config", func() {
 		// Restore original environment variables
 		for key, value := range originalEnv {
 			if value != "" {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			} else {
-				os.Unsetenv(key)
+				_ = os.Unsetenv(key)
 			}
 		}
 
@@ -58,10 +57,10 @@ var _ = Describe("Config", func() {
 	Describe("Load", func() {
 		Context("with all required environment variables set", func() {
 			BeforeEach(func() {
-				os.Setenv("DB_USER", "testuser")
-				os.Setenv("DB_PASSWORD", "testpass")
-				os.Setenv("DB_NAME", "testdb")
-				os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				_ = os.Setenv("DB_USER", "testuser")
+				_ = os.Setenv("DB_PASSWORD", "testpass")
+				_ = os.Setenv("DB_NAME", "testdb")
+				_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 			})
 
 			It("should load configuration successfully", func() {
@@ -89,28 +88,28 @@ var _ = Describe("Config", func() {
 
 		Context("with custom values", func() {
 			BeforeEach(func() {
-				os.Setenv("SERVER_PORT", "9000")
-				os.Setenv("SERVER_ENV", "production")
-				os.Setenv("DB_HOST", "db.example.com")
-				os.Setenv("DB_PORT", "5433")
-				os.Setenv("DB_USER", "produser")
-				os.Setenv("DB_PASSWORD", "prodpass")
-				os.Setenv("DB_NAME", "proddb")
-				os.Setenv("DB_SSL_MODE", "require")
-				os.Setenv("DB_MAX_CONNS", "50")
-				os.Setenv("DB_MIN_CONNS", "10")
-				os.Setenv("DB_MAX_CONN_LIFETIME", "10m")
-				os.Setenv("DB_MAX_CONN_IDLE_TIME", "5m")
-				os.Setenv("REDIS_HOST", "redis.example.com")
-				os.Setenv("REDIS_PORT", "6380")
-				os.Setenv("REDIS_PASSWORD", "redispass")
-				os.Setenv("REDIS_DB", "1")
-				os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
-				os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "30m")
-				os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_WEB", "336h")
-				os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_MOBILE", "4320h")
-				os.Setenv("LOG_LEVEL", "warn")
-				os.Setenv("LOG_FORMAT", "text")
+				_ = os.Setenv("SERVER_PORT", "9000")
+				_ = os.Setenv("SERVER_ENV", "production")
+				_ = os.Setenv("DB_HOST", "db.example.com")
+				_ = os.Setenv("DB_PORT", "5433")
+				_ = os.Setenv("DB_USER", "produser")
+				_ = os.Setenv("DB_PASSWORD", "prodpass")
+				_ = os.Setenv("DB_NAME", "proddb")
+				_ = os.Setenv("DB_SSL_MODE", "require")
+				_ = os.Setenv("DB_MAX_CONNS", "50")
+				_ = os.Setenv("DB_MIN_CONNS", "10")
+				_ = os.Setenv("DB_MAX_CONN_LIFETIME", "10m")
+				_ = os.Setenv("DB_MAX_CONN_IDLE_TIME", "5m")
+				_ = os.Setenv("REDIS_HOST", "redis.example.com")
+				_ = os.Setenv("REDIS_PORT", "6380")
+				_ = os.Setenv("REDIS_PASSWORD", "redispass")
+				_ = os.Setenv("REDIS_DB", "1")
+				_ = os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
+				_ = os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "30m")
+				_ = os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_WEB", "336h")
+				_ = os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_MOBILE", "4320h")
+				_ = os.Setenv("LOG_LEVEL", "warn")
+				_ = os.Setenv("LOG_FORMAT", "text")
 			})
 
 			It("should load all custom values correctly", func() {
@@ -139,9 +138,9 @@ var _ = Describe("Config", func() {
 		Context("with missing required environment variables", func() {
 			When("DB_USER is missing", func() {
 				BeforeEach(func() {
-					os.Setenv("DB_PASSWORD", "testpass")
-					os.Setenv("DB_NAME", "testdb")
-					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+					_ = os.Setenv("DB_PASSWORD", "testpass")
+					_ = os.Setenv("DB_NAME", "testdb")
+					_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
 				It("should return an error", func() {
@@ -153,9 +152,9 @@ var _ = Describe("Config", func() {
 
 			When("DB_PASSWORD is missing", func() {
 				BeforeEach(func() {
-					os.Setenv("DB_USER", "testuser")
-					os.Setenv("DB_NAME", "testdb")
-					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+					_ = os.Setenv("DB_USER", "testuser")
+					_ = os.Setenv("DB_NAME", "testdb")
+					_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
 				It("should return an error", func() {
@@ -167,9 +166,9 @@ var _ = Describe("Config", func() {
 
 			When("DB_NAME is missing", func() {
 				BeforeEach(func() {
-					os.Setenv("DB_USER", "testuser")
-					os.Setenv("DB_PASSWORD", "testpass")
-					os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+					_ = os.Setenv("DB_USER", "testuser")
+					_ = os.Setenv("DB_PASSWORD", "testpass")
+					_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 				})
 
 				It("should return an error", func() {
@@ -181,9 +180,9 @@ var _ = Describe("Config", func() {
 
 			When("JWT_SECRET is missing", func() {
 				BeforeEach(func() {
-					os.Setenv("DB_USER", "testuser")
-					os.Setenv("DB_PASSWORD", "testpass")
-					os.Setenv("DB_NAME", "testdb")
+					_ = os.Setenv("DB_USER", "testuser")
+					_ = os.Setenv("DB_PASSWORD", "testpass")
+					_ = os.Setenv("DB_NAME", "testdb")
 				})
 
 				It("should return an error", func() {
@@ -196,15 +195,15 @@ var _ = Describe("Config", func() {
 
 		Context("with invalid values", func() {
 			BeforeEach(func() {
-				os.Setenv("DB_USER", "testuser")
-				os.Setenv("DB_PASSWORD", "testpass")
-				os.Setenv("DB_NAME", "testdb")
-				os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				_ = os.Setenv("DB_USER", "testuser")
+				_ = os.Setenv("DB_PASSWORD", "testpass")
+				_ = os.Setenv("DB_NAME", "testdb")
+				_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 			})
 
 			When("SERVER_PORT is invalid", func() {
 				BeforeEach(func() {
-					os.Setenv("SERVER_PORT", "invalid")
+					_ = os.Setenv("SERVER_PORT", "invalid")
 				})
 
 				It("should return an error", func() {
@@ -216,7 +215,7 @@ var _ = Describe("Config", func() {
 
 			When("DB_PORT is invalid", func() {
 				BeforeEach(func() {
-					os.Setenv("DB_PORT", "not-a-number")
+					_ = os.Setenv("DB_PORT", "not-a-number")
 				})
 
 				It("should return an error", func() {
@@ -228,7 +227,7 @@ var _ = Describe("Config", func() {
 
 			When("JWT_ACCESS_TOKEN_EXPIRY is invalid", func() {
 				BeforeEach(func() {
-					os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "invalid-duration")
+					_ = os.Setenv("JWT_ACCESS_TOKEN_EXPIRY", "invalid-duration")
 				})
 
 				It("should return an error", func() {
@@ -244,10 +243,10 @@ var _ = Describe("Config", func() {
 		var cfg *config.Config
 
 		BeforeEach(func() {
-			os.Setenv("DB_USER", "testuser")
-			os.Setenv("DB_PASSWORD", "testpass")
-			os.Setenv("DB_NAME", "testdb")
-			os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+			_ = os.Setenv("DB_USER", "testuser")
+			_ = os.Setenv("DB_PASSWORD", "testpass")
+			_ = os.Setenv("DB_NAME", "testdb")
+			_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
 
 			var err error
 			cfg, err = config.Load()
@@ -325,16 +324,16 @@ var _ = Describe("Config", func() {
 		var cfg *config.Config
 
 		BeforeEach(func() {
-			os.Setenv("SERVER_ENV", "production")
-			os.Setenv("DB_HOST", "db.example.com")
-			os.Setenv("DB_PORT", "5433")
-			os.Setenv("DB_USER", "produser")
-			os.Setenv("DB_PASSWORD", "prodpass")
-			os.Setenv("DB_NAME", "proddb")
-			os.Setenv("DB_SSL_MODE", "require")
-			os.Setenv("REDIS_HOST", "redis.example.com")
-			os.Setenv("REDIS_PORT", "6380")
-			os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
+			_ = os.Setenv("SERVER_ENV", "production")
+			_ = os.Setenv("DB_HOST", "db.example.com")
+			_ = os.Setenv("DB_PORT", "5433")
+			_ = os.Setenv("DB_USER", "produser")
+			_ = os.Setenv("DB_PASSWORD", "prodpass")
+			_ = os.Setenv("DB_NAME", "proddb")
+			_ = os.Setenv("DB_SSL_MODE", "require")
+			_ = os.Setenv("REDIS_HOST", "redis.example.com")
+			_ = os.Setenv("REDIS_PORT", "6380")
+			_ = os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
 
 			var err error
 			cfg, err = config.Load()
@@ -344,7 +343,9 @@ var _ = Describe("Config", func() {
 		Describe("GetDatabaseDSN", func() {
 			It("should return correct PostgreSQL connection string", func() {
 				dsn := cfg.GetDatabaseDSN()
-				Expect(dsn).To(Equal("host=db.example.com port=5433 user=produser password=prodpass dbname=proddb sslmode=require"))
+				Expect(
+					dsn,
+				).To(Equal("host=db.example.com port=5433 user=produser password=prodpass dbname=proddb sslmode=require"))
 			})
 		})
 

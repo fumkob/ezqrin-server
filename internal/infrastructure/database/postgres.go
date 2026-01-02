@@ -34,12 +34,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap"
-
 	"github.com/fumkob/ezqrin-server/config"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 // PostgresDB wraps pgxpool.Pool to provide database connection management
