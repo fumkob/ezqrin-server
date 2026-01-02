@@ -57,4 +57,4 @@ package-lock.json
 tmp/
 
 # Git operations
-.wtp.yml
+.wtp.yaml
