@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -28,6 +29,7 @@ const (
 var (
 	appDB     *database.PostgresDB
 	appLogger *logger.Logger
+	appRedis  *redis.Client
 )
 
 func main() {
@@ -59,6 +61,7 @@ func main() {
 		Config: cfg,
 		Logger: appLogger,
 		DB:     appDB,
+		Redis:  appRedis,
 	})
 
 	// Create and run HTTP server
@@ -130,7 +133,11 @@ func initializeDependencies(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	// TODO: Initialize Redis cache (Task 1.6)
+	// Initialize Redis cache
+	if err := initializeRedis(ctx, cfg); err != nil {
+		return err
+	}
+
 	// TODO: Initialize repositories (future tasks)
 	// TODO: Initialize use cases (future tasks)
 	// TODO: Initialize handlers (future tasks)
@@ -160,6 +167,38 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 	return nil
 }
 
+// initializeRedis establishes Redis connection and verifies health.
+func initializeRedis(ctx context.Context, cfg *config.Config) error {
+	var err error
+
+	redisConfig := &redis.ClientConfig{
+		Host:         cfg.Redis.Host,
+		Port:         fmt.Sprintf("%d", cfg.Redis.Port),
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		PoolSize:     cfg.Redis.PoolSize,
+		MinIdleConns: cfg.Redis.MinIdleConns,
+		MaxRetries:   cfg.Redis.MaxRetries,
+		DialTimeout:  cfg.Redis.DialTimeout,
+		ReadTimeout:  cfg.Redis.ReadTimeout,
+		WriteTimeout: cfg.Redis.WriteTimeout,
+	}
+
+	appRedis, err = redis.NewClient(redisConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize redis: %w", err)
+	}
+
+	// Verify connection
+	if err := appRedis.Ping(ctx); err != nil {
+		appRedis.Close()
+		return fmt.Errorf("redis not healthy: %w", err)
+	}
+
+	appLogger.Info("redis connection established and healthy")
+	return nil
+}
+
 // cleanup gracefully closes all application dependencies.
 func cleanup() {
 	if appLogger != nil {
@@ -168,6 +207,10 @@ func cleanup() {
 
 	if appDB != nil {
 		appDB.Close()
+	}
+
+	if appRedis != nil {
+		appRedis.Close()
 	}
 
 	if appLogger != nil {

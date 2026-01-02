@@ -3,6 +3,7 @@ package api
 
 import (
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
@@ -16,6 +17,7 @@ type RouterDependencies struct {
 	Config *config.Config
 	Logger *logger.Logger
 	DB     *database.PostgresDB
+	Redis  *redis.Client
 }
 
 // SetupRouter creates and configures the Gin HTTP router with all middleware and routes.
@@ -46,7 +48,7 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 
 	// Register OpenAPI-generated routes
 	// This automatically registers all routes defined in the OpenAPI specification
-	healthHandler := handler.NewHealthHandler(deps.DB, deps.Logger)
+	healthHandler := handler.NewHealthHandler(deps.DB, deps.Redis, deps.Logger)
 	generated.RegisterHandlers(router, healthHandler)
 
 	// TODO: Register API routes (Task 2.3, 3.2, 4.3, 5.2)
