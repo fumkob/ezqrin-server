@@ -1,12 +1,9 @@
 name: Setup Go Environment
-description: Checkout code and setup Go with caching
+description: Setup Go with caching
 
 runs:
   using: composite
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
