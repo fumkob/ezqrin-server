@@ -17,7 +17,8 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 	var (
 		router        *gin.Engine
 		log           *logger.Logger
-		mockDB        *mockHealthChecker
+		mockDB        *mockDBHealthChecker
+		mockRedis     *mockRedisHealthChecker
 		healthHandler *handler.HealthHandler
 	)
 
@@ -33,11 +34,12 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create mock database
-		mockDB = &mockHealthChecker{healthy: true}
+		// Create mocks
+		mockDB = &mockDBHealthChecker{healthy: true}
+		mockRedis = &mockRedisHealthChecker{shouldFail: false}
 
-		// Create health handler
-		healthHandler = handler.NewHealthHandler(mockDB, log)
+		// Create health handler with both DB and Redis health checkers
+		healthHandler = handler.NewHealthHandler(mockDB, mockRedis, log)
 
 		// Setup router with middleware and use generated RegisterHandlers
 		router = gin.New()
@@ -68,7 +70,7 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 		})
 
 		Context("for GET /health/ready endpoint", func() {
-			It("should be registered and return 200 OK when database is healthy", func() {
+			It("should be registered and return 200 OK when database and Redis are healthy", func() {
 				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 				w := httptest.NewRecorder()
 
@@ -78,6 +80,7 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 				Expect(w.Body.String()).To(ContainSubstring(`"status":"ready"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"checks"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"database":"ok"`))
+				Expect(w.Body.String()).To(ContainSubstring(`"redis":"ok"`))
 
 				// Verify OpenAPI compliance
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))

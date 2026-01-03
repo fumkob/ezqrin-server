@@ -1,11 +1,10 @@
-package redis_test
+package redis
 
 import (
 	"context"
 	"errors"
 	"time"
 
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/go-redis/redismock/v9"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,20 +15,16 @@ var _ = Describe("CacheRepository", func() {
 	var (
 		mockClient *goredis.Client
 		mock       redismock.ClientMock
-		client     *redis.Client
-		repo       *redis.CacheRepository
+		client     *Client
+		repo       *CacheRepository
 		ctx        context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		mockClient, mock = redismock.NewClientMock()
-
-		// Create a wrapper client for our repository
-		client = &redis.Client{}
-		// Using reflection or direct assignment to set the internal client
-		// For testing purposes, we'll create a test helper
-		repo = redis.NewCacheRepository(&redis.Client{})
+		client = newTestClient(mockClient)
+		repo = NewCacheRepository(client)
 	})
 
 	AfterEach(func() {
@@ -45,9 +40,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectGet(key).SetVal(expectedValue)
 
-					// Note: This test structure is for demonstration
-					// In actual implementation, we'd need to properly inject the mock
-					Expect(expectedValue).To(Equal("test-value"))
+					value, err := repo.Get(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(value).To(Equal(expectedValue))
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -59,8 +55,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectGet(key).RedisNil()
 
-					// Should return empty string, not an error
-					Expect("").To(BeEmpty())
+					value, err := repo.Get(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(value).To(BeEmpty())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -73,8 +71,11 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectGet(key).SetErr(expectedErr)
 
-					// Should propagate the error
-					Expect(expectedErr).To(HaveOccurred())
+					value, err := repo.Get(ctx, key)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("connection error"))
+					Expect(value).To(BeEmpty())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -90,7 +91,9 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectSet(key, value, ttl).SetVal("OK")
 
-					Expect("OK").To(Equal("OK"))
+					err := repo.Set(ctx, key, value, ttl)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -102,7 +105,9 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectSet(key, value, ttl).SetVal("OK")
 
-					Expect("OK").To(Equal("OK"))
+					err := repo.Set(ctx, key, value, ttl)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -117,7 +122,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectSet(key, value, ttl).SetErr(expectedErr)
 
-					Expect(expectedErr).To(HaveOccurred())
+					err := repo.Set(ctx, key, value, ttl)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("write error"))
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -131,7 +139,9 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectDel(key).SetVal(1)
 
-					Expect(1).To(Equal(int64(1)))
+					err := repo.Delete(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -143,7 +153,9 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectDel(key).SetVal(0)
 
-					Expect(0).To(Equal(int64(0)))
+					err := repo.Delete(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -157,7 +169,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectExists(key).SetVal(1)
 
-					Expect(true).To(BeTrue())
+					exists, err := repo.Exists(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeTrue())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -167,7 +182,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectExists(key).SetVal(0)
 
-					Expect(false).To(BeFalse())
+					exists, err := repo.Exists(ctx, key)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeFalse())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -182,7 +200,13 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectMGet(keys...).SetVal(values)
 
-					Expect(len(values)).To(Equal(3))
+					result, err := repo.MGet(ctx, keys)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(HaveLen(3))
+					Expect(result["key1"]).To(Equal("value1"))
+					Expect(result["key2"]).To(Equal("value2"))
+					Expect(result["key3"]).To(Equal("value3"))
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -193,16 +217,22 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectMGet(keys...).SetVal(values)
 
-					// Should only include non-nil values in result map
-					Expect(values[1]).To(BeNil())
+					result, err := repo.MGet(ctx, keys)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(HaveLen(2))
+					Expect(result["key1"]).To(Equal("value1"))
+					Expect(result["key3"]).To(Equal("value3"))
+					Expect(result["key2"]).To(BeEmpty()) // nil values not included
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
 			Context("with empty keys slice", func() {
 				It("should return empty map", func() {
-					// No Redis call expected for empty slice
-					result := make(map[string]string)
+					keys := []string{}
 
+					result, err := repo.MGet(ctx, keys)
+					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(BeEmpty())
 				})
 			})
@@ -215,19 +245,18 @@ var _ = Describe("CacheRepository", func() {
 				It("should set all values with TTL", func() {
 					items := map[string]string{
 						"key1": "value1",
-						"key2": "value2",
-						"key3": "value3",
 					}
 					ttl := 5 * time.Minute
 
-					// Pipeline operations
-					mock.ExpectTxPipeline()
+					// Set up pipeline expectations
+					mock.MatchExpectationsInOrder(false)
 					for key, value := range items {
 						mock.ExpectSet(key, value, ttl).SetVal("OK")
 					}
-					mock.ExpectTxPipelineExec()
 
-					Expect(len(items)).To(Equal(3))
+					err := repo.MSet(ctx, items, ttl)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -235,8 +264,8 @@ var _ = Describe("CacheRepository", func() {
 				It("should not perform any Redis operations", func() {
 					items := map[string]string{}
 
-					// No Redis calls expected
-					Expect(items).To(BeEmpty())
+					err := repo.MSet(ctx, items, 5*time.Minute)
+					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -248,7 +277,9 @@ var _ = Describe("CacheRepository", func() {
 				It("should return no error", func() {
 					mock.ExpectPing().SetVal("PONG")
 
-					Expect(nil).ToNot(HaveOccurred())
+					err := repo.Ping(ctx)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -258,7 +289,10 @@ var _ = Describe("CacheRepository", func() {
 
 					mock.ExpectPing().SetErr(expectedErr)
 
-					Expect(expectedErr).To(HaveOccurred())
+					err := repo.Ping(ctx)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("connection refused"))
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})

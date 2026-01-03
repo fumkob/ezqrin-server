@@ -1,11 +1,10 @@
-package redis_test
+package redis
 
 import (
 	"context"
 	"errors"
 	"time"
 
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/go-redis/redismock/v9"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,18 +15,16 @@ var _ = Describe("TokenBlacklistRepository", func() {
 	var (
 		mockClient *goredis.Client
 		mock       redismock.ClientMock
-		client     *redis.Client
-		repo       *redis.TokenBlacklistRepository
+		client     *Client
+		repo       *TokenBlacklistRepository
 		ctx        context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		mockClient, mock = redismock.NewClientMock()
-
-		// Create wrapper for testing
-		client = &redis.Client{}
-		repo = redis.NewTokenBlacklistRepository(&redis.Client{})
+		client = newTestClient(mockClient)
+		repo = NewTokenBlacklistRepository(client)
 	})
 
 	AfterEach(func() {
@@ -40,12 +37,13 @@ var _ = Describe("TokenBlacklistRepository", func() {
 				It("should add the token successfully", func() {
 					token := "valid.jwt.token"
 					ttl := 15 * time.Minute
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 
 					mock.ExpectSet(key, "1", ttl).SetVal("OK")
 
-					// Should add token to blacklist with correct TTL
-					Expect("OK").To(Equal("OK"))
+					err := repo.AddToBlacklist(ctx, token, ttl)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
@@ -53,11 +51,13 @@ var _ = Describe("TokenBlacklistRepository", func() {
 				It("should add the token with 90 day expiry", func() {
 					token := "mobile.refresh.token"
 					ttl := 90 * 24 * time.Hour
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 
 					mock.ExpectSet(key, "1", ttl).SetVal("OK")
 
-					Expect("OK").To(Equal("OK"))
+					err := repo.AddToBlacklist(ctx, token, ttl)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -65,8 +65,7 @@ var _ = Describe("TokenBlacklistRepository", func() {
 		When("adding token with invalid parameters", func() {
 			Context("with empty token", func() {
 				It("should return an error", func() {
-					// Should validate token is not empty
-					err := errors.New("token cannot be empty")
+					err := repo.AddToBlacklist(ctx, "", 15*time.Minute)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("token cannot be empty"))
 				})
@@ -74,8 +73,7 @@ var _ = Describe("TokenBlacklistRepository", func() {
 
 			Context("with zero TTL", func() {
 				It("should return an error", func() {
-					// Should validate TTL is positive
-					err := errors.New("ttl must be positive")
+					err := repo.AddToBlacklist(ctx, "valid.token", 0)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("ttl must be positive"))
 				})
@@ -83,8 +81,7 @@ var _ = Describe("TokenBlacklistRepository", func() {
 
 			Context("with negative TTL", func() {
 				It("should return an error", func() {
-					// Should validate TTL is positive
-					err := errors.New("ttl must be positive")
+					err := repo.AddToBlacklist(ctx, "valid.token", -5*time.Minute)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("ttl must be positive"))
 				})
@@ -96,12 +93,15 @@ var _ = Describe("TokenBlacklistRepository", func() {
 				It("should return the error", func() {
 					token := "valid.jwt.token"
 					ttl := 15 * time.Minute
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 					expectedErr := errors.New("connection error")
 
 					mock.ExpectSet(key, "1", ttl).SetErr(expectedErr)
 
-					Expect(expectedErr).To(HaveOccurred())
+					err := repo.AddToBlacklist(ctx, token, ttl)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("connection error"))
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -112,22 +112,28 @@ var _ = Describe("TokenBlacklistRepository", func() {
 			Context("with blacklisted token", func() {
 				It("should return true", func() {
 					token := "blacklisted.jwt.token"
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 
 					mock.ExpectExists(key).SetVal(1)
 
-					Expect(true).To(BeTrue())
+					isBlacklisted, err := repo.IsBlacklisted(ctx, token)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isBlacklisted).To(BeTrue())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 
 			Context("with non-blacklisted token", func() {
 				It("should return false", func() {
 					token := "valid.jwt.token"
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 
 					mock.ExpectExists(key).SetVal(0)
 
-					Expect(false).To(BeFalse())
+					isBlacklisted, err := repo.IsBlacklisted(ctx, token)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isBlacklisted).To(BeFalse())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -135,12 +141,10 @@ var _ = Describe("TokenBlacklistRepository", func() {
 		When("checking with invalid parameters", func() {
 			Context("with empty token", func() {
 				It("should return an error", func() {
-					token := ""
-
-					// Should validate token is not empty
-					err := errors.New("token cannot be empty")
+					isBlacklisted, err := repo.IsBlacklisted(ctx, "")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("token cannot be empty"))
+					Expect(isBlacklisted).To(BeFalse())
 				})
 			})
 		})
@@ -149,12 +153,16 @@ var _ = Describe("TokenBlacklistRepository", func() {
 			Context("with connection failure", func() {
 				It("should return the error", func() {
 					token := "valid.jwt.token"
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 					expectedErr := errors.New("connection error")
 
 					mock.ExpectExists(key).SetErr(expectedErr)
 
-					Expect(expectedErr).To(HaveOccurred())
+					isBlacklisted, err := repo.IsBlacklisted(ctx, token)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("connection error"))
+					Expect(isBlacklisted).To(BeFalse())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
@@ -165,19 +173,23 @@ var _ = Describe("TokenBlacklistRepository", func() {
 			Context("after the specified duration", func() {
 				It("should automatically remove token from blacklist", func() {
 					token := "expiring.jwt.token"
-					key := redis.BlacklistKeyPrefix + token
+					key := BlacklistKeyPrefix + token
 
 					// Initially blacklisted
 					mock.ExpectExists(key).SetVal(1)
 
-					// After expiry
+					isBlacklisted, err := repo.IsBlacklisted(ctx, token)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isBlacklisted).To(BeTrue())
+
+					// After expiry - token no longer exists
 					mock.ExpectExists(key).SetVal(0)
 
-					// First check should return true (blacklisted)
-					Expect(true).To(BeTrue())
+					isBlacklisted, err = repo.IsBlacklisted(ctx, token)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isBlacklisted).To(BeFalse())
 
-					// Second check should return false (expired and removed)
-					Expect(false).To(BeFalse())
+					Expect(mock.ExpectationsWereMet()).ToNot(HaveOccurred())
 				})
 			})
 		})
