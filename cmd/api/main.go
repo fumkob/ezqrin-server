@@ -12,7 +12,8 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
+	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -27,9 +28,9 @@ const (
 
 // Application dependencies
 var (
-	appDB     *database.PostgresDB
+	appDB     database.Service
 	appLogger *logger.Logger
-	appRedis  *redis.Client
+	appCache  cache.Service
 )
 
 func main() {
@@ -61,7 +62,7 @@ func main() {
 		Config: cfg,
 		Logger: appLogger,
 		DB:     appDB,
-		Redis:  appRedis,
+		Cache:  appCache,
 	})
 
 	// Create and run HTTP server
@@ -149,7 +150,7 @@ func initializeDependencies(ctx context.Context, cfg *config.Config) error {
 // initializeDatabase establishes database connection and waits for it to become healthy.
 func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 	var err error
-	appDB, err = database.NewPostgresDB(ctx, &cfg.Database, appLogger)
+	db, err := database.NewPostgresDB(ctx, &cfg.Database, appLogger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
@@ -158,11 +159,12 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 	healthCtx, cancel := context.WithTimeout(ctx, dbHealthCheckTimeout)
 	defer cancel()
 
-	if err := appDB.WaitForHealthy(healthCtx, dbRetryInterval); err != nil {
-		appDB.Close()
+	if err := db.WaitForHealthy(healthCtx, dbRetryInterval); err != nil {
+		db.Close()
 		return fmt.Errorf("database not healthy: %w", err)
 	}
 
+	appDB = db // Assign to interface after health check
 	appLogger.Info("database connection established and healthy")
 	return nil
 }
@@ -171,7 +173,7 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 func initializeRedis(ctx context.Context, cfg *config.Config) error {
 	var err error
 
-	redisConfig := &redis.ClientConfig{
+	redisConfig := &redisClient.ClientConfig{
 		Host:         cfg.Redis.Host,
 		Port:         fmt.Sprintf("%d", cfg.Redis.Port),
 		Password:     cfg.Redis.Password,
@@ -184,14 +186,15 @@ func initializeRedis(ctx context.Context, cfg *config.Config) error {
 		WriteTimeout: cfg.Redis.WriteTimeout,
 	}
 
-	appRedis, err = redis.NewClient(redisConfig)
+	client, err := redisClient.NewClient(redisConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize redis: %w", err)
 	}
+	appCache = client // Implicit interface conversion to cache.Service
 
 	// Verify connection
-	if err := appRedis.Ping(ctx); err != nil {
-		appRedis.Close()
+	if err := appCache.Ping(ctx); err != nil {
+		appCache.Close()
 		return fmt.Errorf("redis not healthy: %w", err)
 	}
 
@@ -209,8 +212,8 @@ func cleanup() {
 		appDB.Close()
 	}
 
-	if appRedis != nil {
-		appRedis.Close()
+	if appCache != nil {
+		appCache.Close()
 	}
 
 	if appLogger != nil {
