@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
@@ -24,6 +25,7 @@ const (
 // Implements generated.ServerInterface for OpenAPI compliance.
 type HealthHandler struct {
 	db     database.HealthChecker
+	redis  cache.HealthChecker
 	logger *logger.Logger
 }
 
@@ -31,9 +33,10 @@ type HealthHandler struct {
 var _ generated.ServerInterface = (*HealthHandler)(nil)
 
 // NewHealthHandler creates a new HealthHandler
-func NewHealthHandler(db database.HealthChecker, logger *logger.Logger) *HealthHandler {
+func NewHealthHandler(db database.HealthChecker, redis cache.HealthChecker, logger *logger.Logger) *HealthHandler {
 	return &HealthHandler{
 		db:     db,
+		redis:  redis,
 		logger: logger,
 	}
 }
@@ -50,17 +53,36 @@ func (h *HealthHandler) GetHealth(c *gin.Context) {
 
 // GetHealthReady handles readiness check endpoint (GET /health/ready).
 // This checks if the service is ready to accept requests by verifying
-// database connectivity. Returns 200 if ready, 503 if not ready.
+// database and Redis connectivity. Returns 200 if ready, 503 if not ready.
 // Implements generated.ServerInterface.GetHealthReady
 func (h *HealthHandler) GetHealthReady(c *gin.Context) {
-	// Create context with timeout for database check
+	// Create context with timeout for health checks
 	ctx, cancel := context.WithTimeout(c.Request.Context(), readinessCheckTimeout)
 	defer cancel()
+
+	checks := make(map[string]string)
+	ready := true
 
 	// Check database health
 	dbHealth, err := h.db.CheckHealth(ctx)
 	if err != nil || (dbHealth != nil && !dbHealth.Healthy) {
-		h.logger.WithContext(ctx).Warn("readiness check failed: database unhealthy")
+		checks["database"] = "unhealthy"
+		ready = false
+		h.logger.WithContext(ctx).Warn("database health check failed")
+	} else {
+		checks["database"] = "ok"
+	}
+
+	// Check Redis health
+	if err := h.redis.Ping(ctx); err != nil {
+		checks["redis"] = "unhealthy"
+		ready = false
+		h.logger.WithContext(ctx).Warn("redis health check failed")
+	} else {
+		checks["redis"] = "ok"
+	}
+
+	if !ready {
 		response.ProblemWithCode(
 			c,
 			http.StatusServiceUnavailable,
@@ -73,9 +95,7 @@ func (h *HealthHandler) GetHealthReady(c *gin.Context) {
 	// Service is ready
 	response.Data(c, http.StatusOK, map[string]interface{}{
 		"status": "ready",
-		"checks": map[string]string{
-			"database": "ok",
-		},
+		"checks": checks,
 	})
 }
 

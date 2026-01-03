@@ -1,12 +1,11 @@
 package handler_test
 
 import (
-	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -20,33 +19,12 @@ func TestHealthHandler(t *testing.T) {
 	RunSpecs(t, "HealthHandler Suite")
 }
 
-// mockHealthChecker implements database.HealthChecker for testing
-type mockHealthChecker struct {
-	healthy bool
-	err     error
-}
-
-func (m *mockHealthChecker) CheckHealth(ctx context.Context) (*database.HealthStatus, error) {
-	if m.err != nil {
-		return &database.HealthStatus{
-			Healthy: false,
-			Error:   m.err.Error(),
-		}, m.err
-	}
-	return &database.HealthStatus{
-		Healthy:      m.healthy,
-		ResponseTime: 10,
-		TotalConns:   5,
-		IdleConns:    3,
-		MaxConns:     25,
-	}, nil
-}
-
 var _ = Describe("HealthHandler", func() {
 	var (
 		router        *gin.Engine
 		log           *logger.Logger
-		mockDB        *mockHealthChecker
+		mockDB        *mockDBHealthChecker
+		mockRedis     *mockRedisHealthChecker
 		healthHandler *handler.HealthHandler
 	)
 
@@ -63,11 +41,12 @@ var _ = Describe("HealthHandler", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create mock database
-		mockDB = &mockHealthChecker{healthy: true}
+		// Create mocks
+		mockDB = &mockDBHealthChecker{healthy: true}
+		mockRedis = &mockRedisHealthChecker{shouldFail: false}
 
-		// Create health handler
-		healthHandler = handler.NewHealthHandler(mockDB, log)
+		// Create health handler with both DB and Redis health checkers
+		healthHandler = handler.NewHealthHandler(mockDB, mockRedis, log)
 
 		// Setup router with RequestID middleware for header testing
 		router = gin.New()
@@ -100,7 +79,7 @@ var _ = Describe("HealthHandler", func() {
 	})
 
 	Describe("GetHealthReady", func() {
-		When("database is healthy", func() {
+		When("database and Redis are healthy", func() {
 			It("should return 200 OK with OpenAPI-compliant response", func() {
 				router.GET("/health/ready", healthHandler.GetHealthReady)
 
@@ -115,6 +94,7 @@ var _ = Describe("HealthHandler", func() {
 				// Response structure now has "checks" object
 				Expect(w.Body.String()).To(ContainSubstring(`"checks"`))
 				Expect(w.Body.String()).To(ContainSubstring(`"database":"ok"`))
+				Expect(w.Body.String()).To(ContainSubstring(`"redis":"ok"`))
 
 				// Verify request_id is NOT in JSON body
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
@@ -150,6 +130,55 @@ var _ = Describe("HealthHandler", func() {
 
 				// Verify request_id is NOT in JSON body
 				Expect(w.Body.String()).ToNot(ContainSubstring(`"request_id"`))
+
+				// Verify request ID in header
+				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
+			})
+		})
+
+		When("Redis is unhealthy", func() {
+			It("should return 503 Service Unavailable with RFC 9457 Problem Details", func() {
+				mockRedis.shouldFail = true
+				mockRedis.err = errors.New("redis connection failed")
+				router.GET("/health/ready", healthHandler.GetHealthReady)
+
+				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				w := httptest.NewRecorder()
+
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusServiceUnavailable))
+
+				// Verify RFC 9457 structure
+				Expect(w.Body.String()).To(ContainSubstring(`"type"`))
+				Expect(w.Body.String()).To(ContainSubstring(`problems/service-unavailable`))
+				Expect(w.Body.String()).To(ContainSubstring(`"status":503`))
+				Expect(w.Body.String()).To(ContainSubstring(`"code":"SERVICE_UNAVAILABLE"`))
+
+				// Verify request ID in header
+				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())
+			})
+		})
+
+		When("both database and Redis are unhealthy", func() {
+			It("should return 503 with RFC 9457 Problem Details", func() {
+				mockDB.healthy = false
+				mockRedis.shouldFail = true
+				mockRedis.err = errors.New("redis connection failed")
+				router.GET("/health/ready", healthHandler.GetHealthReady)
+
+				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				w := httptest.NewRecorder()
+
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusServiceUnavailable))
+
+				// Verify RFC 9457 structure
+				Expect(w.Body.String()).To(ContainSubstring(`"type"`))
+				Expect(w.Body.String()).To(ContainSubstring(`problems/service-unavailable`))
+				Expect(w.Body.String()).To(ContainSubstring(`"status":503`))
+				Expect(w.Body.String()).To(ContainSubstring(`"code":"SERVICE_UNAVAILABLE"`))
 
 				// Verify request ID in header
 				Expect(w.Header().Get("X-Request-ID")).ToNot(BeEmpty())

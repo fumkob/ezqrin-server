@@ -59,6 +59,16 @@ type RedisConfig struct {
 	Port     int
 	Password string
 	DB       int
+
+	// Connection pool configuration
+	PoolSize     int
+	MinIdleConns int
+	MaxRetries   int
+
+	// Timeout configuration
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 // JWTConfig contains JWT token configuration
@@ -225,6 +235,20 @@ func bindEnvVars(v *viper.Viper) {
 	}
 }
 
+// unmarshalRedisConfig maps Redis configuration from viper to Config
+func unmarshalRedisConfig(v *viper.Viper, cfg *Config) {
+	cfg.Redis.Host = v.GetString("redis.host")
+	cfg.Redis.Port = v.GetInt("redis.port")
+	cfg.Redis.Password = v.GetString("redis.password")
+	cfg.Redis.DB = v.GetInt("redis.db")
+	cfg.Redis.PoolSize = v.GetInt("redis.pool_size")
+	cfg.Redis.MinIdleConns = v.GetInt("redis.min_idle_conns")
+	cfg.Redis.MaxRetries = v.GetInt("redis.max_retries")
+	cfg.Redis.DialTimeout = v.GetDuration("redis.dial_timeout")
+	cfg.Redis.ReadTimeout = v.GetDuration("redis.read_timeout")
+	cfg.Redis.WriteTimeout = v.GetDuration("redis.write_timeout")
+}
+
 // unmarshalConfig maps viper configuration to Config struct
 func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.Port = v.GetInt("server.port")
@@ -244,10 +268,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
 	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
 
-	cfg.Redis.Host = v.GetString("redis.host")
-	cfg.Redis.Port = v.GetInt("redis.port")
-	cfg.Redis.Password = v.GetString("redis.password")
-	cfg.Redis.DB = v.GetInt("redis.db")
+	unmarshalRedisConfig(v, cfg)
 
 	cfg.JWT.Secret = v.GetString("jwt.secret")
 	cfg.JWT.AccessTokenExpiry = v.GetDuration("jwt.access_token_expiry")

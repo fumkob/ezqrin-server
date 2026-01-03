@@ -104,7 +104,7 @@ Access the API at `http://localhost:8080/health`
 .devcontainer/
 ├── devcontainer.json       # Main DevContainer configuration
 ├── Dockerfile              # Development container image
-└── docker-compose.yml      # Services (API, PostgreSQL, Redis)
+└── docker-compose.yaml      # Services (API, PostgreSQL, Redis)
 ```
 
 ---
@@ -116,7 +116,7 @@ Main configuration file for DevContainer behavior:
 ```json
 {
   "name": "ezQRin Server Development",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": "docker-compose.yaml",
   "service": "api",
   "workspaceFolder": "/workspace",
 
@@ -190,7 +190,7 @@ Main configuration file for DevContainer behavior:
 
 **Key Settings:**
 
-- `dockerComposeFile`: References `docker-compose.yml` for multi-service setup
+- `dockerComposeFile`: References `docker-compose.yaml` for multi-service setup
 - `service`: Specifies which service is the development container (`api`)
 - `workspaceFolder`: Working directory inside container
 - `forwardPorts`: Exposes ports to host machine
@@ -259,7 +259,7 @@ CMD ["sleep", "infinity"]
 
 ---
 
-### docker-compose.yml
+### docker-compose.yaml
 
 Multi-service development environment:
 
@@ -666,7 +666,7 @@ ginkgo watch -r
 
 DevContainer uses **hierarchical YAML configuration** with environment variable overrides. Configuration is loaded in the following priority (highest to lowest):
 
-1. **Environment variables** from `docker-compose.yml` (highest priority)
+1. **Environment variables** from `docker-compose.yaml` (highest priority)
 2. **Environment-specific YAML** (`config/development.yaml`)
 3. **Base YAML** (`config/default.yaml`)
 
@@ -683,10 +683,10 @@ DevContainer uses **hierarchical YAML configuration** with environment variable 
 - Enables debug logging
 - Committed to repository
 
-**Environment Variables** (`.devcontainer/docker-compose.yml`):
+**Environment Variables** (`.devcontainer/docker-compose.yaml`):
 - **Highest priority** - overrides all YAML configuration
 - Contains secrets (DB_PASSWORD, JWT_SECRET)
-- Set in docker-compose.yml `environment` section:
+- Set in docker-compose.yaml `environment` section:
 
 ```yaml
 environment:
@@ -699,8 +699,8 @@ environment:
 #### Secret Management
 
 **In DevContainer:**
-- Secrets are managed via `docker-compose.yml` environment variables
-- No `.env.secrets` file needed (secrets in docker-compose.yml)
+- Secrets are managed via `docker-compose.yaml` environment variables
+- No `.env.secrets` file needed (secrets in docker-compose.yaml)
 - Non-secret configuration in YAML files
 
 **For Local Development** (outside DevContainer):
@@ -715,7 +715,7 @@ environment:
 3. Restart application (Air will auto-reload)
 
 **To change secrets or override any configuration:**
-1. Edit `.devcontainer/docker-compose.yml` environment variables
+1. Edit `.devcontainer/docker-compose.yaml` environment variables
 2. Rebuild container: `Dev Containers: Rebuild Container`
 
 For detailed configuration reference, see [Configuration Reference](./environment.md).
@@ -769,7 +769,7 @@ CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/ezqrin cmd/api/ma
 docker ps
 
 # Check Docker Compose services
-docker-compose -f .devcontainer/docker-compose.yml ps
+docker-compose -f .devcontainer/docker-compose.yaml ps
 ```
 
 **Rebuild Container:**
@@ -809,7 +809,7 @@ lsof -i :8080
 kill -9 <PID>
 ```
 
-**Or change port** in `docker-compose.yml`:
+**Or change port** in `docker-compose.yaml`:
 
 ```yaml
 ports:
@@ -891,10 +891,10 @@ Leverage Docker build cache:
 
 ```bash
 # Build with cache
-docker-compose -f .devcontainer/docker-compose.yml build
+docker-compose -f .devcontainer/docker-compose.yaml build
 
 # Clear cache and rebuild
-docker-compose -f .devcontainer/docker-compose.yml build --no-cache
+docker-compose -f .devcontainer/docker-compose.yaml build --no-cache
 ```
 
 ---
@@ -938,13 +938,13 @@ jobs:
 
 ```bash
 # Stop and remove containers
-docker-compose -f .devcontainer/docker-compose.yml down
+docker-compose -f .devcontainer/docker-compose.yaml down
 
 # Remove volumes (WARNING: deletes data)
-docker-compose -f .devcontainer/docker-compose.yml down -v
+docker-compose -f .devcontainer/docker-compose.yaml down -v
 
 # Remove images
-docker-compose -f .devcontainer/docker-compose.yml down --rmi all
+docker-compose -f .devcontainer/docker-compose.yaml down --rmi all
 ```
 
 ### Prune Docker Resources

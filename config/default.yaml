@@ -22,6 +22,14 @@ redis:
   host: localhost
   port: 6379
   db: 0
+  # Connection pool configuration
+  pool_size: 10
+  min_idle_conns: 5
+  max_retries: 3
+  # Timeout configuration
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
 
 jwt:
   access_token_expiry: 15m
