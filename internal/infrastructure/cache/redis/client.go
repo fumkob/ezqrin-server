@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -165,3 +166,8 @@ func (c *Client) MGet(ctx context.Context, keys ...string) ([]interface{}, error
 func (c *Client) Pipeline() redis.Pipeliner {
 	return c.client.Pipeline()
 }
+
+// Compile-time interface compliance check.
+// This ensures that Client implements cache.Service interface.
+// If Client doesn't implement a required method, compilation will fail.
+var _ cache.Service = (*Client)(nil)

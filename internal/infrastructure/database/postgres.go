@@ -35,6 +35,7 @@ import (
 	"fmt"
 
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -137,3 +138,40 @@ func (db *PostgresDB) Ping(ctx context.Context) error {
 	}
 	return nil
 }
+
+// WithTransaction implements repository.Transactor interface.
+// It executes the provided function within a database transaction.
+// The transaction is automatically committed if the function returns nil,
+// or rolled back if it returns an error.
+//
+// Example usage:
+//
+//	err := db.WithTransaction(ctx, func(txCtx context.Context) error {
+//		// Perform operations using txCtx
+//		_, err := repo.CreateUser(txCtx, user)
+//		if err != nil {
+//			return err // Transaction will be rolled back
+//		}
+//		return nil // Transaction will be committed
+//	})
+func (db *PostgresDB) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return WithTransaction(ctx, db.pool, fn)
+}
+
+// HealthCheck implements repository.BaseRepository interface.
+// It returns an error if the database is unreachable.
+// This is a simplified version of CheckHealth that only returns an error status.
+func (db *PostgresDB) HealthCheck(ctx context.Context) error {
+	_, err := db.CheckHealth(ctx)
+	return err
+}
+
+// Compile-time interface compliance checks.
+// These ensure that PostgresDB implements all required interfaces.
+// If PostgresDB doesn't implement a required method, compilation will fail.
+var (
+	_ Service                   = (*PostgresDB)(nil)
+	_ HealthChecker             = (*PostgresDB)(nil)
+	_ repository.Transactor     = (*PostgresDB)(nil)
+	_ repository.BaseRepository = (*PostgresDB)(nil)
+)
