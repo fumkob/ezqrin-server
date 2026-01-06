@@ -148,7 +148,25 @@ Infrastructure ─────────────────────�
 - **Outer layers depend on inner layers** (never the reverse)
 - **Domain layer has no external dependencies** (pure business logic)
 - **Interfaces defined in domain layer** (implemented in infrastructure)
-- **Dependency injection** used throughout
+- **Dependency injection** used throughout via the **Container pattern**
+
+---
+
+## Dependency Injection (Container Pattern)
+
+To manage the complexity of wiring multiple dependencies as the application grows, ezQRin uses a centralized `Container` pattern.
+
+### Structure
+
+- **`Container`**: The top-level struct holding all application-wide dependencies.
+- **`RepositoryContainer`**: Groups all repository implementations (Infrastructure layer).
+- **`UseCaseContainer`**: Groups all business logic orchestrators (Application layer).
+
+### Benefits
+
+- **Concise `main.go`**: The entry point remains small, focusing on infrastructure initialization.
+- **Easier Testing**: The entire application state can be mocked by providing a specialized container.
+- **Scalability**: New services, repositories, and use cases can be added to the container without cluttering the main server setup logic.
 
 ---
 
