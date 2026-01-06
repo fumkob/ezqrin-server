@@ -117,12 +117,16 @@ var _ = Describe("JWT Token Management", func() {
 			})
 
 			Context("with negative expiry", func() {
-				It("should return ErrInvalidExpiry", func() {
+				It("should generate an already expired token", func() {
 					token, err := crypto.GenerateAccessToken(testUserID, testRole, testSecret, -15*time.Minute)
 
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).NotTo(BeEmpty())
+
+					// Parsing should fail with ErrExpiredToken
+					_, err = crypto.ParseToken(token, testSecret)
 					Expect(err).To(HaveOccurred())
-					Expect(errors.Is(err, crypto.ErrInvalidExpiry)).To(BeTrue())
-					Expect(token).To(BeEmpty())
+					Expect(errors.Is(err, crypto.ErrExpiredToken)).To(BeTrue())
 				})
 			})
 

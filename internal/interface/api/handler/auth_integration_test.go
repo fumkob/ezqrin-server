@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
@@ -25,9 +27,9 @@ import (
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 var _ = Describe("Authentication API Integration", func() {
@@ -50,14 +52,30 @@ var _ = Describe("Authentication API Integration", func() {
 	BeforeEach(func() {
 		var err error
 
-		// Create test configuration directly (avoid file system dependency)
+		// Create test configuration using environment variables if available
+		dbHost := os.Getenv("DB_HOST")
+		if dbHost == "" {
+			dbHost = "localhost"
+		}
+		redisHost := os.Getenv("REDIS_HOST")
+		if redisHost == "" {
+			redisHost = "localhost"
+		}
+		redisDBStr := os.Getenv("TEST_REDIS_DB")
+		redisDB := 1 // Use DB 1 for testing by default to avoid blowing away dev data in DB 0
+		if redisDBStr != "" {
+			if db, err := strconv.Atoi(redisDBStr); err == nil {
+				redisDB = db
+			}
+		}
+
 		jwtSecret = "test-secret-key-minimum-32-characters-long-for-testing"
 		cfg = &config.Config{
 			Database: config.DatabaseConfig{
-				Host:            "localhost",
+				Host:            dbHost,
 				Port:            5432,
-				User:            "postgres",
-				Password:        "postgres",
+				User:            "ezqrin",
+				Password:        "ezqrin_dev",
 				Name:            "ezqrin_test",
 				SSLMode:         "disable",
 				MaxConns:        10,
@@ -66,10 +84,10 @@ var _ = Describe("Authentication API Integration", func() {
 				MaxConnIdleTime: 5 * time.Minute,
 			},
 			Redis: config.RedisConfig{
-				Host:         "localhost",
+				Host:         redisHost,
 				Port:         6379,
 				Password:     "",
-				DB:           0,
+				DB:           redisDB,
 				PoolSize:     10,
 				MinIdleConns: 2,
 				MaxRetries:   3,
@@ -126,21 +144,34 @@ var _ = Describe("Authentication API Integration", func() {
 		authHandler = handler.NewAuthHandler(registerUC, loginUC, refreshTokenUC, logoutUC, log)
 		healthHandler = handler.NewHealthHandler(db, cacheService, log)
 
+		// Initialize authentication middleware
+		authMiddleware := middleware.NewAuthMiddleware(blacklistRepo, jwtSecret, log)
+
 		// Setup router
 		gin.SetMode(gin.TestMode)
 		router = gin.New()
 		router.Use(middleware.RequestID())
 
-		// Register routes using generated handler registration
+		// Register routes using generated handler registration with middleware
 		combinedHandler := handler.NewHandler(healthHandler, authHandler)
-		generated.RegisterHandlers(router, combinedHandler)
+		options := generated.GinServerOptions{
+			Middlewares: []generated.MiddlewareFunc{
+				func(c *gin.Context) {
+					// Only authenticate if the route has security requirements (BearerAuthScopes is set by the generated wrapper)
+					if _, exists := c.Get(generated.BearerAuthScopes); exists {
+						authMiddleware.Authenticate()(c)
+					}
+				},
+			},
+		}
+		generated.RegisterHandlersWithOptions(router, combinedHandler, options)
 
 		// Clean database before each test
 		cleanDatabase(db)
 
 		// Clean Redis before each test
 		flushCtx := context.Background()
-		_, err = redisClient.GetClient().FlushAll(flushCtx).Result()
+		_, err = redisClient.GetClient().FlushDB(flushCtx).Result()
 		Expect(err).NotTo(HaveOccurred())
 
 		// Setup test user data
@@ -181,37 +212,35 @@ var _ = Describe("Authentication API Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusCreated))
 
-				var response struct {
-					Data generated.AuthResponse `json:"data"`
-				}
+				var response generated.AuthResponse
 				err = json.Unmarshal(w.Body.Bytes(), &response)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify response structure
-				Expect(response.Data.AccessToken).NotTo(BeEmpty())
-				Expect(response.Data.RefreshToken).NotTo(BeEmpty())
-				Expect(response.Data.TokenType).To(Equal("Bearer"))
-				Expect(response.Data.ExpiresIn).To(Equal(900)) // 15 minutes
+				Expect(response.AccessToken).NotTo(BeEmpty())
+				Expect(response.RefreshToken).NotTo(BeEmpty())
+				Expect(response.TokenType).To(Equal("Bearer"))
+				Expect(response.ExpiresIn).To(Equal(900)) // 15 minutes
 
 				// Verify user info
-				Expect(response.Data.User.Email).To(Equal(openapi_types.Email(testUserEmail)))
-				Expect(response.Data.User.Name).To(Equal(testUserName))
-				Expect(response.Data.User.Role).To(Equal(generated.UserRole(testUserRole)))
-				Expect(response.Data.User.Id).NotTo(BeNil())
-				Expect(response.Data.User.CreatedAt).NotTo(BeNil())
-				Expect(response.Data.User.UpdatedAt).NotTo(BeNil())
+				Expect(response.User.Email).To(Equal(openapi_types.Email(testUserEmail)))
+				Expect(response.User.Name).To(Equal(testUserName))
+				Expect(response.User.Role).To(Equal(generated.UserRole(testUserRole)))
+				Expect(response.User.Id).NotTo(BeNil())
+				Expect(response.User.CreatedAt).NotTo(BeNil())
+				Expect(response.User.UpdatedAt).NotTo(BeNil())
 
 				// Verify access token is valid JWT
-				claims, err := crypto.ParseToken(response.Data.AccessToken, jwtSecret)
+				claims, err := crypto.ParseToken(response.AccessToken, jwtSecret)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(claims.UserID).To(Equal(*response.Data.User.Id))
+				Expect(claims.UserID).To(Equal(*response.User.Id))
 				Expect(claims.Role).To(Equal(testUserRole))
 				Expect(claims.TokenType).To(Equal(crypto.TokenTypeAccess))
 
 				// Verify refresh token is valid JWT
-				refreshClaims, err := crypto.ParseToken(response.Data.RefreshToken, jwtSecret)
+				refreshClaims, err := crypto.ParseToken(response.RefreshToken, jwtSecret)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(refreshClaims.UserID).To(Equal(*response.Data.User.Id))
+				Expect(refreshClaims.UserID).To(Equal(*response.User.Id))
 				Expect(refreshClaims.TokenType).To(Equal(crypto.TokenTypeRefresh))
 			})
 		})
@@ -376,25 +405,23 @@ var _ = Describe("Authentication API Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 
-				var response struct {
-					Data generated.AuthResponse `json:"data"`
-				}
+				var response generated.AuthResponse
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify response structure
-				Expect(response.Data.AccessToken).NotTo(BeEmpty())
-				Expect(response.Data.RefreshToken).NotTo(BeEmpty())
-				Expect(response.Data.TokenType).To(Equal("Bearer"))
-				Expect(response.Data.ExpiresIn).To(Equal(900))
+				Expect(response.AccessToken).NotTo(BeEmpty())
+				Expect(response.RefreshToken).NotTo(BeEmpty())
+				Expect(response.TokenType).To(Equal("Bearer"))
+				Expect(response.ExpiresIn).To(Equal(900))
 
 				// Verify user info
-				Expect(response.Data.User.Email).To(Equal(openapi_types.Email(testUserEmail)))
-				Expect(response.Data.User.Name).To(Equal(testUserName))
-				Expect(*response.Data.User.Id).To(Equal(openapi_types.UUID(registeredUserID)))
+				Expect(response.User.Email).To(Equal(openapi_types.Email(testUserEmail)))
+				Expect(response.User.Name).To(Equal(testUserName))
+				Expect(*response.User.Id).To(Equal(openapi_types.UUID(registeredUserID)))
 
 				// Verify tokens are valid
-				claims, err := crypto.ParseToken(response.Data.AccessToken, jwtSecret)
+				claims, err := crypto.ParseToken(response.AccessToken, jwtSecret)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(claims.UserID).To(Equal(registeredUserID))
 			})
@@ -503,24 +530,25 @@ var _ = Describe("Authentication API Integration", func() {
 				req.Header.Set("Content-Type", "application/json")
 				w := httptest.NewRecorder()
 
+				// Sleep for 1 second to ensure tokens are different (due to IssuedAt/ExpiresAt being in seconds)
+				time.Sleep(1 * time.Second)
+
 				router.ServeHTTP(w, req)
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 
-				var response struct {
-					Data generated.AuthResponse `json:"data"`
-				}
+				var response generated.AuthResponse
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify new tokens
-				Expect(response.Data.AccessToken).NotTo(BeEmpty())
-				Expect(response.Data.RefreshToken).NotTo(BeEmpty())
-				Expect(response.Data.AccessToken).NotTo(Equal(accessToken))
-				Expect(response.Data.RefreshToken).NotTo(Equal(refreshToken))
+				Expect(response.AccessToken).NotTo(BeEmpty())
+				Expect(response.RefreshToken).NotTo(BeEmpty())
+				Expect(response.AccessToken).NotTo(Equal(accessToken))
+				Expect(response.RefreshToken).NotTo(Equal(refreshToken))
 
 				// Verify new tokens are valid
-				claims, err := crypto.ParseToken(response.Data.AccessToken, jwtSecret)
+				claims, err := crypto.ParseToken(response.AccessToken, jwtSecret)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(claims.UserID).To(Equal(userID))
 			})
@@ -668,12 +696,10 @@ var _ = Describe("Authentication API Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusOK))
 
-				var response struct {
-					Data generated.LogoutResponse `json:"data"`
-				}
+				var response generated.LogoutResponse
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(response.Data.Message).To(ContainSubstring("Successfully logged out"))
+				Expect(response.Message).To(ContainSubstring("Successfully logged out"))
 			})
 
 			It("should blacklist both tokens", func() {
@@ -871,13 +897,11 @@ func createTestUser(router *gin.Engine, email, password, name, role string) uuid
 	router.ServeHTTP(w, req)
 	Expect(w.Code).To(Equal(http.StatusCreated))
 
-	var response struct {
-		Data generated.AuthResponse `json:"data"`
-	}
+	var response generated.AuthResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	Expect(err).NotTo(HaveOccurred())
 
-	return uuid.UUID(*response.Data.User.Id)
+	return uuid.UUID(*response.User.Id)
 }
 
 // loginTestUser logs in a test user and returns tokens
@@ -897,13 +921,11 @@ func loginTestUser(router *gin.Engine, email, password string) *generated.AuthRe
 	router.ServeHTTP(w, req)
 	Expect(w.Code).To(Equal(http.StatusOK))
 
-	var response struct {
-		Data generated.AuthResponse `json:"data"`
-	}
+	var response generated.AuthResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	Expect(err).NotTo(HaveOccurred())
 
-	return &response.Data
+	return &response
 }
 
 // cleanDatabase cleans all test data from database

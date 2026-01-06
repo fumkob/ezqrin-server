@@ -70,6 +70,7 @@ func NoContent(c *gin.Context) {
 
 // Problem sends an RFC 9457 Problem Details error response
 func Problem(c *gin.Context, statusCode int, problemType, title, detail string) {
+	c.Header("Content-Type", "application/problem+json")
 	c.JSON(statusCode, ProblemDetails{
 		Type:     problemType,
 		Title:    title,
@@ -81,6 +82,7 @@ func Problem(c *gin.Context, statusCode int, problemType, title, detail string) 
 
 // ProblemWithCode sends an RFC 9457 Problem Details error response with error code extension
 func ProblemWithCode(c *gin.Context, statusCode int, code, detail string) {
+	c.Header("Content-Type", "application/problem+json")
 	c.JSON(statusCode, ProblemDetails{
 		Type:     apperrors.ToTypeURL(code),
 		Title:    apperrors.GetTitle(code),
@@ -112,6 +114,7 @@ func ProblemFromError(c *gin.Context, err error) {
 
 		// If validation errors exist, include them
 		if len(appErr.ValidationErrors) > 0 {
+			c.Header("Content-Type", "application/problem+json")
 			c.JSON(statusCode, ProblemDetails{
 				Type:     apperrors.ToTypeURL(errorCode),
 				Title:    apperrors.GetTitle(errorCode),
@@ -130,6 +133,7 @@ func ProblemFromError(c *gin.Context, err error) {
 
 // ValidationProblem sends an RFC 9457 Problem Details validation error response
 func ValidationProblem(c *gin.Context, validationErrors []generated.ValidationError) {
+	c.Header("Content-Type", "application/problem+json")
 	c.JSON(http.StatusBadRequest, ProblemDetails{
 		Type:     apperrors.ToTypeURL(apperrors.CodeValidation),
 		Title:    apperrors.GetTitle(apperrors.CodeValidation),

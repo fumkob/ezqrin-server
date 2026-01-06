@@ -56,6 +56,14 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	// Register OpenAPI-generated routes under the versioned base path
 	// This automatically registers all routes defined in the OpenAPI specification
 	v1 := router.Group(API_V1_PATH)
+
+	// Initialize authentication middleware
+	authMiddleware := middleware.NewAuthMiddleware(
+		deps.Container.Repositories.Blacklist,
+		deps.Config.JWT.Secret,
+		deps.Logger,
+	)
+
 	healthHandler := handler.NewHealthHandler(deps.DB, deps.Cache, deps.Logger)
 
 	authUseCases := deps.Container.UseCases.Auth
@@ -67,7 +75,23 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 		deps.Logger,
 	)
 	combinedHandler := handler.NewHandler(healthHandler, authHandler)
-	generated.RegisterHandlers(v1, combinedHandler)
+
+	// Register handlers with authentication middleware that respects OpenAPI security requirements
+	// This established the pattern for protecting routes:
+	// 1. Define security requirements in OpenAPI spec (e.g., security: [{ bearerAuth: [] }])
+	// 2. The generated wrapper will set BearerAuthScopes in the context
+	// 3. This middleware will then trigger authentication only for those routes
+	options := generated.GinServerOptions{
+		Middlewares: []generated.MiddlewareFunc{
+			func(c *gin.Context) {
+				// Only authenticate if the route has security requirements (BearerAuthScopes is set by the generated wrapper)
+				if _, exists := c.Get(generated.BearerAuthScopes); exists {
+					authMiddleware.Authenticate()(c)
+				}
+			},
+		},
+	}
+	generated.RegisterHandlersWithOptions(v1, combinedHandler, options)
 
 	return router
 }
