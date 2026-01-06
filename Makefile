@@ -45,8 +45,10 @@ help:
 	@echo "  make migrate-down    - Rollback last migration"
 	@echo "  make migrate-version - Show current migration version"
 	@echo "  make migrate-reset   - Reset database (down all + up all)"
+	@echo "  make migrate-test-up - Apply migrations to test database"
 	@echo "  make db-shell        - Open PostgreSQL shell (psql)"
 	@echo "  make db-reset        - Drop and recreate database"
+	@echo "  make db-create-test  - Create test database"
 	@echo ""
 	@echo "Code Generation:"
 	@echo "  make gen-api         - Generate API code from OpenAPI specification"
@@ -56,6 +58,7 @@ help:
 	@echo "Development:"
 	@echo "  make test            - Run all tests (including integration)"
 	@echo "  make test-unit       - Run only unit tests (fast)"
+	@echo "  make test-setup      - Setup test database (create + migrate)"
 	@echo "  make build           - Build the application"
 	@echo "  make run             - Run the application with Air (hot reload)"
 	@echo ""
@@ -142,6 +145,11 @@ migrate-up: check-runtime
 	@echo "Applying migrations..."
 	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && ./scripts/migrate-up.sh"
 
+# Apply migrations to test database
+migrate-test-up: check-runtime
+	@echo "Applying migrations to test database..."
+	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && DB_NAME=ezqrin_test ./scripts/migrate-up.sh"
+
 # Rollback last migration
 migrate-down: check-runtime
 	@echo "Rolling back last migration..."
@@ -176,6 +184,11 @@ db-reset: check-runtime
 		echo "Cancelled."; \
 	fi
 
+# Create test database
+db-create-test: check-runtime
+	@echo "Creating test database 'ezqrin_test'..."
+	cd .devcontainer && $(COMPOSE_CMD) exec -T postgres psql -U ezqrin -d postgres -c "CREATE DATABASE ezqrin_test;" || echo "Database 'ezqrin_test' already exists."
+
 #
 # Development
 #
@@ -187,6 +200,9 @@ test: check-runtime
 # Run only unit tests
 test-unit: check-runtime
 	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -count=1 ./..."
+
+# Setup test database (create + migrate)
+test-setup: db-create-test migrate-test-up
 
 # Build the application
 build: check-runtime

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
@@ -26,9 +27,9 @@ import (
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 var _ = Describe("Authentication API Integration", func() {
@@ -60,6 +61,13 @@ var _ = Describe("Authentication API Integration", func() {
 		if redisHost == "" {
 			redisHost = "localhost"
 		}
+		redisDBStr := os.Getenv("TEST_REDIS_DB")
+		redisDB := 1 // Use DB 1 for testing by default to avoid blowing away dev data in DB 0
+		if redisDBStr != "" {
+			if db, err := strconv.Atoi(redisDBStr); err == nil {
+				redisDB = db
+			}
+		}
 
 		jwtSecret = "test-secret-key-minimum-32-characters-long-for-testing"
 		cfg = &config.Config{
@@ -68,7 +76,7 @@ var _ = Describe("Authentication API Integration", func() {
 				Port:            5432,
 				User:            "ezqrin",
 				Password:        "ezqrin_dev",
-				Name:            "ezqrin_db",
+				Name:            "ezqrin_test",
 				SSLMode:         "disable",
 				MaxConns:        10,
 				MinConns:        2,
@@ -79,7 +87,7 @@ var _ = Describe("Authentication API Integration", func() {
 				Host:         redisHost,
 				Port:         6379,
 				Password:     "",
-				DB:           0,
+				DB:           redisDB,
 				PoolSize:     10,
 				MinIdleConns: 2,
 				MaxRetries:   3,
@@ -163,7 +171,7 @@ var _ = Describe("Authentication API Integration", func() {
 
 		// Clean Redis before each test
 		flushCtx := context.Background()
-		_, err = redisClient.GetClient().FlushAll(flushCtx).Result()
+		_, err = redisClient.GetClient().FlushDB(flushCtx).Result()
 		Expect(err).NotTo(HaveOccurred())
 
 		// Setup test user data
