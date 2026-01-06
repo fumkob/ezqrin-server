@@ -1,0 +1,8 @@
+server:
+  environment: test
+
+database:
+  name: ezqrin_test
+  max_conns: 10
+  min_conns: 2
+
