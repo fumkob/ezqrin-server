@@ -54,7 +54,8 @@ help:
 	@echo "  make gen-all         - Generate all code (API + mocks)"
 	@echo ""
 	@echo "Development:"
-	@echo "  make test            - Run all tests"
+	@echo "  make test            - Run all tests (including integration)"
+	@echo "  make test-unit       - Run only unit tests (fast)"
 	@echo "  make build           - Build the application"
 	@echo "  make run             - Run the application with Air (hot reload)"
 	@echo ""
@@ -179,9 +180,13 @@ db-reset: check-runtime
 # Development
 #
 
-# Run all tests
+# Run all tests (including integration)
 test: check-runtime
-	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test ./..."
+	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -count=1 -tags=integration ./..."
+
+# Run only unit tests
+test-unit: check-runtime
+	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -count=1 ./..."
 
 # Build the application
 build: check-runtime

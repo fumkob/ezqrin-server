@@ -34,7 +34,7 @@ jobs:
         uses: ./.github/actions/setup-go
 
       - name: Run tests
-        run: go test ./...
+        run: go test -count=1 ./...
 
   build:
     name: Build Check

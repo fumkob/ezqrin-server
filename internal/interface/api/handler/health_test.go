@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
@@ -13,11 +12,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestHealthHandler(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "HealthHandler Suite")
-}
 
 var _ = Describe("HealthHandler", func() {
 	var (

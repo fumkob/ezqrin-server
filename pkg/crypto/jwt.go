@@ -109,7 +109,7 @@ func generateToken(userID, role, secret string, expiry time.Duration, tokenType 
 	if userID == "" {
 		return "", ErrEmptyUserID
 	}
-	if expiry <= 0 {
+	if expiry == 0 {
 		return "", ErrInvalidExpiry
 	}
 
