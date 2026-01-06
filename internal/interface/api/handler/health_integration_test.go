@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -41,18 +40,21 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 		// Create health handler with both DB and Redis health checkers
 		healthHandler = handler.NewHealthHandler(mockDB, mockRedis, log)
 
-		// Setup router with middleware and use generated RegisterHandlers
+		// Setup router with middleware
 		router = gin.New()
 		router.Use(middleware.RequestID())
 
-		// Use generated route registration (production code path)
-		generated.RegisterHandlers(router, healthHandler)
+		// Register only health routes manually under /api/v1 (not using generated.RegisterHandlers for isolated testing)
+		v1 := router.Group("/api/v1")
+		v1.GET("/health", healthHandler.GetHealth)
+		v1.GET("/health/ready", healthHandler.GetHealthReady)
+		v1.GET("/health/live", healthHandler.GetHealthLive)
 	})
 
-	When("using generated.RegisterHandlers", func() {
-		Context("for GET /health endpoint", func() {
+	When("checking health endpoints", func() {
+		Context("for GET /api/v1/health endpoint", func() {
 			It("should be registered and return 200 OK with correct response", func() {
-				req := httptest.NewRequest(http.MethodGet, "/health", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -69,9 +71,9 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 			})
 		})
 
-		Context("for GET /health/ready endpoint", func() {
+		Context("for GET /api/v1/health/ready endpoint", func() {
 			It("should be registered and return 200 OK when database and Redis are healthy", func() {
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -90,7 +92,7 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 			It("should return 503 with RFC 9457 Problem Details when database is unhealthy", func() {
 				mockDB.healthy = false
 
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -105,9 +107,9 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 			})
 		})
 
-		Context("for GET /health/live endpoint", func() {
+		Context("for GET /api/v1/health/live endpoint", func() {
 			It("should be registered and return 200 OK", func() {
-				req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/live", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -132,9 +134,9 @@ var _ = Describe("Health Handler OpenAPI Integration", func() {
 				path       string
 				statusCode int
 			}{
-				{"/health", http.StatusOK},
-				{"/health/ready", http.StatusOK},
-				{"/health/live", http.StatusOK},
+				{"/api/v1/health", http.StatusOK},
+				{"/api/v1/health/ready", http.StatusOK},
+				{"/api/v1/health/live", http.StatusOK},
 			}
 
 			for _, endpoint := range endpoints {

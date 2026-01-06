@@ -1,0 +1,239 @@
+# Authentication Endpoints
+# User registration, login, token refresh, and logout
+
+/auth/register:
+  post:
+    summary: Register a new user
+    description: |
+      Creates a new user account with the specified role. After successful registration,
+      the user receives authentication tokens and can immediately use the API.
+
+      **Password Requirements:**
+      - Minimum 8 characters
+      - Should contain uppercase, lowercase, numbers, and special characters
+
+      **Email Uniqueness:**
+      - Email must be unique across all users
+      - Returns 409 Conflict if email already exists
+    operationId: registerUser
+    tags:
+      - auth
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/RegisterRequest'
+          example:
+            email: "organizer@example.com"
+            password: "SecureP@ssw0rd"
+            name: "John Doe"
+            role: "organizer"
+    responses:
+      '201':
+        description: User registered successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/AuthResponse'
+            example:
+              access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJyb2xlIjoib3JnYW5pemVyIiwiZXhwIjoxNjQwOTk1MjAwfQ.abc123"
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTY0MDk5NTIwMH0.def456"
+              token_type: "Bearer"
+              expires_in: 900
+              user:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "organizer@example.com"
+                name: "John Doe"
+                role: "organizer"
+                created_at: "2025-11-08T10:00:00Z"
+                updated_at: "2025-11-08T10:00:00Z"
+      '400':
+        $ref: '../components/responses.yaml#/ValidationErrorResponse'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "A user with this email already exists"
+              instance: "/api/v1/auth/register"
+              code: "EMAIL_ALREADY_EXISTS"
+      '429':
+        $ref: '../components/responses.yaml#/RateLimitExceeded'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/auth/login:
+  post:
+    summary: Authenticate user
+    description: |
+      Authenticates a user with email and password credentials and returns JWT tokens.
+
+      **Token Lifetime:**
+      - Access Token: 15 minutes (900 seconds)
+      - Refresh Token: 7 days (604800 seconds)
+
+      **Security:**
+      - Rate limited to prevent brute force attacks
+      - Failed attempts are logged for security monitoring
+      - Passwords are compared using bcrypt
+    operationId: loginUser
+    tags:
+      - auth
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LoginRequest'
+          example:
+            email: "organizer@example.com"
+            password: "SecureP@ssw0rd"
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/AuthResponse'
+            example:
+              access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJyb2xlIjoib3JnYW5pemVyIiwiZXhwIjoxNjQwOTk1MjAwfQ.abc123"
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTY0MDk5NTIwMH0.def456"
+              token_type: "Bearer"
+              expires_in: 900
+              user:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "organizer@example.com"
+                name: "John Doe"
+                role: "organizer"
+                created_at: "2025-11-08T10:00:00Z"
+                updated_at: "2025-11-08T10:00:00Z"
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/unauthorized"
+              title: "Unauthorized"
+              status: 401
+              detail: "Invalid email or password"
+              instance: "/api/v1/auth/login"
+              code: "INVALID_CREDENTIALS"
+      '429':
+        $ref: '../components/responses.yaml#/RateLimitExceeded'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/auth/refresh:
+  post:
+    summary: Refresh access token
+    description: |
+      Exchanges a valid refresh token for a new access token and refresh token pair.
+      This endpoint should be called when the access token expires.
+
+      **Refresh Token Validation:**
+      - Must be a valid JWT
+      - Must not be expired
+      - Must not be in the revocation list
+
+      **Token Rotation:**
+      - Both access and refresh tokens are rotated
+      - Old refresh token is invalidated
+      - New tokens have fresh expiration times
+    operationId: refreshToken
+    tags:
+      - auth
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/RefreshTokenRequest'
+          example:
+            refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTY0MDk5NTIwMH0.def456"
+    responses:
+      '200':
+        description: Token refreshed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/AuthResponse'
+            example:
+              access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJyb2xlIjoib3JnYW5pemVyIiwiZXhwIjoxNjQwOTk1MjAwfQ.ghi789"
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTY0MDk5NTIwMH0.jkl012"
+              token_type: "Bearer"
+              expires_in: 900
+              user:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "organizer@example.com"
+                name: "John Doe"
+                role: "organizer"
+                created_at: "2025-11-08T10:00:00Z"
+                updated_at: "2025-11-08T10:00:00Z"
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        description: Invalid or expired refresh token
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/unauthorized"
+              title: "Unauthorized"
+              status: 401
+              detail: "Invalid or expired refresh token"
+              instance: "/api/v1/auth/refresh"
+              code: "INVALID_REFRESH_TOKEN"
+      '429':
+        $ref: '../components/responses.yaml#/RateLimitExceeded'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/auth/logout:
+  post:
+    summary: Logout user
+    description: |
+      Invalidates the current user's access token and refresh token.
+      The tokens are added to a revocation list and can no longer be used.
+
+      **Token Revocation:**
+      - Access token is immediately invalidated
+      - Refresh token is invalidated
+      - Tokens are added to Redis-backed revocation list
+      - Revoked tokens remain blacklisted until their natural expiration
+
+      **Client Responsibilities:**
+      - Client should delete stored tokens
+      - Client should redirect to login page
+      - Client should not retry with the same tokens
+    operationId: logoutUser
+    tags:
+      - auth
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Logout successful
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/LogoutResponse'
+            example:
+              message: "Successfully logged out"
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

@@ -77,8 +77,17 @@ paths:
   /health/live:
     $ref: './paths/health.yaml#/~1health~1live'
 
+  # Authentication endpoints
+  /auth/register:
+    $ref: './paths/auth.yaml#/~1auth~1register'
+  /auth/login:
+    $ref: './paths/auth.yaml#/~1auth~1login'
+  /auth/refresh:
+    $ref: './paths/auth.yaml#/~1auth~1refresh'
+  /auth/logout:
+    $ref: './paths/auth.yaml#/~1auth~1logout'
+
   # Future endpoints will be added here as separate YAML files:
-  # Authentication: ./paths/auth.yaml
   # Users: ./paths/users.yaml
   # Events: ./paths/events.yaml
   # Participants: ./paths/participants.yaml
@@ -100,6 +109,18 @@ components:
       $ref: './schemas/entities.yaml#/Participant'
     CheckIn:
       $ref: './schemas/entities.yaml#/CheckIn'
+
+    # Authentication schemas
+    RegisterRequest:
+      $ref: './schemas/auth.yaml#/RegisterRequest'
+    LoginRequest:
+      $ref: './schemas/auth.yaml#/LoginRequest'
+    RefreshTokenRequest:
+      $ref: './schemas/auth.yaml#/RefreshTokenRequest'
+    AuthResponse:
+      $ref: './schemas/auth.yaml#/AuthResponse'
+    LogoutResponse:
+      $ref: './schemas/auth.yaml#/LogoutResponse'
 
     # Enums
     UserRole:

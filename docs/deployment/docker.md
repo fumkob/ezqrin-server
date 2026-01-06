@@ -92,7 +92,7 @@ air
 go run cmd/api/main.go
 ```
 
-Access the API at `http://localhost:8080/health`
+Access the API at `http://localhost:8080/api/v1/health`
 
 ---
 
