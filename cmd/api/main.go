@@ -12,12 +12,11 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
-	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/container"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
-	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -30,15 +29,9 @@ const (
 
 // Application dependencies
 var (
-	appDB            database.Service
-	appLogger        *logger.Logger
-	appCache         cache.Service
-	appBlacklistRepo repository.TokenBlacklistRepository
-	appUserRepo      repository.UserRepository
-	appRegisterUC    *auth.RegisterUseCase
-	appLoginUC       *auth.LoginUseCase
-	appRefreshUC     *auth.RefreshTokenUseCase
-	appLogoutUC      *auth.LogoutUseCase
+	appDB     database.Service
+	appLogger *logger.Logger
+	appCache  cache.Service
 )
 
 func main() {
@@ -58,23 +51,23 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 
-	// Initialize dependencies (database, cache, etc.)
+	// Initialize infrastructure (database, cache)
 	ctx := context.Background()
-	if err := initializeDependencies(ctx, cfg); err != nil {
-		appLogger.Fatal("failed to initialize dependencies", zap.Error(err))
+	if err := initializeInfrastructure(ctx, cfg); err != nil {
+		appLogger.Fatal("failed to initialize infrastructure", zap.Error(err))
 	}
 	defer cleanup()
 
+	// Initialize container with repositories and use cases
+	appContainer := container.NewContainer(cfg, appLogger, appDB, appCache)
+
 	// Setup router with dependencies
 	router := api.SetupRouter(&api.RouterDependencies{
-		Config:     cfg,
-		Logger:     appLogger,
-		DB:         appDB,
-		Cache:      appCache,
-		RegisterUC: appRegisterUC,
-		LoginUC:    appLoginUC,
-		RefreshUC:  appRefreshUC,
-		LogoutUC:   appLogoutUC,
+		Config:    cfg,
+		Logger:    appLogger,
+		DB:        appDB,
+		Cache:     appCache,
+		Container: appContainer,
 	})
 
 	// Create and run HTTP server
@@ -135,11 +128,9 @@ func runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
 	}
 }
 
-// initializeDependencies initializes all application dependencies.
-// This includes database connections, cache, repositories, use cases, etc.
-// Note: Logger must be initialized before calling this function.
-func initializeDependencies(ctx context.Context, cfg *config.Config) error {
-	appLogger.Info("initializing application dependencies")
+// initializeInfrastructure initializes basic infrastructure dependencies.
+func initializeInfrastructure(ctx context.Context, cfg *config.Config) error {
+	appLogger.Info("initializing application infrastructure")
 
 	// Initialize database
 	if err := initializeDatabase(ctx, cfg); err != nil {
@@ -151,16 +142,6 @@ func initializeDependencies(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	// Initialize repositories
-	appUserRepo = database.NewUserRepository(appDB.GetPool(), appLogger)
-
-	// Initialize use cases
-	appRegisterUC = auth.NewRegisterUseCase(appUserRepo, cfg.JWT.Secret, appLogger)
-	appLoginUC = auth.NewLoginUseCase(appUserRepo, cfg.JWT.Secret, appLogger)
-	appRefreshUC = auth.NewRefreshTokenUseCase(appUserRepo, appBlacklistRepo, cfg.JWT.Secret, appLogger)
-	appLogoutUC = auth.NewLogoutUseCase(appBlacklistRepo, cfg.JWT.Secret, appLogger)
-
-	appLogger.Info("dependencies initialized successfully")
 	return nil
 }
 
@@ -215,9 +196,6 @@ func initializeRedis(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("redis not healthy: %w", err)
 	}
 
-	// Create token blacklist repository from concrete client type
-	appBlacklistRepo = redisClient.NewTokenBlacklistRepository(client)
-
 	appLogger.Info("redis connection established and healthy")
 	return nil
 }
@@ -225,7 +203,7 @@ func initializeRedis(ctx context.Context, cfg *config.Config) error {
 // cleanup gracefully closes all application dependencies.
 func cleanup() {
 	if appLogger != nil {
-		appLogger.Info("shutting down application dependencies")
+		appLogger.Info("shutting down application infrastructure")
 	}
 
 	if appDB != nil {

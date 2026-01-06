@@ -4,11 +4,11 @@ package api
 import (
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/container"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
-	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -20,14 +20,11 @@ const (
 
 // RouterDependencies holds all dependencies required to setup the router
 type RouterDependencies struct {
-	Config     *config.Config
-	Logger     *logger.Logger
-	DB         database.Service // Interface type for database operations
-	Cache      cache.Service    // Interface type for cache operations
-	RegisterUC *auth.RegisterUseCase
-	LoginUC    *auth.LoginUseCase
-	RefreshUC  *auth.RefreshTokenUseCase
-	LogoutUC   *auth.LogoutUseCase
+	Config    *config.Config
+	Logger    *logger.Logger
+	DB        database.Service     // Interface type for database operations
+	Cache     cache.Service        // Interface type for cache operations
+	Container *container.Container // Container for all other dependencies
 }
 
 // SetupRouter creates and configures the Gin HTTP router with all middleware and routes.
@@ -60,11 +57,13 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	// This automatically registers all routes defined in the OpenAPI specification
 	v1 := router.Group(API_V1_PATH)
 	healthHandler := handler.NewHealthHandler(deps.DB, deps.Cache, deps.Logger)
+
+	authUseCases := deps.Container.UseCases.Auth
 	authHandler := handler.NewAuthHandler(
-		deps.RegisterUC,
-		deps.LoginUC,
-		deps.RefreshUC,
-		deps.LogoutUC,
+		authUseCases.Register,
+		authUseCases.Login,
+		authUseCases.Refresh,
+		authUseCases.Logout,
 		deps.Logger,
 	)
 	combinedHandler := handler.NewHandler(healthHandler, authHandler)
