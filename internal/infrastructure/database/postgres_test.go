@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package database_test
 
 import (
@@ -33,10 +36,10 @@ var _ = Describe("PostgresDB", func() {
 			Environment: "development",
 		})
 		cfg = &config.DatabaseConfig{
-			Host:            "localhost",
+			Host:            "postgres",
 			Port:            5432,
 			User:            "ezqrin",
-			Password:        "password",
+			Password:        "ezqrin_dev",
 			Name:            "ezqrin_test",
 			SSLMode:         "disable",
 			MaxConns:        25,
@@ -169,10 +172,10 @@ var _ = Describe("HealthChecker", func() {
 			Environment: "development",
 		})
 		cfg = &config.DatabaseConfig{
-			Host:            "localhost",
+			Host:            "postgres",
 			Port:            5432,
 			User:            "ezqrin",
-			Password:        "password",
+			Password:        "ezqrin_dev",
 			Name:            "ezqrin_test",
 			SSLMode:         "disable",
 			MaxConns:        25,
@@ -307,10 +310,10 @@ var _ = Describe("Transaction Management", func() {
 			Environment: "development",
 		})
 		cfg = &config.DatabaseConfig{
-			Host:            "localhost",
+			Host:            "postgres",
 			Port:            5432,
 			User:            "ezqrin",
-			Password:        "password",
+			Password:        "ezqrin_dev",
 			Name:            "ezqrin_test",
 			SSLMode:         "disable",
 			MaxConns:        25,
