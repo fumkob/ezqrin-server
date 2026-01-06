@@ -375,10 +375,10 @@ func (c *Config) validateServer() error {
 		return fmt.Errorf("server port must be between %d and %d, got %d", minPort, maxPort, c.Server.Port)
 	}
 
-	validEnvs := map[string]bool{"development": true, "production": true}
+	validEnvs := map[string]bool{"development": true, "production": true, "test": true}
 	if !validEnvs[c.Server.Environment] {
 		return fmt.Errorf(
-			"server environment must be 'development' or 'production', got '%s'",
+			"server environment must be 'development', 'production' or 'test', got '%s'",
 			c.Server.Environment,
 		)
 	}
