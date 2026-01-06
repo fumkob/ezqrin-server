@@ -8,16 +8,26 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
+	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	// API_V1_PATH defines the base path for v1 of the API
+	API_V1_PATH = "/api/v1"
+)
+
 // RouterDependencies holds all dependencies required to setup the router
 type RouterDependencies struct {
-	Config *config.Config
-	Logger *logger.Logger
-	DB     database.Service // Interface type for database operations
-	Cache  cache.Service    // Interface type for cache operations
+	Config     *config.Config
+	Logger     *logger.Logger
+	DB         database.Service // Interface type for database operations
+	Cache      cache.Service    // Interface type for cache operations
+	RegisterUC *auth.RegisterUseCase
+	LoginUC    *auth.LoginUseCase
+	RefreshUC  *auth.RefreshTokenUseCase
+	LogoutUC   *auth.LogoutUseCase
 }
 
 // SetupRouter creates and configures the Gin HTTP router with all middleware and routes.
@@ -46,13 +56,19 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	router.Use(middleware.Recovery(deps.Logger))   // Recover from panics
 	router.Use(middleware.CORS(&deps.Config.CORS)) // Handle CORS
 
-	// Register OpenAPI-generated routes
+	// Register OpenAPI-generated routes under the versioned base path
 	// This automatically registers all routes defined in the OpenAPI specification
+	v1 := router.Group(API_V1_PATH)
 	healthHandler := handler.NewHealthHandler(deps.DB, deps.Cache, deps.Logger)
-	generated.RegisterHandlers(router, healthHandler)
-
-	// TODO: Register API routes (Task 2.3, 3.2, 4.3, 5.2)
-	// Future handlers will also implement generated.ServerInterface and be registered here
+	authHandler := handler.NewAuthHandler(
+		deps.RegisterUC,
+		deps.LoginUC,
+		deps.RefreshUC,
+		deps.LogoutUC,
+		deps.Logger,
+	)
+	combinedHandler := handler.NewHandler(healthHandler, authHandler)
+	generated.RegisterHandlers(v1, combinedHandler)
 
 	return router
 }

@@ -56,9 +56,9 @@ var _ = Describe("HealthHandler", func() {
 	Describe("GetHealth", func() {
 		When("checking basic health endpoint", func() {
 			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health", healthHandler.GetHealth)
+				router.GET("/api/v1/health", healthHandler.GetHealth)
 
-				req := httptest.NewRequest(http.MethodGet, "/health", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -81,9 +81,9 @@ var _ = Describe("HealthHandler", func() {
 	Describe("GetHealthReady", func() {
 		When("database and Redis are healthy", func() {
 			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health/ready", healthHandler.GetHealthReady)
+				router.GET("/api/v1/health/ready", healthHandler.GetHealthReady)
 
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -107,9 +107,9 @@ var _ = Describe("HealthHandler", func() {
 		When("database is unhealthy", func() {
 			It("should return 503 Service Unavailable with RFC 9457 Problem Details", func() {
 				mockDB.healthy = false
-				router.GET("/health/ready", healthHandler.GetHealthReady)
+				router.GET("/api/v1/health/ready", healthHandler.GetHealthReady)
 
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -140,9 +140,9 @@ var _ = Describe("HealthHandler", func() {
 			It("should return 503 Service Unavailable with RFC 9457 Problem Details", func() {
 				mockRedis.shouldFail = true
 				mockRedis.err = errors.New("redis connection failed")
-				router.GET("/health/ready", healthHandler.GetHealthReady)
+				router.GET("/api/v1/health/ready", healthHandler.GetHealthReady)
 
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -165,9 +165,9 @@ var _ = Describe("HealthHandler", func() {
 				mockDB.healthy = false
 				mockRedis.shouldFail = true
 				mockRedis.err = errors.New("redis connection failed")
-				router.GET("/health/ready", healthHandler.GetHealthReady)
+				router.GET("/api/v1/health/ready", healthHandler.GetHealthReady)
 
-				req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/ready", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)
@@ -189,9 +189,9 @@ var _ = Describe("HealthHandler", func() {
 	Describe("GetHealthLive", func() {
 		When("checking liveness endpoint", func() {
 			It("should return 200 OK with OpenAPI-compliant response", func() {
-				router.GET("/health/live", healthHandler.GetHealthLive)
+				router.GET("/api/v1/health/live", healthHandler.GetHealthLive)
 
-				req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
+				req := httptest.NewRequest(http.MethodGet, "/api/v1/health/live", nil)
 				w := httptest.NewRecorder()
 
 				router.ServeHTTP(w, req)

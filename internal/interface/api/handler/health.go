@@ -10,7 +10,6 @@ import (
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
-	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -28,9 +27,6 @@ type HealthHandler struct {
 	redis  cache.HealthChecker
 	logger *logger.Logger
 }
-
-// Compile-time check to ensure HealthHandler implements ServerInterface
-var _ generated.ServerInterface = (*HealthHandler)(nil)
 
 // NewHealthHandler creates a new HealthHandler
 func NewHealthHandler(db database.HealthChecker, redis cache.HealthChecker, logger *logger.Logger) *HealthHandler {

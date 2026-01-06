@@ -658,9 +658,9 @@ See [Security Design](./security.md) for detailed security measures.
 ### Health Checks
 
 ```
-GET /health          # Basic health check
-GET /health/live     # Kubernetes liveness probe
-GET /health/ready    # Kubernetes readiness probe
+GET /api/v1/health          # Basic health check
+GET /api/v1/health/live     # Kubernetes liveness probe
+GET /api/v1/health/ready    # Kubernetes readiness probe
 ```
 
 **Checks Include:**

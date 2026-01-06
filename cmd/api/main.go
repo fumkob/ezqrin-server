@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
+	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
+	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -28,9 +30,15 @@ const (
 
 // Application dependencies
 var (
-	appDB     database.Service
-	appLogger *logger.Logger
-	appCache  cache.Service
+	appDB            database.Service
+	appLogger        *logger.Logger
+	appCache         cache.Service
+	appBlacklistRepo repository.TokenBlacklistRepository
+	appUserRepo      repository.UserRepository
+	appRegisterUC    *auth.RegisterUseCase
+	appLoginUC       *auth.LoginUseCase
+	appRefreshUC     *auth.RefreshTokenUseCase
+	appLogoutUC      *auth.LogoutUseCase
 )
 
 func main() {
@@ -59,10 +67,14 @@ func main() {
 
 	// Setup router with dependencies
 	router := api.SetupRouter(&api.RouterDependencies{
-		Config: cfg,
-		Logger: appLogger,
-		DB:     appDB,
-		Cache:  appCache,
+		Config:     cfg,
+		Logger:     appLogger,
+		DB:         appDB,
+		Cache:      appCache,
+		RegisterUC: appRegisterUC,
+		LoginUC:    appLoginUC,
+		RefreshUC:  appRefreshUC,
+		LogoutUC:   appLogoutUC,
 	})
 
 	// Create and run HTTP server
@@ -139,9 +151,14 @@ func initializeDependencies(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	// TODO: Initialize repositories (future tasks)
-	// TODO: Initialize use cases (future tasks)
-	// TODO: Initialize handlers (future tasks)
+	// Initialize repositories
+	appUserRepo = database.NewUserRepository(appDB.GetPool(), appLogger)
+
+	// Initialize use cases
+	appRegisterUC = auth.NewRegisterUseCase(appUserRepo, cfg.JWT.Secret, appLogger)
+	appLoginUC = auth.NewLoginUseCase(appUserRepo, cfg.JWT.Secret, appLogger)
+	appRefreshUC = auth.NewRefreshTokenUseCase(appUserRepo, appBlacklistRepo, cfg.JWT.Secret, appLogger)
+	appLogoutUC = auth.NewLogoutUseCase(appBlacklistRepo, cfg.JWT.Secret, appLogger)
 
 	appLogger.Info("dependencies initialized successfully")
 	return nil
@@ -197,6 +214,9 @@ func initializeRedis(ctx context.Context, cfg *config.Config) error {
 		appCache.Close()
 		return fmt.Errorf("redis not healthy: %w", err)
 	}
+
+	// Create token blacklist repository from concrete client type
+	appBlacklistRepo = redisClient.NewTokenBlacklistRepository(client)
 
 	appLogger.Info("redis connection established and healthy")
 	return nil
