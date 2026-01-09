@@ -104,9 +104,6 @@ func Load() (*Config, error) {
 	// Load .env.secrets file if it exists (for local development)
 	_ = loadEnvFile(v, ".env.secrets")
 
-	// Bind environment variables explicitly with correct keys
-	bindEnvVars(v)
-
 	// Determine environment
 	environment := getEnvOrDefault("SERVER_ENV", "development")
 
@@ -124,6 +121,9 @@ func Load() (*Config, error) {
 	// Merge environment-specific YAML
 	v.SetConfigName(environment)
 	_ = v.MergeInConfig() // Not an error if file doesn't exist
+
+	// Bind environment variables AFTER loading YAML to ensure env vars take precedence
+	bindEnvVars(v)
 
 	// Map viper config to Config struct
 	cfg := &Config{}
@@ -261,7 +261,8 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Database.Port = v.GetInt("database.port")
 	cfg.Database.User = v.GetString("database.user")
 	cfg.Database.Password = v.GetString("database.password")
-	cfg.Database.Name = v.GetString("database.name")
+	// Check environment variable first for database.name to support test database override
+	cfg.Database.Name = getEnvOrDefault("DB_NAME", v.GetString("database.name"))
 	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
 	cfg.Database.MaxConns = v.GetInt("database.max_conns")
 	cfg.Database.MinConns = v.GetInt("database.min_conns")

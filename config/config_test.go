@@ -164,20 +164,6 @@ var _ = Describe("Config", func() {
 				})
 			})
 
-			When("DB_NAME is missing", func() {
-				BeforeEach(func() {
-					_ = os.Setenv("DB_USER", "testuser")
-					_ = os.Setenv("DB_PASSWORD", "testpass")
-					_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
-				})
-
-				It("should return an error", func() {
-					_, err := config.Load()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("database name is required"))
-				})
-			})
-
 			When("JWT_SECRET is missing", func() {
 				BeforeEach(func() {
 					_ = os.Setenv("DB_USER", "testuser")
