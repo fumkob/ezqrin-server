@@ -12,6 +12,7 @@ server:
 database:
   host: localhost
   port: 5432
+  name: ezqrin_db
   ssl_mode: disable
   max_conns: 25
   min_conns: 5

@@ -7,6 +7,7 @@ server:
 database:
   host: postgres  # DevContainer service name
   port: 5432
+  name: ezqrin_db
   ssl_mode: disable
 
 redis:
