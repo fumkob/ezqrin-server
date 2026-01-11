@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -489,7 +490,7 @@ var _ = Describe("QR Code Generator", func() {
 
 					for i := range numGoroutines {
 						go func(index int) {
-							token := "concurrent-token-" + string(rune(index))
+							token := "concurrent-token-" + fmt.Sprintf("%d", index)
 							png, err := generator.GeneratePNG(ctx, token, 256)
 							if err != nil {
 								errors <- err
@@ -520,7 +521,7 @@ var _ = Describe("QR Code Generator", func() {
 
 					for i := range numGoroutines {
 						go func(index int) {
-							token := "base64-token-" + string(rune(index))
+							token := "base64-token-" + fmt.Sprintf("%d", index)
 							encoded, err := generator.GeneratePNGBase64(ctx, token, 256)
 							if err != nil {
 								errors <- err

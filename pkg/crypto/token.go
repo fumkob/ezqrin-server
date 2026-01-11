@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	// TokenBytes is the number of random bytes to generate for a token.
+	// TOKEN_BYTES is the number of random bytes to generate for a token.
 	// 24 bytes of entropy produces ~32 character base64url-encoded tokens
 	// which provides sufficient uniqueness (2^192 possible tokens).
-	TokenBytes = 24
+	TOKEN_BYTES = 24
 )
 
 // Token errors
@@ -31,7 +31,7 @@ var (
 // if random number generation fails.
 func GenerateToken() (string, error) {
 	// Create buffer for random bytes
-	bytes := make([]byte, TokenBytes)
+	bytes := make([]byte, TOKEN_BYTES)
 
 	// Generate cryptographically secure random bytes
 	// crypto/rand.Read fills the entire slice and only returns an error

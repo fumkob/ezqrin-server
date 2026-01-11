@@ -25,18 +25,18 @@ const (
 )
 
 const (
-	// DefaultSize is the default QR code size in pixels.
-	DefaultSize = 256
+	// DEFAULT_SIZE is the default QR code size in pixels.
+	DEFAULT_SIZE = 256
 
-	// MinSize is the minimum allowed QR code size.
-	MinSize = 64
+	// MIN_SIZE is the minimum allowed QR code size.
+	MIN_SIZE = 64
 
-	// MaxSize is the maximum allowed QR code size.
-	MaxSize = 2048
+	// MAX_SIZE is the maximum allowed QR code size.
+	MAX_SIZE = 2048
 
-	// DefaultErrorCorrection is the default error correction level.
+	// DEFAULT_ERROR_CORRECTION is the default error correction level.
 	// Medium provides good balance between data capacity and error recovery.
-	DefaultErrorCorrection = ErrorCorrectionMedium
+	DEFAULT_ERROR_CORRECTION = ErrorCorrectionMedium
 )
 
 // QR code generation errors
@@ -128,15 +128,19 @@ func (g *Generator) GeneratePNGBase64(ctx context.Context, token string, size in
 	return encoded, nil
 }
 
-// GenerateSVG generates a QR code as an SVG string.
-// SVG format is vector-based and scales without quality loss.
+// GenerateSVG generates a QR code as an ASCII art string representation.
+// This is useful for debugging and console output. The size parameter is currently
+// not used in the ASCII representation but is validated for API consistency.
+//
+// For true SVG generation, consider using GeneratePNG with image-to-SVG conversion,
+// or a dedicated SVG library.
 //
 // Parameters:
 //   - ctx: Context for cancellation (reserved for future async support)
 //   - token: The token string to encode in the QR code
-//   - size: The SVG viewBox size (must be between 64 and 2048)
+//   - size: Validated but not used in ASCII generation (kept for API consistency)
 //
-// Returns an SVG XML string or an error if generation fails.
+// Returns an ASCII art representation of the QR code or an error if generation fails.
 func (g *Generator) GenerateSVG(ctx context.Context, token string, size int) (string, error) {
 	if token == "" {
 		return "", ErrEmptyToken
@@ -166,8 +170,8 @@ func (g *Generator) SetErrorCorrection(level ErrorCorrectionLevel) {
 
 // validateSize validates the QR code size is within acceptable range.
 func validateSize(size int) error {
-	if size < MinSize || size > MaxSize {
-		return fmt.Errorf("%w: got %d", ErrInvalidSize, size)
+	if size < MIN_SIZE || size > MAX_SIZE {
+		return fmt.Errorf("%w: got %d, expected between %d and %d", ErrInvalidSize, size, MIN_SIZE, MAX_SIZE)
 	}
 	return nil
 }
