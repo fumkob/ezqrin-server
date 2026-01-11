@@ -153,7 +153,11 @@ var _ = Describe("Authentication API Integration", func() {
 		router.Use(middleware.RequestID())
 
 		// Register routes using generated handler registration with middleware
-		combinedHandler := handler.NewHandler(healthHandler, authHandler)
+		// Placeholder for event use case since we don't need it for auth tests
+		// In a real scenario, we might want to mock it or initialize it
+		eventHandler := handler.NewEventHandler(nil, log)
+
+		combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler)
 		options := generated.GinServerOptions{
 			Middlewares: []generated.MiddlewareFunc{
 				func(c *gin.Context) {

@@ -7,6 +7,7 @@ import (
 	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
+	"github.com/fumkob/ezqrin-server/internal/usecase/event"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 )
 
@@ -19,12 +20,14 @@ type Container struct {
 // RepositoryContainer holds repository implementations
 type RepositoryContainer struct {
 	User      repository.UserRepository
+	Event     repository.EventRepository
 	Blacklist repository.TokenBlacklistRepository
 }
 
 // UseCaseContainer holds use case orchestrators
 type UseCaseContainer struct {
-	Auth *AuthUseCases
+	Auth  *AuthUseCases
+	Event event.Usecase
 }
 
 // AuthUseCases holds authentication-related use cases
@@ -44,7 +47,8 @@ func NewContainer(
 ) *Container {
 	// Initialize repositories
 	repos := &RepositoryContainer{
-		User: database.NewUserRepository(db.GetPool(), logger),
+		User:  database.NewUserRepository(db.GetPool(), logger),
+		Event: database.NewEventRepository(db.GetPool(), logger),
 	}
 
 	// TokenBlacklistRepository comes from Redis client
@@ -60,6 +64,7 @@ func NewContainer(
 			Refresh:  auth.NewRefreshTokenUseCase(repos.User, repos.Blacklist, cfg.JWT.Secret, logger),
 			Logout:   auth.NewLogoutUseCase(repos.Blacklist, cfg.JWT.Secret, logger),
 		},
+		Event: event.NewUsecase(repos.Event),
 	}
 
 	return &Container{
