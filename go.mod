@@ -15,6 +15,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
 	github.com/redis/go-redis/v9 v9.17.2
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.46.0

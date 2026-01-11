@@ -1,0 +1,193 @@
+package qrcode
+
+import (
+	"context"
+	"encoding/base64"
+	"errors"
+	"fmt"
+
+	"github.com/skip2/go-qrcode"
+)
+
+// ErrorCorrectionLevel defines the QR code error correction capability.
+// Higher levels can recover from more damage but result in larger QR codes.
+type ErrorCorrectionLevel int
+
+const (
+	// ErrorCorrectionLow recovers 7% of data.
+	ErrorCorrectionLow ErrorCorrectionLevel = iota
+	// ErrorCorrectionMedium recovers 15% of data (recommended for most use cases).
+	ErrorCorrectionMedium
+	// ErrorCorrectionHigh recovers 25% of data.
+	ErrorCorrectionHigh
+	// ErrorCorrectionHighest recovers 30% of data (recommended for critical applications).
+	ErrorCorrectionHighest
+)
+
+const (
+	// DEFAULT_SIZE is the default QR code size in pixels.
+	DEFAULT_SIZE = 256
+
+	// MIN_SIZE is the minimum allowed QR code size.
+	MIN_SIZE = 64
+
+	// MAX_SIZE is the maximum allowed QR code size.
+	MAX_SIZE = 2048
+
+	// DEFAULT_ERROR_CORRECTION is the default error correction level.
+	// Medium provides good balance between data capacity and error recovery.
+	DEFAULT_ERROR_CORRECTION = ErrorCorrectionMedium
+)
+
+// QR code generation errors
+var (
+	// ErrEmptyToken indicates the token string is empty.
+	ErrEmptyToken = errors.New("token cannot be empty")
+
+	// ErrInvalidSize indicates the QR code size is outside valid range.
+	ErrInvalidSize = errors.New("size must be between 64 and 2048 pixels")
+
+	// ErrGenerationFailed indicates QR code generation failed.
+	ErrGenerationFailed = errors.New("failed to generate QR code")
+)
+
+// Generator provides QR code generation functionality.
+// It supports multiple output formats (PNG, SVG, Base64) with configurable
+// size and error correction levels.
+type Generator struct {
+	errorCorrection qrcode.RecoveryLevel
+}
+
+// NewGenerator creates a new QR code generator with default settings.
+// The generator uses medium error correction level by default.
+func NewGenerator() *Generator {
+	return &Generator{
+		errorCorrection: qrcode.Medium,
+	}
+}
+
+// NewGeneratorWithErrorCorrection creates a new QR code generator with custom error correction.
+func NewGeneratorWithErrorCorrection(level ErrorCorrectionLevel) *Generator {
+	return &Generator{
+		errorCorrection: mapErrorCorrectionLevel(level),
+	}
+}
+
+// GeneratePNG generates a QR code as PNG binary data.
+// The context parameter allows for cancellation support in future implementations.
+//
+// Parameters:
+//   - ctx: Context for cancellation (reserved for future async support)
+//   - token: The token string to encode in the QR code
+//   - size: The QR code size in pixels (must be between 64 and 2048)
+//
+// Returns PNG binary data or an error if generation fails.
+func (g *Generator) GeneratePNG(ctx context.Context, token string, size int) ([]byte, error) {
+	if token == "" {
+		return nil, ErrEmptyToken
+	}
+
+	if err := validateSize(size); err != nil {
+		return nil, err
+	}
+
+	// Generate QR code
+	qr, err := qrcode.New(token, g.errorCorrection)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrGenerationFailed, err)
+	}
+
+	// Generate PNG with specified size
+	png, err := qr.PNG(size)
+	if err != nil {
+		return nil, fmt.Errorf("%w: PNG encoding failed: %w", ErrGenerationFailed, err)
+	}
+
+	return png, nil
+}
+
+// GeneratePNGBase64 generates a QR code as a base64-encoded PNG string.
+// The output can be directly used in HTML img src attributes (data:image/png;base64,...)
+//
+// Parameters:
+//   - ctx: Context for cancellation (reserved for future async support)
+//   - token: The token string to encode in the QR code
+//   - size: The QR code size in pixels (must be between 64 and 2048)
+//
+// Returns a base64-encoded PNG string (without data URI prefix) or an error.
+func (g *Generator) GeneratePNGBase64(ctx context.Context, token string, size int) (string, error) {
+	// Generate PNG
+	png, err := g.GeneratePNG(ctx, token, size)
+	if err != nil {
+		return "", err
+	}
+
+	// Encode to base64
+	encoded := base64.StdEncoding.EncodeToString(png)
+
+	return encoded, nil
+}
+
+// GenerateSVG generates a QR code as an ASCII art string representation.
+// This is useful for debugging and console output. The size parameter is currently
+// not used in the ASCII representation but is validated for API consistency.
+//
+// For true SVG generation, consider using GeneratePNG with image-to-SVG conversion,
+// or a dedicated SVG library.
+//
+// Parameters:
+//   - ctx: Context for cancellation (reserved for future async support)
+//   - token: The token string to encode in the QR code
+//   - size: Validated but not used in ASCII generation (kept for API consistency)
+//
+// Returns an ASCII art representation of the QR code or an error if generation fails.
+func (g *Generator) GenerateSVG(ctx context.Context, token string, size int) (string, error) {
+	if token == "" {
+		return "", ErrEmptyToken
+	}
+
+	if err := validateSize(size); err != nil {
+		return "", err
+	}
+
+	// Generate QR code
+	qr, err := qrcode.New(token, g.errorCorrection)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrGenerationFailed, err)
+	}
+
+	// Generate SVG with specified size
+	svg := qr.ToSmallString(false)
+
+	return svg, nil
+}
+
+// SetErrorCorrection sets the error correction level for the generator.
+// This affects all subsequent QR code generations.
+func (g *Generator) SetErrorCorrection(level ErrorCorrectionLevel) {
+	g.errorCorrection = mapErrorCorrectionLevel(level)
+}
+
+// validateSize validates the QR code size is within acceptable range.
+func validateSize(size int) error {
+	if size < MIN_SIZE || size > MAX_SIZE {
+		return fmt.Errorf("%w: got %d, expected between %d and %d", ErrInvalidSize, size, MIN_SIZE, MAX_SIZE)
+	}
+	return nil
+}
+
+// mapErrorCorrectionLevel maps our error correction enum to the library's type.
+func mapErrorCorrectionLevel(level ErrorCorrectionLevel) qrcode.RecoveryLevel {
+	switch level {
+	case ErrorCorrectionLow:
+		return qrcode.Low
+	case ErrorCorrectionMedium:
+		return qrcode.Medium
+	case ErrorCorrectionHigh:
+		return qrcode.High
+	case ErrorCorrectionHighest:
+		return qrcode.Highest
+	default:
+		return qrcode.Medium
+	}
+}
