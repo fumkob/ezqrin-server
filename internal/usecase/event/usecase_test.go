@@ -20,11 +20,17 @@ func TestEventUsecase(t *testing.T) {
 	RunSpecs(t, "EventUsecase Suite")
 }
 
+type eventListFunc func(
+	ctx context.Context,
+	filter repository.EventListFilter,
+	offset, limit int,
+) ([]*entity.Event, int64, error)
+
 // SimpleEventRepositoryMock is a mock implementation of EventRepository for testing
 type SimpleEventRepositoryMock struct {
 	createFunc   func(ctx context.Context, event *entity.Event) error
 	findByIDFunc func(ctx context.Context, id uuid.UUID) (*entity.Event, error)
-	listFunc     func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error)
+	listFunc     eventListFunc
 	updateFunc   func(ctx context.Context, event *entity.Event) error
 	deleteFunc   func(ctx context.Context, id uuid.UUID) error
 	getStatsFunc func(ctx context.Context, id uuid.UUID) (*repository.EventStats, error)
@@ -44,7 +50,11 @@ func (m *SimpleEventRepositoryMock) FindByID(ctx context.Context, id uuid.UUID) 
 	return nil, nil
 }
 
-func (m *SimpleEventRepositoryMock) List(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+func (m *SimpleEventRepositoryMock) List(
+	ctx context.Context,
+	filter repository.EventListFilter,
+	offset, limit int,
+) ([]*entity.Event, int64, error) {
 	if m.listFunc != nil {
 		return m.listFunc(ctx, filter, offset, limit)
 	}
@@ -433,7 +443,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("listing all events", func() {
 				It("should return all events", func() {
 					events := []*entity.Event{newValidEvent(userID), newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return events, int64(len(events)), nil
 					}
 
@@ -453,7 +467,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("with pagination", func() {
 				It("should calculate correct offset", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(offset).To(Equal(0))
 						Expect(limit).To(Equal(10))
 						return events, int64(len(events)), nil
@@ -472,7 +490,11 @@ var _ = Describe("EventUsecase", func() {
 
 			Context("with empty results", func() {
 				It("should return empty list", func() {
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return []*entity.Event{}, 0, nil
 					}
 
@@ -494,7 +516,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("with organizer filter", func() {
 				It("should pass organizer filter to repository", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(filter.OrganizerID).NotTo(BeNil())
 						Expect(*filter.OrganizerID).To(Equal(userID))
 						return events, int64(len(events)), nil
@@ -522,7 +548,11 @@ var _ = Describe("EventUsecase", func() {
 					events := []*entity.Event{draftEvent}
 					status := entity.StatusDraft
 
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(filter.Status).NotTo(BeNil())
 						Expect(*filter.Status).To(Equal(entity.StatusDraft))
 						return events, int64(len(events)), nil
@@ -548,7 +578,11 @@ var _ = Describe("EventUsecase", func() {
 					events := []*entity.Event{publishedEvent}
 					status := entity.StatusPublished
 
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return events, int64(len(events)), nil
 					}
 
@@ -570,7 +604,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("with search term", func() {
 				It("should pass search filter to repository", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(filter.Search).To(Equal("test"))
 						return events, int64(len(events)), nil
 					}
@@ -593,7 +631,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("page 1 with limit 10", func() {
 				It("should use offset 0", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(offset).To(Equal(0))
 						Expect(limit).To(Equal(10))
 						return events, int64(len(events)), nil
@@ -613,7 +655,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("page 2 with limit 10", func() {
 				It("should use offset 10", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(offset).To(Equal(10))
 						Expect(limit).To(Equal(10))
 						return events, int64(len(events)), nil
@@ -633,7 +679,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("page 3 with limit 5", func() {
 				It("should use offset 10", func() {
 					events := []*entity.Event{newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						Expect(offset).To(Equal(10))
 						Expect(limit).To(Equal(5))
 						return events, int64(len(events)), nil
@@ -655,7 +705,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("with matching count", func() {
 				It("should preserve totalCount", func() {
 					events := []*entity.Event{newValidEvent(userID), newValidEvent(userID)}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return events, 100, nil
 					}
 
@@ -676,7 +730,11 @@ var _ = Describe("EventUsecase", func() {
 					event1 := newValidEvent(userID)
 					event2 := newValidEvent(userID)
 					events := []*entity.Event{event1, event2}
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return events, int64(len(events)), nil
 					}
 
@@ -697,7 +755,11 @@ var _ = Describe("EventUsecase", func() {
 			Context("with database error", func() {
 				It("should return wrapped error", func() {
 					dbErr := errors.New("database connection error")
-					mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
 						return nil, 0, dbErr
 					}
 
@@ -719,7 +781,11 @@ var _ = Describe("EventUsecase", func() {
 				cancelledCtx, cancel := context.WithCancel(ctx)
 				cancel()
 
-				mockRepo.listFunc = func(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+				mockRepo.listFunc = func(
+					ctx context.Context,
+					filter repository.EventListFilter,
+					offset, limit int,
+				) ([]*entity.Event, int64, error) {
 					return nil, 0, cancelledCtx.Err()
 				}
 
