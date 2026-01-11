@@ -87,6 +87,14 @@ paths:
   /auth/logout:
     $ref: './paths/auth.yaml#/~1auth~1logout'
 
+  # Event endpoints
+  /events:
+    $ref: './paths/events.yaml#/~1events'
+  /events/{id}:
+    $ref: './paths/events.yaml#/~1events~1{id}'
+  /events/{id}/stats:
+    $ref: './paths/events.yaml#/~1events~1{id}~1stats'
+
   # Future endpoints will be added here as separate YAML files:
   # Users: ./paths/users.yaml
   # Events: ./paths/events.yaml
@@ -121,6 +129,16 @@ components:
       $ref: './schemas/auth.yaml#/AuthResponse'
     LogoutResponse:
       $ref: './schemas/auth.yaml#/LogoutResponse'
+
+    # Event schemas
+    CreateEventRequest:
+      $ref: './schemas/events.yaml#/CreateEventRequest'
+    UpdateEventRequest:
+      $ref: './schemas/events.yaml#/UpdateEventRequest'
+    EventListResponse:
+      $ref: './schemas/events.yaml#/EventListResponse'
+    EventStatsResponse:
+      $ref: './schemas/events.yaml#/EventStatsResponse'
 
     # Enums
     UserRole:

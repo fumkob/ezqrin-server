@@ -1,0 +1,174 @@
+# Event Endpoints
+
+/events:
+  get:
+    tags:
+      - events
+    summary: List events
+    description: Get a list of events with filtering and pagination. Organizers see their own events, admins see all.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '../components/parameters.yaml#/PageParam'
+      - $ref: '../components/parameters.yaml#/PerPageParam'
+      - $ref: '../components/parameters.yaml#/SortParam'
+      - $ref: '../components/parameters.yaml#/OrderParam'
+      - name: name
+        in: query
+        description: Filter by event name (partial match)
+        schema:
+          type: string
+      - name: status
+        in: query
+        description: Filter by event status
+        schema:
+          $ref: '../schemas/enums.yaml#/EventStatus'
+    responses:
+      '200':
+        description: Successfully retrieved list of events
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/events.yaml#/EventListResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  post:
+    tags:
+      - events
+    summary: Create event
+    description: Create a new event. Requires Organizer or Admin role.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/events.yaml#/CreateEventRequest'
+    responses:
+      '201':
+        description: Event successfully created
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/Event'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/events/{id}:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  get:
+    tags:
+      - events
+    summary: Get event details
+    description: Get detailed information about a specific event.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Event details retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/Event'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  put:
+    tags:
+      - events
+    summary: Update event
+    description: Update an existing event. Only the organizer or an admin can update.
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/events.yaml#/UpdateEventRequest'
+    responses:
+      '200':
+        description: Event updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/entities.yaml#/Event'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+  delete:
+    tags:
+      - events
+    summary: Delete event
+    description: Delete an event. Ongoing events cannot be deleted.
+    security:
+      - bearerAuth: []
+    responses:
+      '204':
+        description: Event deleted successfully
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '409':
+        description: Conflict - Ongoing events cannot be deleted
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/events/{id}/stats:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  get:
+    tags:
+      - events
+    summary: Get event statistics
+    description: Get registration and check-in statistics for an event.
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Event statistics retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/events.yaml#/EventStatsResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+

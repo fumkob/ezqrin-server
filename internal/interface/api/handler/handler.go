@@ -10,16 +10,18 @@ import (
 type Handler struct {
 	*HealthHandler
 	*AuthHandler
+	*EventHandler
 }
 
 // Compile-time check to ensure Handler implements ServerInterface
 var _ generated.ServerInterface = (*Handler)(nil)
 
 // NewHandler creates a new combined handler
-func NewHandler(health *HealthHandler, auth *AuthHandler) *Handler {
+func NewHandler(health *HealthHandler, auth *AuthHandler, event *EventHandler) *Handler {
 	return &Handler{
 		HealthHandler: health,
 		AuthHandler:   auth,
+		EventHandler:  event,
 	}
 }
 

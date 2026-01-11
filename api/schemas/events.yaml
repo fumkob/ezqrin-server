@@ -1,0 +1,113 @@
+# Event-related Request and Response Schemas
+
+CreateEventRequest:
+  type: object
+  required:
+    - name
+    - start_date
+    - status
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Event name
+      example: "Tech Conference 2025"
+    description:
+      type: string
+      maxLength: 5000
+      description: Event description
+      example: "Annual technology conference"
+    start_date:
+      type: string
+      format: date-time
+      description: Event start date and time (ISO 8601)
+      example: "2025-12-15T09:00:00Z"
+    end_date:
+      type: string
+      format: date-time
+      description: Event end date and time (ISO 8601, must be after start_date)
+      example: "2025-12-15T18:00:00Z"
+    location:
+      type: string
+      maxLength: 500
+      description: Venue or location
+      example: "San Francisco Convention Center"
+    timezone:
+      type: string
+      description: IANA timezone identifier
+      example: "America/Los_Angeles"
+    status:
+      $ref: './enums.yaml#/EventStatus'
+
+UpdateEventRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Event name
+    description:
+      type: string
+      maxLength: 5000
+      description: Event description
+    start_date:
+      type: string
+      format: date-time
+      description: Event start date and time
+    end_date:
+      type: string
+      format: date-time
+      description: Event end date and time
+    location:
+      type: string
+      maxLength: 500
+      description: Venue or location
+    timezone:
+      type: string
+      description: IANA timezone identifier
+    status:
+      $ref: './enums.yaml#/EventStatus'
+
+EventListResponse:
+  allOf:
+    - $ref: './responses.yaml#/ListResponse'
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: './entities.yaml#/Event'
+
+EventStatsResponse:
+  type: object
+  required:
+    - event_id
+    - total_participants
+    - checked_in_participants
+    - checkin_rate
+  properties:
+    event_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    total_participants:
+      type: integer
+      example: 100
+    checked_in_participants:
+      type: integer
+      example: 75
+    checkin_rate:
+      type: number
+      format: float
+      example: 0.75
+    by_status:
+      type: object
+      additionalProperties:
+        type: integer
+      example:
+        confirmed: 80
+        tentative: 15
+        cancelled: 5
+
