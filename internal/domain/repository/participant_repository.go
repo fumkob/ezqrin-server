@@ -48,7 +48,12 @@ type ParticipantRepository interface {
 
 	// Search searches for participants within an event by name, email, or employee_id.
 	// Returns the participants and the total count matching the search criteria.
-	Search(ctx context.Context, eventID uuid.UUID, query string, offset, limit int) ([]*entity.Participant, int64, error)
+	Search(
+		ctx context.Context,
+		eventID uuid.UUID,
+		query string,
+		offset, limit int,
+	) ([]*entity.Participant, int64, error)
 
 	// ExistsByEmail checks if a participant with the given email exists for an event.
 	ExistsByEmail(ctx context.Context, eventID uuid.UUID, email string) (bool, error)
@@ -60,8 +65,8 @@ type ParticipantRepository interface {
 
 // ParticipantPaymentStats represents payment statistics for event participants.
 type ParticipantPaymentStats struct {
-	TotalParticipants   int64
-	PaidParticipants    int64
-	UnpaidParticipants  int64
-	TotalPaymentAmount  float64
+	TotalParticipants  int64
+	PaidParticipants   int64
+	UnpaidParticipants int64
+	TotalPaymentAmount float64
 }

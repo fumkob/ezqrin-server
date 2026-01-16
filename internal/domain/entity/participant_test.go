@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/google/uuid"
 )
 
 var _ = Describe("Participant Entity", func() {
 	var (
-		eventID   uuid.UUID
+		eventID     uuid.UUID
 		participant *Participant
 	)
 

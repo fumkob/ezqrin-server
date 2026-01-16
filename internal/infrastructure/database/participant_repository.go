@@ -56,13 +56,13 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 		participant.CreatedAt,
 		participant.UpdatedAt,
 	)
-
 	if err != nil {
 		// Check for unique constraint violations
 		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_event_email\" (SQLSTATE 23505)" {
 			return fmt.Errorf("participant with this email already exists for this event: %w", err)
 		}
-		if err.Error() == "ERROR: duplicate key value violates unique constraint \"participants_qr_code_key\" (SQLSTATE 23505)" {
+		if err.Error() == "ERROR: duplicate key value violates unique constraint "+
+			"\"participants_qr_code_key\" (SQLSTATE 23505)" {
 			return fmt.Errorf("QR code already exists: %w", err)
 		}
 		return fmt.Errorf("failed to insert participant: %w", err)
@@ -142,26 +142,8 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 		WHERE id = $1
 	`
 
-	participant := &entity.Participant{}
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&participant.ID,
-		&participant.EventID,
-		&participant.Name,
-		&participant.Email,
-		&participant.EmployeeID,
-		&participant.Phone,
-		&participant.QREmail,
-		&participant.Status,
-		&participant.QRCode,
-		&participant.QRCodeGeneratedAt,
-		&participant.Metadata,
-		&participant.PaymentStatus,
-		&participant.PaymentAmount,
-		&participant.PaymentDate,
-		&participant.CreatedAt,
-		&participant.UpdatedAt,
-	)
-
+	row := r.pool.QueryRow(ctx, query, id)
+	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("participant not found: %w", err)
@@ -173,7 +155,15 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 }
 
 // FindByEventID retrieves paginated participants for an event.
-func (r *participantRepository) FindByEventID(ctx context.Context, eventID uuid.UUID, offset, limit int) ([]*entity.Participant, int64, error) {
+func (r *participantRepository) FindByEventID(
+	ctx context.Context,
+	eventID uuid.UUID,
+	offset, limit int,
+) (
+	[]*entity.Participant,
+	int64,
+	error,
+) {
 	query := `
 		SELECT
 			id, event_id, name, email, employee_id, phone, qr_email, status,
@@ -191,47 +181,14 @@ func (r *participantRepository) FindByEventID(ctx context.Context, eventID uuid.
 		WHERE event_id = $1
 	`
 
-	rows, err := r.pool.Query(ctx, query, eventID, limit, offset)
+	participants, err := r.queryParticipants(ctx, query, eventID, limit, offset)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query participants: %w", err)
-	}
-	defer rows.Close()
-
-	participants := make([]*entity.Participant, 0, limit)
-	for rows.Next() {
-		participant := &entity.Participant{}
-		err := rows.Scan(
-			&participant.ID,
-			&participant.EventID,
-			&participant.Name,
-			&participant.Email,
-			&participant.EmployeeID,
-			&participant.Phone,
-			&participant.QREmail,
-			&participant.Status,
-			&participant.QRCode,
-			&participant.QRCodeGeneratedAt,
-			&participant.Metadata,
-			&participant.PaymentStatus,
-			&participant.PaymentAmount,
-			&participant.PaymentDate,
-			&participant.CreatedAt,
-			&participant.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan participant: %w", err)
-		}
-		participants = append(participants, participant)
+		return nil, 0, err
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating participants: %w", err)
-	}
-
-	var total int64
-	err = r.pool.QueryRow(ctx, countQuery, eventID).Scan(&total)
+	total, err := r.countParticipants(ctx, countQuery, eventID)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count participants: %w", err)
+		return nil, 0, err
 	}
 
 	return participants, total, nil
@@ -248,26 +205,8 @@ func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string)
 		WHERE qr_code = $1
 	`
 
-	participant := &entity.Participant{}
-	err := r.pool.QueryRow(ctx, query, qrCode).Scan(
-		&participant.ID,
-		&participant.EventID,
-		&participant.Name,
-		&participant.Email,
-		&participant.EmployeeID,
-		&participant.Phone,
-		&participant.QREmail,
-		&participant.Status,
-		&participant.QRCode,
-		&participant.QRCodeGeneratedAt,
-		&participant.Metadata,
-		&participant.PaymentStatus,
-		&participant.PaymentAmount,
-		&participant.PaymentDate,
-		&participant.CreatedAt,
-		&participant.UpdatedAt,
-	)
-
+	row := r.pool.QueryRow(ctx, query, qrCode)
+	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("participant not found")
@@ -315,7 +254,6 @@ func (r *participantRepository) Update(ctx context.Context, participant *entity.
 		participant.UpdatedAt,
 		participant.ID,
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to update participant: %w", err)
 	}
@@ -347,7 +285,16 @@ func (r *participantRepository) Delete(ctx context.Context, id uuid.UUID) error 
 }
 
 // Search searches for participants within an event by name, email, or employee_id.
-func (r *participantRepository) Search(ctx context.Context, eventID uuid.UUID, query string, offset, limit int) ([]*entity.Participant, int64, error) {
+func (r *participantRepository) Search(
+	ctx context.Context,
+	eventID uuid.UUID,
+	query string,
+	offset, limit int,
+) (
+	[]*entity.Participant,
+	int64,
+	error,
+) {
 	searchPattern := "%" + query + "%"
 
 	sqlQuery := `
@@ -377,47 +324,14 @@ func (r *participantRepository) Search(ctx context.Context, eventID uuid.UUID, q
 		)
 	`
 
-	rows, err := r.pool.Query(ctx, sqlQuery, eventID, searchPattern, limit, offset)
+	participants, err := r.queryParticipants(ctx, sqlQuery, eventID, searchPattern, limit, offset)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to search participants: %w", err)
-	}
-	defer rows.Close()
-
-	participants := make([]*entity.Participant, 0, limit)
-	for rows.Next() {
-		participant := &entity.Participant{}
-		err := rows.Scan(
-			&participant.ID,
-			&participant.EventID,
-			&participant.Name,
-			&participant.Email,
-			&participant.EmployeeID,
-			&participant.Phone,
-			&participant.QREmail,
-			&participant.Status,
-			&participant.QRCode,
-			&participant.QRCodeGeneratedAt,
-			&participant.Metadata,
-			&participant.PaymentStatus,
-			&participant.PaymentAmount,
-			&participant.PaymentDate,
-			&participant.CreatedAt,
-			&participant.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan participant: %w", err)
-		}
-		participants = append(participants, participant)
+		return nil, 0, err
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating participants: %w", err)
-	}
-
-	var total int64
-	err = r.pool.QueryRow(ctx, countQuery, eventID, searchPattern).Scan(&total)
+	total, err := r.countParticipants(ctx, countQuery, eventID, searchPattern)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count search results: %w", err)
+		return nil, 0, err
 	}
 
 	return participants, total, nil
@@ -443,7 +357,13 @@ func (r *participantRepository) ExistsByEmail(ctx context.Context, eventID uuid.
 }
 
 // GetPaymentStats retrieves payment statistics for participants in an event.
-func (r *participantRepository) GetPaymentStats(ctx context.Context, eventID uuid.UUID) (*repository.ParticipantPaymentStats, error) {
+func (r *participantRepository) GetPaymentStats(
+	ctx context.Context,
+	eventID uuid.UUID,
+) (
+	*repository.ParticipantPaymentStats,
+	error,
+) {
 	query := `
 		SELECT
 			COUNT(*) as total_participants,
@@ -461,7 +381,6 @@ func (r *participantRepository) GetPaymentStats(ctx context.Context, eventID uui
 		&stats.UnpaidParticipants,
 		&stats.TotalPaymentAmount,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get payment stats: %w", err)
 	}
@@ -472,4 +391,107 @@ func (r *participantRepository) GetPaymentStats(ctx context.Context, eventID uui
 // HealthCheck checks the database connection.
 func (r *participantRepository) HealthCheck(ctx context.Context) error {
 	return r.pool.Ping(ctx)
+}
+
+// scanParticipantFromRow scans a single row into a Participant entity.
+func (r *participantRepository) scanParticipantFromRow(row pgx.Row) (*entity.Participant, error) {
+	participant := &entity.Participant{}
+	err := row.Scan(
+		&participant.ID,
+		&participant.EventID,
+		&participant.Name,
+		&participant.Email,
+		&participant.EmployeeID,
+		&participant.Phone,
+		&participant.QREmail,
+		&participant.Status,
+		&participant.QRCode,
+		&participant.QRCodeGeneratedAt,
+		&participant.Metadata,
+		&participant.PaymentStatus,
+		&participant.PaymentAmount,
+		&participant.PaymentDate,
+		&participant.CreatedAt,
+		&participant.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return participant, nil
+}
+
+// scanParticipant scans a row into a Participant entity.
+func (r *participantRepository) scanParticipant(rows pgx.Rows) (*entity.Participant, error) {
+	participant := &entity.Participant{}
+	err := rows.Scan(
+		&participant.ID,
+		&participant.EventID,
+		&participant.Name,
+		&participant.Email,
+		&participant.EmployeeID,
+		&participant.Phone,
+		&participant.QREmail,
+		&participant.Status,
+		&participant.QRCode,
+		&participant.QRCodeGeneratedAt,
+		&participant.Metadata,
+		&participant.PaymentStatus,
+		&participant.PaymentAmount,
+		&participant.PaymentDate,
+		&participant.CreatedAt,
+		&participant.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return participant, nil
+}
+
+// queryParticipants executes a query and returns participants.
+func (r *participantRepository) queryParticipants(
+	ctx context.Context,
+	query string,
+	args ...interface{},
+) (
+	[]*entity.Participant,
+	error,
+) {
+	const defaultCapacity = 10
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query participants: %w", err)
+	}
+	defer rows.Close()
+
+	participants := make([]*entity.Participant, 0, defaultCapacity)
+	for rows.Next() {
+		participant, err := r.scanParticipant(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan participant: %w", err)
+		}
+		participants = append(participants, participant)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating participants: %w", err)
+	}
+
+	return participants, nil
+}
+
+// countParticipants counts participants matching the query.
+func (r *participantRepository) countParticipants(
+	ctx context.Context,
+	query string,
+	args ...interface{},
+) (
+	int64,
+	error,
+) {
+	var total int64
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count participants: %w", err)
+	}
+	return total, nil
 }

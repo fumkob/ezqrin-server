@@ -36,101 +36,56 @@ const (
 
 // Validation constants for Participant entity
 const (
-	ParticipantNameMinLength   = 1
-	ParticipantNameMaxLength   = 255
-	ParticipantPhoneMaxLength  = 50
+	ParticipantNameMinLength       = 1
+	ParticipantNameMaxLength       = 255
+	ParticipantPhoneMaxLength      = 50
 	ParticipantEmployeeIDMaxLength = 255
-	MaxMetadataSize            = 10240 // 10KB
+	MaxMetadataSize                = 10240 // 10KB
 )
 
 // Common validation errors for Participant entity
 var (
-	ErrParticipantNameRequired      = errors.New("participant name is required")
-	ErrParticipantNameTooLong       = errors.New("participant name must not exceed 255 characters")
-	ErrParticipantEmailRequired     = errors.New("participant email is required")
-	ErrParticipantEmailInvalid      = errors.New("participant email format is invalid")
-	ErrParticipantQRCodeRequired    = errors.New("QR code is required")
-	ErrParticipantStatusInvalid     = errors.New("invalid participant status")
-	ErrParticipantPhoneTooLong      = errors.New("phone number must not exceed 50 characters")
-	ErrParticipantEmployeeIDTooLong = errors.New("employee ID must not exceed 255 characters")
+	ErrParticipantNameRequired         = errors.New("participant name is required")
+	ErrParticipantNameTooLong          = errors.New("participant name must not exceed 255 characters")
+	ErrParticipantEmailRequired        = errors.New("participant email is required")
+	ErrParticipantEmailInvalid         = errors.New("participant email format is invalid")
+	ErrParticipantQRCodeRequired       = errors.New("QR code is required")
+	ErrParticipantStatusInvalid        = errors.New("invalid participant status")
+	ErrParticipantPhoneTooLong         = errors.New("phone number must not exceed 50 characters")
+	ErrParticipantEmployeeIDTooLong    = errors.New("employee ID must not exceed 255 characters")
 	ErrParticipantPaymentStatusInvalid = errors.New("invalid payment status")
-	ErrParticipantMetadataTooLarge  = errors.New("metadata must not exceed 10KB")
-	ErrParticipantEventIDRequired   = errors.New("event ID is required")
+	ErrParticipantMetadataTooLarge     = errors.New("metadata must not exceed 10KB")
+	ErrParticipantEventIDRequired      = errors.New("event ID is required")
 )
 
 // Participant represents an event participant.
 type Participant struct {
-	ID                 uuid.UUID
-	EventID            uuid.UUID
-	Name               string
-	Email              string
-	EmployeeID         *string // Optional
-	Phone              *string // Optional, E.164 format
-	QREmail            *string // Optional, alternative email for QR code
-	Status             ParticipantStatus
-	QRCode             string
-	QRCodeGeneratedAt  time.Time
-	Metadata           *json.RawMessage // Custom participant data (max 10KB)
-	PaymentStatus      PaymentStatus
-	PaymentAmount      *float64 // Nullable payment amount
-	PaymentDate        *time.Time // Nullable payment date
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	ID                uuid.UUID
+	EventID           uuid.UUID
+	Name              string
+	Email             string
+	EmployeeID        *string // Optional
+	Phone             *string // Optional, E.164 format
+	QREmail           *string // Optional, alternative email for QR code
+	Status            ParticipantStatus
+	QRCode            string
+	QRCodeGeneratedAt time.Time
+	Metadata          *json.RawMessage // Custom participant data (max 10KB)
+	PaymentStatus     PaymentStatus
+	PaymentAmount     *float64   // Nullable payment amount
+	PaymentDate       *time.Time // Nullable payment date
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // Validate validates the Participant entity fields.
 func (p *Participant) Validate() error {
-	// Event ID validation
-	if p.EventID == uuid.Nil {
-		return ErrParticipantEventIDRequired
+	if err := p.validateRequiredFields(); err != nil {
+		return err
 	}
-
-	// Name validation
-	if p.Name == "" {
-		return ErrParticipantNameRequired
+	if err := p.validateOptionalFields(); err != nil {
+		return err
 	}
-	if len(p.Name) > ParticipantNameMaxLength {
-		return ErrParticipantNameTooLong
-	}
-
-	// Email validation
-	if p.Email == "" {
-		return ErrParticipantEmailRequired
-	}
-	if err := validator.ValidateEmail(p.Email); err != nil {
-		return ErrParticipantEmailInvalid
-	}
-
-	// QR code validation
-	if p.QRCode == "" {
-		return ErrParticipantQRCodeRequired
-	}
-
-	// Status validation
-	if !p.IsValidStatus() {
-		return ErrParticipantStatusInvalid
-	}
-
-	// Phone validation (optional)
-	if p.Phone != nil && len(*p.Phone) > ParticipantPhoneMaxLength {
-		return ErrParticipantPhoneTooLong
-	}
-
-	// Employee ID validation (optional)
-	if p.EmployeeID != nil && len(*p.EmployeeID) > ParticipantEmployeeIDMaxLength {
-		return ErrParticipantEmployeeIDTooLong
-	}
-
-	// Payment status validation
-	if !p.IsValidPaymentStatus() {
-		return ErrParticipantPaymentStatusInvalid
-	}
-
-	// Metadata validation (optional)
-	if p.Metadata != nil && len(*p.Metadata) > MaxMetadataSize {
-		return ErrParticipantMetadataTooLarge
-	}
-
 	return nil
 }
 
@@ -182,6 +137,49 @@ func (p *Participant) IsPaid() bool {
 // IsUnpaid returns true if the payment status is unpaid.
 func (p *Participant) IsUnpaid() bool {
 	return p.PaymentStatus == PaymentUnpaid
+}
+
+// validateRequiredFields validates required fields.
+func (p *Participant) validateRequiredFields() error {
+	if p.EventID == uuid.Nil {
+		return ErrParticipantEventIDRequired
+	}
+	if p.Name == "" {
+		return ErrParticipantNameRequired
+	}
+	if len(p.Name) > ParticipantNameMaxLength {
+		return ErrParticipantNameTooLong
+	}
+	if p.Email == "" {
+		return ErrParticipantEmailRequired
+	}
+	if err := validator.ValidateEmail(p.Email); err != nil {
+		return ErrParticipantEmailInvalid
+	}
+	if p.QRCode == "" {
+		return ErrParticipantQRCodeRequired
+	}
+	if !p.IsValidStatus() {
+		return ErrParticipantStatusInvalid
+	}
+	if !p.IsValidPaymentStatus() {
+		return ErrParticipantPaymentStatusInvalid
+	}
+	return nil
+}
+
+// validateOptionalFields validates optional fields.
+func (p *Participant) validateOptionalFields() error {
+	if p.Phone != nil && len(*p.Phone) > ParticipantPhoneMaxLength {
+		return ErrParticipantPhoneTooLong
+	}
+	if p.EmployeeID != nil && len(*p.EmployeeID) > ParticipantEmployeeIDMaxLength {
+		return ErrParticipantEmployeeIDTooLong
+	}
+	if p.Metadata != nil && len(*p.Metadata) > MaxMetadataSize {
+		return ErrParticipantMetadataTooLarge
+	}
+	return nil
 }
 
 // String implements the Stringer interface for ParticipantStatus.
