@@ -1,7 +1,6 @@
 package entity_test
 
 import (
-	"testing"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
@@ -9,11 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestUser(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "User Entity Suite")
-}
 
 var _ = Describe("User", func() {
 	Describe("Validate", func() {

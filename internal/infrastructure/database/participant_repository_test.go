@@ -6,7 +6,6 @@ package database_test
 import (
 	"context"
 	"fmt"
-	"testing"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
@@ -19,23 +18,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestParticipantRepository(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Participant Repository Integration Suite")
-}
-
 var _ = Describe("ParticipantRepository", func() {
 	var (
-		ctx          context.Context
-		log          *logger.Logger
-		cfg          *config.DatabaseConfig
-		db           *database.PostgresDB
-		repo         repository.ParticipantRepository
-		userRepo     repository.UserRepository
-		eventRepo    repository.EventRepository
-		testEventID  uuid.UUID
-		organizerID  uuid.UUID
-		organizer    *entity.User
+		ctx         context.Context
+		log         *logger.Logger
+		cfg         *config.DatabaseConfig
+		db          *database.PostgresDB
+		repo        repository.ParticipantRepository
+		userRepo    repository.UserRepository
+		eventRepo   repository.EventRepository
+		eventID     uuid.UUID
+		organizerID uuid.UUID
+		organizer   *entity.User
 	)
 
 	BeforeEach(func() {
@@ -80,9 +74,9 @@ var _ = Describe("ParticipantRepository", func() {
 		Expect(userRepo.Create(ctx, organizer)).To(Succeed())
 
 		// Create test event
-		testEventID = uuid.New()
+		eventID = uuid.New()
 		testEvent := &entity.Event{
-			ID:          testEventID,
+			ID:          eventID,
 			OrganizerID: organizerID,
 			Name:        "Test Event",
 			Description: "Test Description",
@@ -109,16 +103,16 @@ var _ = Describe("ParticipantRepository", func() {
 		Context("with valid participant data", func() {
 			It("should create a participant successfully", func() {
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -135,16 +129,16 @@ var _ = Describe("ParticipantRepository", func() {
 		Context("with invalid participant data", func() {
 			It("should return validation error for missing email", func() {
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -157,32 +151,32 @@ var _ = Describe("ParticipantRepository", func() {
 				email := "duplicate@example.com"
 
 				participant1 := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            email,
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_1",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             email,
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_1",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant1)
 				Expect(err).NotTo(HaveOccurred())
 
 				participant2 := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "Jane Doe",
-					Email:            email,
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_2",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "Jane Doe",
+					Email:             email,
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_2",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err = repo.Create(ctx, participant2)
@@ -195,32 +189,32 @@ var _ = Describe("ParticipantRepository", func() {
 				qrCode := "duplicate_qr_code"
 
 				participant1 := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john1@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           qrCode,
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john1@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            qrCode,
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant1)
 				Expect(err).NotTo(HaveOccurred())
 
 				participant2 := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "Jane Doe",
-					Email:            "jane1@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           qrCode,
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "Jane Doe",
+					Email:             "jane1@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            qrCode,
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err = repo.Create(ctx, participant2)
@@ -234,28 +228,28 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should create all participants successfully", func() {
 				participants := []*entity.Participant{
 					{
-						ID:               uuid.New(),
-						EventID:          eventID,
-						Name:             "Participant 1",
-						Email:            "p1@example.com",
-						Status:           entity.ParticipantStatusTentative,
-						QRCode:           "qr_1",
+						ID:                uuid.New(),
+						EventID:           eventID,
+						Name:              "Participant 1",
+						Email:             "p1@example.com",
+						Status:            entity.ParticipantStatusTentative,
+						QRCode:            "qr_1",
 						QRCodeGeneratedAt: time.Now(),
-						PaymentStatus:    entity.PaymentUnpaid,
-						CreatedAt:        time.Now(),
-						UpdatedAt:        time.Now(),
+						PaymentStatus:     entity.PaymentUnpaid,
+						CreatedAt:         time.Now(),
+						UpdatedAt:         time.Now(),
 					},
 					{
-						ID:               uuid.New(),
-						EventID:          eventID,
-						Name:             "Participant 2",
-						Email:            "p2@example.com",
-						Status:           entity.ParticipantStatusTentative,
-						QRCode:           "qr_2",
+						ID:                uuid.New(),
+						EventID:           eventID,
+						Name:              "Participant 2",
+						Email:             "p2@example.com",
+						Status:            entity.ParticipantStatusTentative,
+						QRCode:            "qr_2",
 						QRCodeGeneratedAt: time.Now(),
-						PaymentStatus:    entity.PaymentUnpaid,
-						CreatedAt:        time.Now(),
-						UpdatedAt:        time.Now(),
+						PaymentStatus:     entity.PaymentUnpaid,
+						CreatedAt:         time.Now(),
+						UpdatedAt:         time.Now(),
 					},
 				}
 
@@ -284,16 +278,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should return the participant", func() {
 				participantID := uuid.New()
 				participant := &entity.Participant{
-					ID:               participantID,
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusConfirmed,
-					QRCode:           "qr_code_12345",
+					ID:                participantID,
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusConfirmed,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -321,16 +315,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should return the participant", func() {
 				qrCode := "unique_qr_code_123"
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           qrCode,
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            qrCode,
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -356,16 +350,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should return paginated participants", func() {
 				for i := 0; i < 5; i++ {
 					participant := &entity.Participant{
-						ID:               uuid.New(),
-						EventID:          eventID,
-						Name:             fmt.Sprintf("Participant %d", i),
-						Email:            fmt.Sprintf("p%d@example.com", i),
-						Status:           entity.ParticipantStatusTentative,
-						QRCode:           fmt.Sprintf("qr_%d", i),
+						ID:                uuid.New(),
+						EventID:           eventID,
+						Name:              fmt.Sprintf("Participant %d", i),
+						Email:             fmt.Sprintf("p%d@example.com", i),
+						Status:            entity.ParticipantStatusTentative,
+						QRCode:            fmt.Sprintf("qr_%d", i),
 						QRCodeGeneratedAt: time.Now(),
-						PaymentStatus:    entity.PaymentUnpaid,
-						CreatedAt:        time.Now(),
-						UpdatedAt:        time.Now(),
+						PaymentStatus:     entity.PaymentUnpaid,
+						CreatedAt:         time.Now(),
+						UpdatedAt:         time.Now(),
 					}
 					err := repo.Create(ctx, participant)
 					Expect(err).NotTo(HaveOccurred())
@@ -394,16 +388,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should update the participant", func() {
 				participantID := uuid.New()
 				participant := &entity.Participant{
-					ID:               participantID,
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                participantID,
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -430,15 +424,15 @@ var _ = Describe("ParticipantRepository", func() {
 		Context("with non-existing participant", func() {
 			It("should return error", func() {
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Update(ctx, participant)
@@ -452,16 +446,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should delete the participant", func() {
 				participantID := uuid.New()
 				participant := &entity.Participant{
-					ID:               participantID,
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                participantID,
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -488,16 +482,16 @@ var _ = Describe("ParticipantRepository", func() {
 		Context("with search results", func() {
 			It("should find participants by name", func() {
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -512,16 +506,16 @@ var _ = Describe("ParticipantRepository", func() {
 
 			It("should find participants by email", func() {
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            "john@example.com",
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             "john@example.com",
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -549,16 +543,16 @@ var _ = Describe("ParticipantRepository", func() {
 			It("should return true", func() {
 				email := "exists@example.com"
 				participant := &entity.Participant{
-					ID:               uuid.New(),
-					EventID:          eventID,
-					Name:             "John Doe",
-					Email:            email,
-					Status:           entity.ParticipantStatusTentative,
-					QRCode:           "qr_code_12345",
+					ID:                uuid.New(),
+					EventID:           eventID,
+					Name:              "John Doe",
+					Email:             email,
+					Status:            entity.ParticipantStatusTentative,
+					QRCode:            "qr_code_12345",
 					QRCodeGeneratedAt: time.Now(),
-					PaymentStatus:    entity.PaymentUnpaid,
-					CreatedAt:        time.Now(),
-					UpdatedAt:        time.Now(),
+					PaymentStatus:     entity.PaymentUnpaid,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				}
 
 				err := repo.Create(ctx, participant)
@@ -585,16 +579,16 @@ var _ = Describe("ParticipantRepository", func() {
 				// Create participants with different payment statuses
 				for i := 0; i < 3; i++ {
 					participant := &entity.Participant{
-						ID:               uuid.New(),
-						EventID:          eventID,
-						Name:             fmt.Sprintf("Participant %d", i),
-						Email:            fmt.Sprintf("p%d@example.com", i),
-						Status:           entity.ParticipantStatusTentative,
-						QRCode:           fmt.Sprintf("qr_%d", i),
+						ID:                uuid.New(),
+						EventID:           eventID,
+						Name:              fmt.Sprintf("Participant %d", i),
+						Email:             fmt.Sprintf("p%d@example.com", i),
+						Status:            entity.ParticipantStatusTentative,
+						QRCode:            fmt.Sprintf("qr_%d", i),
 						QRCodeGeneratedAt: time.Now(),
-						PaymentStatus:    entity.PaymentUnpaid,
-						CreatedAt:        time.Now(),
-						UpdatedAt:        time.Now(),
+						PaymentStatus:     entity.PaymentUnpaid,
+						CreatedAt:         time.Now(),
+						UpdatedAt:         time.Now(),
 					}
 					if i == 0 {
 						participant.PaymentStatus = entity.PaymentPaid

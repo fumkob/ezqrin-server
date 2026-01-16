@@ -38,7 +38,7 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 		)
 	`
 
-	err := r.pool.QueryRow(ctx, query,
+	_, err := r.pool.Exec(ctx, query,
 		participant.ID,
 		participant.EventID,
 		participant.Name,
@@ -55,7 +55,7 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 		participant.PaymentDate,
 		participant.CreatedAt,
 		participant.UpdatedAt,
-	).Scan()
+	)
 
 	if err != nil {
 		// Check for unique constraint violations

@@ -328,7 +328,12 @@ func createTestUserV1(router *gin.Engine, email, password, name, role string) uu
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusCreated))
+
+	// Add detailed error message if user creation fails
+	if w.Code != http.StatusCreated {
+		GinkgoWriter.Printf("Failed to create user %s: status=%d body=%s\n", email, w.Code, w.Body.String())
+	}
+	Expect(w.Code).To(Equal(http.StatusCreated), "Failed to create test user: %s", w.Body.String())
 
 	var response generated.AuthResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
@@ -351,7 +356,12 @@ func loginTestUserV1(router *gin.Engine, email, password string) *generated.Auth
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusOK))
+
+	// Add detailed error message if login fails
+	if w.Code != http.StatusOK {
+		GinkgoWriter.Printf("Failed to login user %s: status=%d body=%s\n", email, w.Code, w.Body.String())
+	}
+	Expect(w.Code).To(Equal(http.StatusOK), "Failed to login test user: %s", w.Body.String())
 
 	var response generated.AuthResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
@@ -375,23 +385,43 @@ func createEvent(router *gin.Engine, token string, name string) *generated.Event
 		Status:    generated.EventStatusPublished,
 	}
 
-	body, _ := json.Marshal(reqBody)
+	body, err := json.Marshal(reqBody)
+	Expect(err).NotTo(HaveOccurred())
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/events", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusCreated))
+
+	// Add detailed error message if event creation fails
+	if w.Code != http.StatusCreated {
+		GinkgoWriter.Printf("Failed to create event %s: status=%d body=%s\n", name, w.Code, w.Body.String())
+	}
+	Expect(w.Code).To(Equal(http.StatusCreated), "Failed to create event: %s", w.Body.String())
 
 	var response generated.Event
-	_ = json.Unmarshal(w.Body.Bytes(), &response)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	Expect(err).NotTo(HaveOccurred())
 	return &response
 }
 
 func cleanDatabaseForEvents(db database.Service, redisClient *redis.Client) {
 	ctx := context.Background()
 	pool := db.GetPool()
-	_, _ = pool.Exec(ctx, "TRUNCATE TABLE checkins, participants, events, users CASCADE")
-	_ = redisClient.GetClient().FlushDB(ctx).Err()
+
+	// Truncate in correct order: child tables first, then parent tables
+	// CASCADE ensures all dependent records are also deleted
+	_, err := pool.Exec(ctx, "TRUNCATE TABLE checkins, participants, events, users CASCADE")
+	if err != nil {
+		GinkgoWriter.Printf("Warning: Failed to truncate tables: %v\n", err)
+	}
+
+	// Flush Redis cache
+	if redisClient != nil {
+		if err := redisClient.GetClient().FlushDB(ctx).Err(); err != nil {
+			GinkgoWriter.Printf("Warning: Failed to flush Redis: %v\n", err)
+		}
+	}
 }

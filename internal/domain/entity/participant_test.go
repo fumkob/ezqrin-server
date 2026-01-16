@@ -2,18 +2,12 @@ package entity
 
 import (
 	"encoding/json"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/google/uuid"
 )
-
-func TestParticipant(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Participant Entity Suite")
-}
 
 var _ = Describe("Participant Entity", func() {
 	var (
