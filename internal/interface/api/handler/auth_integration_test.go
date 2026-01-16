@@ -171,12 +171,8 @@ var _ = Describe("Authentication API Integration", func() {
 		generated.RegisterHandlersWithOptions(router, combinedHandler, options)
 
 		// Clean database before each test
-		cleanDatabase(db)
+		cleanDatabase(db, redisClient)
 
-		// Clean Redis before each test
-		flushCtx := context.Background()
-		_, err = redisClient.GetClient().FlushDB(flushCtx).Result()
-		Expect(err).NotTo(HaveOccurred())
 
 		// Setup test user data
 		testUserEmail = fmt.Sprintf("test-%s@example.com", uuid.New().String())
@@ -187,7 +183,7 @@ var _ = Describe("Authentication API Integration", func() {
 
 	AfterEach(func() {
 		if db != nil {
-			cleanDatabase(db)
+			cleanDatabase(db, redisClient)
 			db.Close()
 		}
 		if redisClient != nil {
@@ -933,8 +929,11 @@ func loginTestUser(router *gin.Engine, email, password string) *generated.AuthRe
 }
 
 // cleanDatabase cleans all test data from database
-func cleanDatabase(db database.Service) {
+func cleanDatabase(db database.Service, redisClient *redis.Client) {
 	ctx := context.Background()
-	_, err := db.GetPool().Exec(ctx, "TRUNCATE TABLE users CASCADE")
+	_, err := db.GetPool().Exec(ctx, "TRUNCATE TABLE checkins, participants, events, users CASCADE")
 	Expect(err).NotTo(HaveOccurred())
+	if redisClient != nil {
+		_ = redisClient.GetClient().FlushDB(ctx).Err()
+	}
 }

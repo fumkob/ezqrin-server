@@ -1768,20 +1768,20 @@ var _ = Describe("EventUsecase", func() {
 		})
 
 		When("repository delete fails", func() {
-			It("should return wrapped error", func() {
-				dbErr := errors.New("database connection error")
+			It("should propagate repository error", func() {
+				repoErr := apperrors.Internal("database connection error")
 				mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
 					return testEvent, nil
 				}
 				mockRepo.deleteFunc = func(ctx context.Context, id uuid.UUID) error {
-					return dbErr
+					return repoErr
 				}
 
 				err := usecase.Delete(ctx, eventID, userID, false)
 
 				Expect(err).NotTo(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to delete event"))
-				Expect(errors.Is(err, dbErr)).To(BeTrue())
+				// Error should be the repository error directly
+				Expect(errors.Is(err, repoErr)).To(BeTrue())
 			})
 		})
 

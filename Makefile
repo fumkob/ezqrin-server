@@ -195,7 +195,7 @@ db-create-test: check-runtime
 
 # Run all tests (including integration)
 test: check-runtime
-	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -count=1 -tags=integration ./..."
+	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -p 1 -count=1 -tags=integration ./..."
 
 # Run only unit tests
 test-unit: check-runtime
