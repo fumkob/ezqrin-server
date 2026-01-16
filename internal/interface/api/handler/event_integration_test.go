@@ -266,9 +266,13 @@ var _ = Describe("Event API Integration", func() {
 			// Create an event as organizer
 			otherEvent := createEvent(router, organizerAuth.AccessToken, "Another Event")
 
-			// Try to delete as admin (different user)
+			// Create another organizer
+			createTestUserV1(router, "organizer2@example.com", "Password123!", "Organizer User 2", "organizer")
+			organizer2Auth := loginTestUserV1(router, "organizer2@example.com", "Password123!")
+
+			// Try to delete as different organizer
 			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/events/%s", otherEvent.Id), nil)
-			req.Header.Set("Authorization", "Bearer "+adminAuth.AccessToken)
+			req.Header.Set("Authorization", "Bearer "+organizer2Auth.AccessToken)
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)

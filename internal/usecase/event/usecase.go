@@ -41,7 +41,7 @@ func (u *eventUsecase) Create(ctx context.Context, input CreateEventInput) (*ent
 	}
 
 	if err := u.eventRepo.Create(ctx, event); err != nil {
-		return nil, fmt.Errorf("failed to create event: %w", err)
+		return nil, err
 	}
 
 	return event, nil
@@ -67,7 +67,7 @@ func (u *eventUsecase) List(ctx context.Context, input ListEventsInput) (ListEve
 
 	events, totalCount, err := u.eventRepo.List(ctx, filter, offset, limit)
 	if err != nil {
-		return ListEventsOutput{}, fmt.Errorf("failed to list events: %w", err)
+		return ListEventsOutput{}, err
 	}
 
 	return ListEventsOutput{
@@ -102,7 +102,7 @@ func (u *eventUsecase) Update(
 	}
 
 	if err := u.eventRepo.Update(ctx, event); err != nil {
-		return nil, fmt.Errorf("failed to update event: %w", err)
+		return nil, err
 	}
 
 	return event, nil
@@ -126,7 +126,7 @@ func (u *eventUsecase) GetStats(
 
 	stats, err := u.eventRepo.GetStats(ctx, id)
 	if err != nil {
-		return EventStatsOutput{}, fmt.Errorf("failed to get event stats: %w", err)
+		return EventStatsOutput{}, err
 	}
 
 	var checkinRate float64
@@ -168,7 +168,7 @@ func (u *eventUsecase) Delete(
 	}
 
 	if err := u.eventRepo.Delete(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete event: %w", err)
+		return err
 	}
 
 	return nil
