@@ -145,6 +145,9 @@ var _ = Describe("Event API Integration", func() {
 	})
 
 	AfterEach(func() {
+		if db != nil && redisClient != nil {
+			cleanDatabaseForEvents(db, redisClient)
+		}
 		if db != nil {
 			db.Close()
 		}
