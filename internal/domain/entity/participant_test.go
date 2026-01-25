@@ -1,9 +1,10 @@
-package entity
+package entity_test
 
 import (
 	"encoding/json"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -12,20 +13,20 @@ import (
 var _ = Describe("Participant Entity", func() {
 	var (
 		eventID     uuid.UUID
-		participant *Participant
+		participant *entity.Participant
 	)
 
 	BeforeEach(func() {
 		eventID = uuid.New()
-		participant = &Participant{
+		participant = &entity.Participant{
 			ID:                uuid.New(),
 			EventID:           eventID,
 			Name:              "John Doe",
 			Email:             "john@example.com",
-			Status:            ParticipantStatusTentative,
+			Status:            entity.ParticipantStatusTentative,
 			QRCode:            "abc123xyz789",
 			QRCodeGeneratedAt: time.Now(),
-			PaymentStatus:     PaymentUnpaid,
+			PaymentStatus:     entity.PaymentUnpaid,
 			CreatedAt:         time.Now(),
 			UpdatedAt:         time.Now(),
 		}
@@ -40,93 +41,93 @@ var _ = Describe("Participant Entity", func() {
 		})
 
 		Context("with missing event ID", func() {
-			It("should return ErrParticipantEventIDRequired", func() {
+			It("should return entity.ErrParticipantEventIDRequired", func() {
 				participant.EventID = uuid.Nil
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantEventIDRequired))
+				Expect(err).To(Equal(entity.ErrParticipantEventIDRequired))
 			})
 		})
 
 		Context("with missing name", func() {
-			It("should return ErrParticipantNameRequired", func() {
+			It("should return entity.ErrParticipantNameRequired", func() {
 				participant.Name = ""
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantNameRequired))
+				Expect(err).To(Equal(entity.ErrParticipantNameRequired))
 			})
 		})
 
 		Context("with name exceeding max length", func() {
-			It("should return ErrParticipantNameTooLong", func() {
-				participant.Name = string(make([]byte, ParticipantNameMaxLength+1))
+			It("should return entity.ErrParticipantNameTooLong", func() {
+				participant.Name = string(make([]byte, entity.ParticipantNameMaxLength+1))
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantNameTooLong))
+				Expect(err).To(Equal(entity.ErrParticipantNameTooLong))
 			})
 		})
 
 		Context("with missing email", func() {
-			It("should return ErrParticipantEmailRequired", func() {
+			It("should return entity.ErrParticipantEmailRequired", func() {
 				participant.Email = ""
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantEmailRequired))
+				Expect(err).To(Equal(entity.ErrParticipantEmailRequired))
 			})
 		})
 
 		Context("with invalid email format", func() {
-			It("should return ErrParticipantEmailInvalid", func() {
+			It("should return entity.ErrParticipantEmailInvalid", func() {
 				participant.Email = "invalid-email"
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantEmailInvalid))
+				Expect(err).To(Equal(entity.ErrParticipantEmailInvalid))
 			})
 		})
 
 		Context("with missing QR code", func() {
-			It("should return ErrParticipantQRCodeRequired", func() {
+			It("should return entity.ErrParticipantQRCodeRequired", func() {
 				participant.QRCode = ""
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantQRCodeRequired))
+				Expect(err).To(Equal(entity.ErrParticipantQRCodeRequired))
 			})
 		})
 
 		Context("with invalid status", func() {
-			It("should return ErrParticipantStatusInvalid", func() {
-				participant.Status = ParticipantStatus("invalid")
+			It("should return entity.ErrParticipantStatusInvalid", func() {
+				participant.Status = entity.ParticipantStatus("invalid")
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantStatusInvalid))
+				Expect(err).To(Equal(entity.ErrParticipantStatusInvalid))
 			})
 		})
 
 		Context("with phone exceeding max length", func() {
-			It("should return ErrParticipantPhoneTooLong", func() {
-				phone := string(make([]byte, ParticipantPhoneMaxLength+1))
+			It("should return entity.ErrParticipantPhoneTooLong", func() {
+				phone := string(make([]byte, entity.ParticipantPhoneMaxLength+1))
 				participant.Phone = &phone
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantPhoneTooLong))
+				Expect(err).To(Equal(entity.ErrParticipantPhoneTooLong))
 			})
 		})
 
 		Context("with employee ID exceeding max length", func() {
-			It("should return ErrParticipantEmployeeIDTooLong", func() {
-				empID := string(make([]byte, ParticipantEmployeeIDMaxLength+1))
+			It("should return entity.ErrParticipantEmployeeIDTooLong", func() {
+				empID := string(make([]byte, entity.ParticipantEmployeeIDMaxLength+1))
 				participant.EmployeeID = &empID
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantEmployeeIDTooLong))
+				Expect(err).To(Equal(entity.ErrParticipantEmployeeIDTooLong))
 			})
 		})
 
 		Context("with invalid payment status", func() {
-			It("should return ErrParticipantPaymentStatusInvalid", func() {
-				participant.PaymentStatus = PaymentStatus("invalid")
+			It("should return entity.ErrParticipantPaymentStatusInvalid", func() {
+				participant.PaymentStatus = entity.PaymentStatus("invalid")
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantPaymentStatusInvalid))
+				Expect(err).To(Equal(entity.ErrParticipantPaymentStatusInvalid))
 			})
 		})
 
 		Context("with metadata exceeding max size", func() {
-			It("should return ErrParticipantMetadataTooLarge", func() {
-				largeMeta := json.RawMessage(string(make([]byte, MaxMetadataSize+1)))
+			It("should return entity.ErrParticipantMetadataTooLarge", func() {
+				largeMeta := json.RawMessage(string(make([]byte, entity.MaxMetadataSize+1)))
 				participant.Metadata = &largeMeta
 				err := participant.Validate()
-				Expect(err).To(Equal(ErrParticipantMetadataTooLarge))
+				Expect(err).To(Equal(entity.ErrParticipantMetadataTooLarge))
 			})
 		})
 	})
@@ -134,7 +135,7 @@ var _ = Describe("Participant Entity", func() {
 	Describe("Status checks", func() {
 		Context("when status is tentative", func() {
 			BeforeEach(func() {
-				participant.Status = ParticipantStatusTentative
+				participant.Status = entity.ParticipantStatusTentative
 			})
 
 			It("should return true for IsTentative", func() {
@@ -148,7 +149,7 @@ var _ = Describe("Participant Entity", func() {
 
 		Context("when status is confirmed", func() {
 			BeforeEach(func() {
-				participant.Status = ParticipantStatusConfirmed
+				participant.Status = entity.ParticipantStatusConfirmed
 			})
 
 			It("should return true for IsConfirmed", func() {
@@ -162,7 +163,7 @@ var _ = Describe("Participant Entity", func() {
 
 		Context("when status is cancelled", func() {
 			BeforeEach(func() {
-				participant.Status = ParticipantStatusCancelled
+				participant.Status = entity.ParticipantStatusCancelled
 			})
 
 			It("should return true for IsCancelled", func() {
@@ -172,7 +173,7 @@ var _ = Describe("Participant Entity", func() {
 
 		Context("when status is declined", func() {
 			BeforeEach(func() {
-				participant.Status = ParticipantStatusDeclined
+				participant.Status = entity.ParticipantStatusDeclined
 			})
 
 			It("should return true for IsDeclined", func() {
@@ -184,7 +185,7 @@ var _ = Describe("Participant Entity", func() {
 	Describe("Payment status checks", func() {
 		Context("when payment status is paid", func() {
 			BeforeEach(func() {
-				participant.PaymentStatus = PaymentPaid
+				participant.PaymentStatus = entity.PaymentPaid
 			})
 
 			It("should return true for IsPaid", func() {
@@ -198,7 +199,7 @@ var _ = Describe("Participant Entity", func() {
 
 		Context("when payment status is unpaid", func() {
 			BeforeEach(func() {
-				participant.PaymentStatus = PaymentUnpaid
+				participant.PaymentStatus = entity.PaymentUnpaid
 			})
 
 			It("should return true for IsUnpaid", func() {
@@ -214,48 +215,48 @@ var _ = Describe("Participant Entity", func() {
 	Describe("Valid status and payment status checks", func() {
 		Context("with valid status values", func() {
 			It("should return true for tentative", func() {
-				participant.Status = ParticipantStatusTentative
+				participant.Status = entity.ParticipantStatusTentative
 				Expect(participant.IsValidStatus()).To(BeTrue())
 			})
 
 			It("should return true for confirmed", func() {
-				participant.Status = ParticipantStatusConfirmed
+				participant.Status = entity.ParticipantStatusConfirmed
 				Expect(participant.IsValidStatus()).To(BeTrue())
 			})
 
 			It("should return true for cancelled", func() {
-				participant.Status = ParticipantStatusCancelled
+				participant.Status = entity.ParticipantStatusCancelled
 				Expect(participant.IsValidStatus()).To(BeTrue())
 			})
 
 			It("should return true for declined", func() {
-				participant.Status = ParticipantStatusDeclined
+				participant.Status = entity.ParticipantStatusDeclined
 				Expect(participant.IsValidStatus()).To(BeTrue())
 			})
 		})
 
 		Context("with invalid status value", func() {
 			It("should return false", func() {
-				participant.Status = ParticipantStatus("invalid")
+				participant.Status = entity.ParticipantStatus("invalid")
 				Expect(participant.IsValidStatus()).To(BeFalse())
 			})
 		})
 
 		Context("with valid payment status values", func() {
 			It("should return true for paid", func() {
-				participant.PaymentStatus = PaymentPaid
+				participant.PaymentStatus = entity.PaymentPaid
 				Expect(participant.IsValidPaymentStatus()).To(BeTrue())
 			})
 
 			It("should return true for unpaid", func() {
-				participant.PaymentStatus = PaymentUnpaid
+				participant.PaymentStatus = entity.PaymentUnpaid
 				Expect(participant.IsValidPaymentStatus()).To(BeTrue())
 			})
 		})
 
 		Context("with invalid payment status value", func() {
 			It("should return false", func() {
-				participant.PaymentStatus = PaymentStatus("invalid")
+				participant.PaymentStatus = entity.PaymentStatus("invalid")
 				Expect(participant.IsValidPaymentStatus()).To(BeFalse())
 			})
 		})
