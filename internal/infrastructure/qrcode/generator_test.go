@@ -6,17 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"testing"
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestQRCode(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "QRCode Generator Suite")
-}
 
 var _ = Describe("QR Code Generator", func() {
 	var (

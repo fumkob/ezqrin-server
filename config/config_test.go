@@ -2,18 +2,12 @@ package config_test
 
 import (
 	"os"
-	"testing"
 
 	"github.com/fumkob/ezqrin-server/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/viper"
 )
-
-func TestConfig(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config Suite")
-}
 
 var _ = Describe("Config", func() {
 	var originalEnv map[string]string

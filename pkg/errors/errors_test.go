@@ -3,17 +3,11 @@ package errors_test
 import (
 	"errors"
 	"net/http"
-	"testing"
 
 	pkgerrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestErrors(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Errors Package Suite")
-}
 
 var _ = Describe("AppError", func() {
 	When("creating error instances", func() {

@@ -2,18 +2,12 @@ package logger_test
 
 import (
 	"context"
-	"testing"
 
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap"
 )
-
-func TestLogger(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Logger Package Suite")
-}
 
 var _ = Describe("Logger", func() {
 	When("creating a new logger", func() {

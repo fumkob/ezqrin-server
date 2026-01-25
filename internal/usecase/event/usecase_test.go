@@ -3,7 +3,6 @@ package event_test
 import (
 	"context"
 	"errors"
-	"testing"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
@@ -14,11 +13,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestEventUsecase(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "EventUsecase Suite")
-}
 
 type eventListFunc func(
 	ctx context.Context,
