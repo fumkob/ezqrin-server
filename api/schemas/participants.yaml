@@ -1,0 +1,205 @@
+# Participant-related Request and Response Schemas
+
+CreateParticipantRequest:
+  type: object
+  required:
+    - name
+    - email
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Participant full name
+      example: "Jane Smith"
+    email:
+      type: string
+      format: email
+      minLength: 1
+      maxLength: 255
+      description: Email address (must be unique within the event)
+      example: "jane@example.com"
+    qr_email:
+      type: string
+      format: email
+      maxLength: 255
+      description: Alternative email for QR code distribution
+      example: "jane.work@example.com"
+      nullable: true
+    employee_id:
+      type: string
+      maxLength: 255
+      description: Employee or staff ID
+      example: "EMP001"
+      nullable: true
+    phone:
+      type: string
+      maxLength: 50
+      description: Phone number (preferably E.164 format)
+      example: "+1-555-0123"
+      nullable: true
+    status:
+      $ref: './enums.yaml#/ParticipantStatus'
+    metadata:
+      type: object
+      description: Custom participant data (max 10KB JSON)
+      additionalProperties: true
+      example:
+        company: "Tech Corp"
+        role: "Engineer"
+        dietary_restrictions: ["vegetarian"]
+      nullable: true
+    payment_status:
+      $ref: './enums.yaml#/PaymentStatus'
+    payment_amount:
+      type: number
+      format: double
+      minimum: 0
+      description: Payment amount (decimal, 2 places)
+      example: 150.0
+      nullable: true
+    payment_date:
+      type: string
+      format: date-time
+      description: Payment date/time (ISO 8601)
+      example: "2025-11-08T12:30:00Z"
+      nullable: true
+
+UpdateParticipantRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Participant full name
+      example: "Jane Smith"
+    email:
+      type: string
+      format: email
+      minLength: 1
+      maxLength: 255
+      description: Email address (must be unique within the event)
+      example: "jane@example.com"
+    qr_email:
+      type: string
+      format: email
+      maxLength: 255
+      description: Alternative email for QR code distribution
+      example: "jane.work@example.com"
+      nullable: true
+    employee_id:
+      type: string
+      maxLength: 255
+      description: Employee or staff ID
+      example: "EMP001"
+      nullable: true
+    phone:
+      type: string
+      maxLength: 50
+      description: Phone number (preferably E.164 format)
+      example: "+1-555-0123"
+      nullable: true
+    status:
+      $ref: './enums.yaml#/ParticipantStatus'
+    metadata:
+      type: object
+      description: Custom participant data (max 10KB JSON)
+      additionalProperties: true
+      example:
+        company: "Tech Corp"
+        role: "Senior Engineer"
+        dietary_restrictions: ["vegan"]
+      nullable: true
+    payment_status:
+      $ref: './enums.yaml#/PaymentStatus'
+    payment_amount:
+      type: number
+      format: double
+      minimum: 0
+      description: Payment amount (decimal, 2 places)
+      example: 150.0
+      nullable: true
+    payment_date:
+      type: string
+      format: date-time
+      description: Payment date/time (ISO 8601)
+      example: "2025-11-08T12:30:00Z"
+      nullable: true
+
+BulkCreateParticipantsRequest:
+  type: object
+  required:
+    - participants
+  properties:
+    participants:
+      type: array
+      description: Array of participants to create (max 1000)
+      minItems: 1
+      maxItems: 1000
+      items:
+        $ref: '#/CreateParticipantRequest'
+      example:
+        - name: "John Doe"
+          email: "john@example.com"
+          status: "confirmed"
+        - name: "Jane Smith"
+          email: "jane@example.com"
+          employee_id: "EMP001"
+          status: "confirmed"
+
+BulkCreateParticipantsResponse:
+  type: object
+  required:
+    - created_count
+    - failed_count
+    - participants
+  properties:
+    created_count:
+      type: integer
+      minimum: 0
+      description: Number of participants successfully created
+      example: 98
+    failed_count:
+      type: integer
+      minimum: 0
+      description: Number of participants that failed to create
+      example: 2
+    participants:
+      type: array
+      description: List of successfully created participants
+      items:
+        $ref: './entities.yaml#/Participant'
+    errors:
+      type: array
+      description: List of errors for failed participants
+      items:
+        type: object
+        required:
+          - index
+          - email
+          - error
+        properties:
+          index:
+            type: integer
+            description: Index in the original request array
+            example: 5
+          email:
+            type: string
+            format: email
+            description: Email of the failed participant
+            example: "duplicate@example.com"
+          error:
+            type: string
+            description: Error message
+            example: "Email already registered for this event"
+
+ParticipantListResponse:
+  allOf:
+    - $ref: './responses.yaml#/ListResponse'
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: './entities.yaml#/Participant'

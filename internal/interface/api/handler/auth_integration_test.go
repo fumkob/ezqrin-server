@@ -156,8 +156,9 @@ var _ = Describe("Authentication API Integration", func() {
 		// Placeholder for event use case since we don't need it for auth tests
 		// In a real scenario, we might want to mock it or initialize it
 		eventHandler := handler.NewEventHandler(nil, log)
+		participantHandler := handler.NewParticipantHandler(nil, log)
 
-		combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler)
+		combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler, participantHandler)
 		options := generated.GinServerOptions{
 			Middlewares: []generated.MiddlewareFunc{
 				func(c *gin.Context) {
@@ -172,7 +173,6 @@ var _ = Describe("Authentication API Integration", func() {
 
 		// Clean database before each test
 		cleanDatabase(db, redisClient)
-
 
 		// Setup test user data
 		testUserEmail = fmt.Sprintf("test-%s@example.com", uuid.New().String())

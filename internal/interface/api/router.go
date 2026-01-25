@@ -77,7 +77,17 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 
 	eventHandler := handler.NewEventHandler(deps.Container.UseCases.Event, deps.Logger)
 
-	combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler)
+	participantHandler := handler.NewParticipantHandler(
+		deps.Container.UseCases.Participant,
+		deps.Logger,
+	)
+
+	combinedHandler := handler.NewHandler(
+		healthHandler,
+		authHandler,
+		eventHandler,
+		participantHandler,
+	)
 
 	// Register handlers with authentication middleware that respects OpenAPI security requirements
 	// This established the pattern for protecting routes:

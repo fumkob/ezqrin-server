@@ -55,7 +55,7 @@ EventIDParam:
     example: "550e8400-e29b-41d4-a716-446655440000"
 
 ParticipantIDParam:
-  name: pid
+  name: id
   in: path
   description: Participant unique identifier (UUID)
   required: true
@@ -65,7 +65,7 @@ ParticipantIDParam:
     example: "770e8400-e29b-41d4-a716-446655440000"
 
 CheckInIDParam:
-  name: cid
+  name: id
   in: path
   description: Check-in unique identifier (UUID)
   required: true

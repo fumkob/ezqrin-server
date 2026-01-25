@@ -21,15 +21,15 @@ import (
 
 var _ = Describe("EventRepository", func() {
 	var (
-		ctx          context.Context
-		log          *logger.Logger
-		cfg          *config.DatabaseConfig
-		db           *database.PostgresDB
-		repo         repository.EventRepository
-		userRepo     repository.UserRepository
-		testUserID   uuid.UUID
-		testEventID  uuid.UUID
-		organizer    *entity.User
+		ctx         context.Context
+		log         *logger.Logger
+		cfg         *config.DatabaseConfig
+		db          *database.PostgresDB
+		repo        repository.EventRepository
+		userRepo    repository.UserRepository
+		testUserID  uuid.UUID
+		testEventID uuid.UUID
+		organizer   *entity.User
 	)
 
 	BeforeEach(func() {
@@ -262,4 +262,3 @@ var _ = Describe("EventRepository", func() {
 		})
 	})
 })
-
