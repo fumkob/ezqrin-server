@@ -3,7 +3,6 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
@@ -12,11 +11,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestMiddleware(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Middleware Suite")
-}
 
 var _ = Describe("Middleware", func() {
 	var (
