@@ -329,6 +329,81 @@ var _ = Describe("EventUsecase", func() {
 				Expect(result).To(BeNil())
 			})
 		})
+
+		When("verifying timestamp behavior", func() {
+			Context("on successful creation", func() {
+				It("should set CreatedAt and UpdatedAt to non-zero values", func() {
+					input := newValidCreateInput(userID)
+					before := time.Now()
+
+					mockRepo.createFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Create(ctx, input)
+					after := time.Now()
+
+					Expect(err).To(BeNil())
+					Expect(result.CreatedAt.IsZero()).To(BeFalse())
+					Expect(result.UpdatedAt.IsZero()).To(BeFalse())
+					Expect(result.CreatedAt).To(BeTemporally(">=", before))
+					Expect(result.CreatedAt).To(BeTemporally("<=", after))
+					Expect(result.UpdatedAt).To(BeTemporally(">=", before))
+					Expect(result.UpdatedAt).To(BeTemporally("<=", after))
+				})
+
+				It("should set CreatedAt and UpdatedAt to the same value", func() {
+					input := newValidCreateInput(userID)
+
+					mockRepo.createFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Create(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(result.CreatedAt.Unix()).To(Equal(result.UpdatedAt.Unix()))
+				})
+
+				It("should set timestamps within reasonable time range", func() {
+					input := newValidCreateInput(userID)
+					before := time.Now().Add(-1 * time.Second)
+					after := time.Now().Add(1 * time.Second)
+
+					mockRepo.createFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Create(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(result.CreatedAt).To(BeTemporally(">", before))
+					Expect(result.CreatedAt).To(BeTemporally("<", after))
+					Expect(result.UpdatedAt).To(BeTemporally(">", before))
+					Expect(result.UpdatedAt).To(BeTemporally("<", after))
+				})
+			})
+
+			When("repository create is called", func() {
+				It("should pass event with initialized timestamps", func() {
+					input := newValidCreateInput(userID)
+					var capturedEvent *entity.Event
+
+					mockRepo.createFunc = func(ctx context.Context, e *entity.Event) error {
+						capturedEvent = e
+						return nil
+					}
+
+					_, err := usecase.Create(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(capturedEvent).NotTo(BeNil())
+					Expect(capturedEvent.CreatedAt.IsZero()).To(BeFalse())
+					Expect(capturedEvent.UpdatedAt.IsZero()).To(BeFalse())
+					Expect(capturedEvent.CreatedAt.Unix()).To(Equal(capturedEvent.UpdatedAt.Unix()))
+				})
+			})
+		})
 	})
 
 	Describe("GetByID", func() {
@@ -1614,6 +1689,227 @@ var _ = Describe("EventUsecase", func() {
 				Expect(err).NotTo(BeNil())
 				Expect(errors.Is(err, context.Canceled)).To(BeTrue())
 				Expect(result).To(BeNil())
+			})
+		})
+
+		When("verifying timestamp behavior on update", func() {
+			Context("on successful update", func() {
+				It("should update UpdatedAt to current time", func() {
+					originalCreatedAt := time.Now().Add(-24 * time.Hour)
+					originalUpdatedAt := time.Now().Add(-24 * time.Hour)
+					testEvent.CreatedAt = originalCreatedAt
+					testEvent.UpdatedAt = originalUpdatedAt
+
+					updateInput := event.UpdateEventInput{
+						Name: strPtr("Updated Name"),
+					}
+					before := time.Now()
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+					after := time.Now()
+
+					Expect(err).To(BeNil())
+					Expect(result.UpdatedAt).To(BeTemporally(">=", before))
+					Expect(result.UpdatedAt).To(BeTemporally("<=", after))
+				})
+
+				It("should update UpdatedAt to be newer than original value", func() {
+					originalCreatedAt := time.Now().Add(-48 * time.Hour)
+					originalUpdatedAt := time.Now().Add(-24 * time.Hour)
+					testEvent.CreatedAt = originalCreatedAt
+					testEvent.UpdatedAt = originalUpdatedAt
+
+					updateInput := event.UpdateEventInput{
+						Description: strPtr("Updated Description"),
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+
+					Expect(err).To(BeNil())
+					Expect(result.UpdatedAt).To(BeTemporally(">", originalUpdatedAt))
+				})
+
+				It("should not modify CreatedAt", func() {
+					originalCreatedAt := time.Now().Add(-72 * time.Hour)
+					testEvent.CreatedAt = originalCreatedAt
+					testEvent.UpdatedAt = time.Now().Add(-24 * time.Hour)
+
+					updateInput := event.UpdateEventInput{
+						Location: strPtr("New Location"),
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+
+					Expect(err).To(BeNil())
+					Expect(result.CreatedAt.Unix()).To(Equal(originalCreatedAt.Unix()))
+				})
+
+				It("should maintain CreatedAt unchanged while UpdatedAt changes", func() {
+					originalCreatedAt := time.Now().Add(-100 * time.Hour)
+					originalUpdatedAt := time.Now().Add(-50 * time.Hour)
+					testEvent.CreatedAt = originalCreatedAt
+					testEvent.UpdatedAt = originalUpdatedAt
+
+					updateInput := event.UpdateEventInput{
+						Name:        strPtr("Updated Event"),
+						Description: strPtr("Updated Description"),
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+
+					Expect(err).To(BeNil())
+					Expect(result.CreatedAt.Unix()).To(Equal(originalCreatedAt.Unix()))
+					Expect(result.UpdatedAt).To(BeTemporally(">", originalUpdatedAt))
+				})
+			})
+
+			When("updating multiple times", func() {
+				It("should increment UpdatedAt on each update", func() {
+					originalCreatedAt := time.Now().Add(-72 * time.Hour)
+					testEvent.CreatedAt = originalCreatedAt
+					testEvent.UpdatedAt = originalCreatedAt
+
+					updateInput1 := event.UpdateEventInput{
+						Name: strPtr("First Update"),
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result1, err := usecase.Update(ctx, eventID, userID, false, updateInput1)
+					Expect(err).To(BeNil())
+					firstUpdateTime := result1.UpdatedAt
+
+					// Simulate time passing
+					time.Sleep(10 * time.Millisecond)
+
+					// Second update
+					testEvent.UpdatedAt = firstUpdateTime
+					updateInput2 := event.UpdateEventInput{
+						Name: strPtr("Second Update"),
+					}
+
+					result2, err := usecase.Update(ctx, eventID, userID, false, updateInput2)
+					Expect(err).To(BeNil())
+
+					Expect(result2.UpdatedAt).To(BeTemporally(">", firstUpdateTime))
+					Expect(result2.CreatedAt.Unix()).To(Equal(originalCreatedAt.Unix()))
+				})
+			})
+
+			When("repository update is called", func() {
+				It("should pass event with updated timestamp", func() {
+					originalUpdatedAt := time.Now().Add(-24 * time.Hour)
+					testEvent.UpdatedAt = originalUpdatedAt
+					var capturedEvent *entity.Event
+
+					updateInput := event.UpdateEventInput{
+						Name: strPtr("Updated"),
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						capturedEvent = e
+						return nil
+					}
+
+					_, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+
+					Expect(err).To(BeNil())
+					Expect(capturedEvent).NotTo(BeNil())
+					Expect(capturedEvent.UpdatedAt).To(BeTemporally(">", originalUpdatedAt))
+				})
+			})
+
+			When("update validation fails", func() {
+				It("should not update UpdatedAt", func() {
+					originalUpdatedAt := time.Now().Add(-24 * time.Hour)
+					testEvent.UpdatedAt = originalUpdatedAt
+
+					updateInput := event.UpdateEventInput{
+						Name: strPtr(""), // Invalid: empty name
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					_, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+
+					Expect(err).NotTo(BeNil())
+					Expect(apperrors.IsValidation(err)).To(BeTrue())
+					// Original event should remain unchanged
+					Expect(testEvent.UpdatedAt.Unix()).To(Equal(originalUpdatedAt.Unix()))
+				})
+			})
+
+			When("status transition occurs", func() {
+				It("should update UpdatedAt during status change", func() {
+					originalUpdatedAt := time.Now().Add(-24 * time.Hour)
+					testEvent.Status = entity.StatusDraft
+					testEvent.UpdatedAt = originalUpdatedAt
+
+					updateInput := event.UpdateEventInput{
+						Status: statusPtr(entity.StatusPublished),
+					}
+					before := time.Now()
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+
+					mockRepo.updateFunc = func(ctx context.Context, e *entity.Event) error {
+						return nil
+					}
+
+					result, err := usecase.Update(ctx, eventID, userID, false, updateInput)
+					after := time.Now()
+
+					Expect(err).To(BeNil())
+					Expect(result.UpdatedAt).To(BeTemporally(">=", before))
+					Expect(result.UpdatedAt).To(BeTemporally("<=", after))
+					Expect(result.UpdatedAt).To(BeTemporally(">", originalUpdatedAt))
+				})
 			})
 		})
 	})
