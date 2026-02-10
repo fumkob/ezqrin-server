@@ -95,11 +95,18 @@ paths:
   /events/{id}/stats:
     $ref: './paths/events.yaml#/~1events~1{id}~1stats'
 
+  # Participant endpoints
+  /events/{id}/participants:
+    $ref: './paths/participants.yaml#/~1events~1{id}~1participants'
+  /events/{id}/participants/bulk:
+    $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1bulk'
+  /participants/{id}:
+    $ref: './paths/participants.yaml#/~1participants~1{id}'
+  /participants/{id}/qrcode:
+    $ref: './paths/participants.yaml#/~1participants~1{id}~1qrcode'
+
   # Future endpoints will be added here as separate YAML files:
   # Users: ./paths/users.yaml
-  # Events: ./paths/events.yaml
-  # Participants: ./paths/participants.yaml
-  # QR Codes: ./paths/qrcode.yaml
   # Check-ins: ./paths/checkin.yaml
 
 components:
@@ -139,6 +146,18 @@ components:
       $ref: './schemas/events.yaml#/EventListResponse'
     EventStatsResponse:
       $ref: './schemas/events.yaml#/EventStatsResponse'
+
+    # Participant schemas
+    CreateParticipantRequest:
+      $ref: './schemas/participants.yaml#/CreateParticipantRequest'
+    UpdateParticipantRequest:
+      $ref: './schemas/participants.yaml#/UpdateParticipantRequest'
+    BulkCreateParticipantsRequest:
+      $ref: './schemas/participants.yaml#/BulkCreateParticipantsRequest'
+    BulkCreateParticipantsResponse:
+      $ref: './schemas/participants.yaml#/BulkCreateParticipantsResponse'
+    ParticipantListResponse:
+      $ref: './schemas/participants.yaml#/ParticipantListResponse'
 
     # Enums
     UserRole:
