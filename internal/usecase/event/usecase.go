@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
@@ -24,6 +25,7 @@ func NewUsecase(eventRepo repository.EventRepository) Usecase {
 }
 
 func (u *eventUsecase) Create(ctx context.Context, input CreateEventInput) (*entity.Event, error) {
+	now := time.Now()
 	event := &entity.Event{
 		ID:          uuid.New(),
 		OrganizerID: input.OrganizerID,
@@ -34,6 +36,8 @@ func (u *eventUsecase) Create(ctx context.Context, input CreateEventInput) (*ent
 		Location:    input.Location,
 		Timezone:    input.Timezone,
 		Status:      input.Status,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := event.Validate(); err != nil {
@@ -100,6 +104,9 @@ func (u *eventUsecase) Update(
 	if err := event.Validate(); err != nil {
 		return nil, apperrors.Validation(fmt.Sprintf("event validation failed: %v", err))
 	}
+
+	// Update the timestamp after successful validation
+	event.UpdatedAt = time.Now()
 
 	if err := u.eventRepo.Update(ctx, event); err != nil {
 		return nil, err
