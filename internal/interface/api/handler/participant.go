@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
@@ -89,32 +87,7 @@ func (h *ParticipantHandler) BulkCreateParticipants(c *gin.Context, eventID gene
 	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
 
 	// Convert request to usecase input
-	participants := make([]participant.CreateParticipantInput, len(req.Participants))
-	for i, p := range req.Participants {
-		status := entity.ParticipantStatusTentative
-		if p.Status != nil {
-			status = entity.ParticipantStatus(*p.Status)
-		}
-
-		participants[i] = participant.CreateParticipantInput{
-			EventID:       uuid.UUID(eventID),
-			Name:          p.Name,
-			Email:         string(p.Email),
-			QREmail:       convertEmailPtr(p.QrEmail),
-			EmployeeID:    p.EmployeeId,
-			Phone:         p.Phone,
-			Status:        status,
-			Metadata:      convertMetadataToString(p.Metadata),
-			PaymentStatus: entity.PaymentStatus(ptrOrDefault(p.PaymentStatus, "unpaid")),
-			PaymentAmount: p.PaymentAmount,
-			PaymentDate:   p.PaymentDate,
-		}
-	}
-
-	input := participant.BulkCreateInput{
-		EventID:      uuid.UUID(eventID),
-		Participants: participants,
-	}
+	input := h.convertBulkCreateRequest(req, eventID)
 
 	output, err := h.usecase.BulkCreate(c.Request.Context(), userID, isAdmin, input)
 	if err != nil {
@@ -123,37 +96,7 @@ func (h *ParticipantHandler) BulkCreateParticipants(c *gin.Context, eventID gene
 	}
 
 	// Convert to response
-	createdParticipants := make([]generated.Participant, len(output.Participants))
-	for i, p := range output.Participants {
-		createdParticipants[i] = h.toGeneratedParticipant(p)
-	}
-
-	// Convert errors to inline struct
-	bulkErrors := make([]struct {
-		Email openapi_types.Email `json:"email"`
-		Error string              `json:"error"`
-		Index int                 `json:"index"`
-	}, len(output.Errors))
-
-	for i, e := range output.Errors {
-		bulkErrors[i] = struct {
-			Email openapi_types.Email `json:"email"`
-			Error string              `json:"error"`
-			Index int                 `json:"index"`
-		}{
-			Email: openapi_types.Email(e.Email),
-			Error: e.Message,
-			Index: e.Index,
-		}
-	}
-
-	bulkResp := generated.BulkCreateParticipantsResponse{
-		CreatedCount: output.CreatedCount,
-		FailedCount:  output.FailedCount,
-		Participants: createdParticipants,
-		Errors:       &bulkErrors,
-	}
-
+	bulkResp := h.convertBulkCreateResponse(output)
 	response.Data(c, http.StatusCreated, bulkResp)
 }
 
@@ -293,7 +236,11 @@ func (h *ParticipantHandler) DeleteParticipant(c *gin.Context, id generated.Part
 }
 
 // DownloadParticipantQRCode handles QR code download (GET /participants/{id}/qrcode).
-func (h *ParticipantHandler) DownloadParticipantQRCode(c *gin.Context, id generated.ParticipantIDParam, params generated.DownloadParticipantQRCodeParams) {
+func (h *ParticipantHandler) DownloadParticipantQRCode(
+	c *gin.Context,
+	id generated.ParticipantIDParam,
+	params generated.DownloadParticipantQRCodeParams,
+) {
 	participantID := uuid.UUID(id)
 	userID := h.getUserID(c)
 	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
@@ -321,6 +268,93 @@ func (h *ParticipantHandler) DownloadParticipantQRCode(c *gin.Context, id genera
 }
 
 // Helper functions
+
+// convertBulkCreateRequest converts API request to usecase input
+func (h *ParticipantHandler) convertBulkCreateRequest(
+	req generated.BulkCreateParticipantsRequest,
+	eventID generated.EventIDParam,
+) participant.BulkCreateInput {
+	participants := make([]participant.CreateParticipantInput, len(req.Participants))
+	for i, p := range req.Participants {
+		participants[i] = h.convertToCreateInput(p, eventID)
+	}
+
+	return participant.BulkCreateInput{
+		EventID:      uuid.UUID(eventID),
+		Participants: participants,
+	}
+}
+
+// convertToCreateInput converts single participant request to create input
+func (h *ParticipantHandler) convertToCreateInput(
+	p generated.CreateParticipantRequest,
+	eventID generated.EventIDParam,
+) participant.CreateParticipantInput {
+	status := entity.ParticipantStatusTentative
+	if p.Status != nil {
+		status = entity.ParticipantStatus(*p.Status)
+	}
+
+	return participant.CreateParticipantInput{
+		EventID:       uuid.UUID(eventID),
+		Name:          p.Name,
+		Email:         string(p.Email),
+		QREmail:       convertEmailPtr(p.QrEmail),
+		EmployeeID:    p.EmployeeId,
+		Phone:         p.Phone,
+		Status:        status,
+		Metadata:      convertMetadataToString(p.Metadata),
+		PaymentStatus: entity.PaymentStatus(ptrOrDefault(p.PaymentStatus, "unpaid")),
+		PaymentAmount: p.PaymentAmount,
+		PaymentDate:   p.PaymentDate,
+	}
+}
+
+// convertBulkCreateResponse converts usecase output to API response
+func (h *ParticipantHandler) convertBulkCreateResponse(
+	output participant.BulkCreateOutput,
+) generated.BulkCreateParticipantsResponse {
+	createdParticipants := make([]generated.Participant, len(output.Participants))
+	for i, p := range output.Participants {
+		createdParticipants[i] = h.toGeneratedParticipant(p)
+	}
+
+	bulkErrors := h.convertBulkErrors(output.Errors)
+
+	return generated.BulkCreateParticipantsResponse{
+		CreatedCount: output.CreatedCount,
+		FailedCount:  output.FailedCount,
+		Participants: createdParticipants,
+		Errors:       &bulkErrors,
+	}
+}
+
+// convertBulkErrors converts bulk create errors to API format
+func (h *ParticipantHandler) convertBulkErrors(errors []participant.BulkCreateError) []struct {
+	Email openapi_types.Email `json:"email"`
+	Error string              `json:"error"`
+	Index int                 `json:"index"`
+} {
+	bulkErrors := make([]struct {
+		Email openapi_types.Email `json:"email"`
+		Error string              `json:"error"`
+		Index int                 `json:"index"`
+	}, len(errors))
+
+	for i, e := range errors {
+		bulkErrors[i] = struct {
+			Email openapi_types.Email `json:"email"`
+			Error string              `json:"error"`
+			Index int                 `json:"index"`
+		}{
+			Email: openapi_types.Email(e.Email),
+			Error: e.Message,
+			Index: e.Index,
+		}
+	}
+
+	return bulkErrors
+}
 
 func (h *ParticipantHandler) getUserID(c *gin.Context) uuid.UUID {
 	val, exists := c.Get(middleware.ContextKeyUserID)
@@ -415,7 +449,7 @@ func convertEmailPtrToStringPtr(email *openapi_types.Email) *string {
 }
 
 // convertMetadataToString converts metadata map to JSON string
-func convertMetadataToString(metadata *map[string]interface{}) *string {
+func convertMetadataToString(metadata *map[string]any) *string {
 	if metadata == nil {
 		return nil
 	}
@@ -428,34 +462,13 @@ func convertMetadataToString(metadata *map[string]interface{}) *string {
 }
 
 // convertRawMessageToMap converts json.RawMessage to map
-func convertRawMessageToMap(raw *json.RawMessage) map[string]interface{} {
+func convertRawMessageToMap(raw *json.RawMessage) map[string]any {
 	if raw == nil {
 		return nil
 	}
-	var result map[string]interface{}
+	var result map[string]any
 	if err := json.Unmarshal(*raw, &result); err != nil {
 		return nil
 	}
 	return result
-}
-
-// parseTimePtr parses RFC3339 time string to *time.Time
-func parseTimePtr(s *string) *time.Time {
-	if s == nil {
-		return nil
-	}
-	t, err := time.Parse(time.RFC3339, *s)
-	if err != nil {
-		return nil
-	}
-	return &t
-}
-
-// intPtrToStringPtr converts int pointer to string pointer
-func intPtrToStringPtr(i *int) *string {
-	if i == nil {
-		return nil
-	}
-	str := strconv.Itoa(*i)
-	return &str
 }

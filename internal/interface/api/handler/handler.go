@@ -1,8 +1,6 @@
 package handler
 
-import (
-	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
-)
+import "github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 
 // Handler implements the generated.ServerInterface by composing individual handlers.
 // This pattern allows us to organize handlers by domain while still satisfying
@@ -25,10 +23,10 @@ func NewHandler(
 	participant *ParticipantHandler,
 ) *Handler {
 	return &Handler{
-		HealthHandler:       health,
-		AuthHandler:         auth,
-		EventHandler:        event,
-		ParticipantHandler:  participant,
+		HealthHandler:      health,
+		AuthHandler:        auth,
+		EventHandler:       event,
+		ParticipantHandler: participant,
 	}
 }
 

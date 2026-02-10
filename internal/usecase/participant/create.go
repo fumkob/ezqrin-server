@@ -13,7 +13,12 @@ import (
 )
 
 // Create creates a new participant with QR code generation
-func (u *participantUsecase) Create(ctx context.Context, userID uuid.UUID, isAdmin bool, input CreateParticipantInput) (*entity.Participant, error) {
+func (u *participantUsecase) Create(
+	ctx context.Context,
+	userID uuid.UUID,
+	isAdmin bool,
+	input CreateParticipantInput,
+) (*entity.Participant, error) {
 	// Verify event exists and check authorization
 	event, err := u.eventRepo.FindByID(ctx, input.EventID)
 	if err != nil {

@@ -11,7 +11,13 @@ import (
 )
 
 // Update updates an existing participant with authorization check
-func (u *participantUsecase) Update(ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID, input UpdateParticipantInput) (*entity.Participant, error) {
+func (u *participantUsecase) Update(
+	ctx context.Context,
+	userID uuid.UUID,
+	isAdmin bool,
+	id uuid.UUID,
+	input UpdateParticipantInput,
+) (*entity.Participant, error) {
 	// Get participant
 	participant, err := u.participantRepo.FindByID(ctx, id)
 	if err != nil {
@@ -49,6 +55,13 @@ func (u *participantUsecase) Update(ctx context.Context, userID uuid.UUID, isAdm
 
 // applyUpdateInput applies update input fields to participant entity
 func applyUpdateInput(participant *entity.Participant, input UpdateParticipantInput) error {
+	applyBasicFields(participant, input)
+	applyPaymentFields(participant, input)
+	return applyMetadata(participant, input.Metadata)
+}
+
+// applyBasicFields applies basic participant fields from input
+func applyBasicFields(participant *entity.Participant, input UpdateParticipantInput) {
 	if input.Name != nil {
 		participant.Name = *input.Name
 	}
@@ -67,11 +80,10 @@ func applyUpdateInput(participant *entity.Participant, input UpdateParticipantIn
 	if input.Status != nil {
 		participant.Status = *input.Status
 	}
-	if input.Metadata != nil {
-		// Convert metadata string to json.RawMessage
-		metadata := json.RawMessage(*input.Metadata)
-		participant.Metadata = &metadata
-	}
+}
+
+// applyPaymentFields applies payment-related fields from input
+func applyPaymentFields(participant *entity.Participant, input UpdateParticipantInput) {
 	if input.PaymentStatus != nil {
 		participant.PaymentStatus = *input.PaymentStatus
 	}
@@ -80,6 +92,14 @@ func applyUpdateInput(participant *entity.Participant, input UpdateParticipantIn
 	}
 	if input.PaymentDate != nil {
 		participant.PaymentDate = input.PaymentDate
+	}
+}
+
+// applyMetadata applies metadata field from input
+func applyMetadata(participant *entity.Participant, metadata *string) error {
+	if metadata != nil {
+		raw := json.RawMessage(*metadata)
+		participant.Metadata = &raw
 	}
 	return nil
 }

@@ -9,7 +9,12 @@ import (
 )
 
 // GetByID retrieves a participant by ID with authorization check
-func (u *participantUsecase) GetByID(ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID) (*entity.Participant, error) {
+func (u *participantUsecase) GetByID(
+	ctx context.Context,
+	userID uuid.UUID,
+	isAdmin bool,
+	id uuid.UUID,
+) (*entity.Participant, error) {
 	// Get participant
 	participant, err := u.participantRepo.FindByID(ctx, id)
 	if err != nil {

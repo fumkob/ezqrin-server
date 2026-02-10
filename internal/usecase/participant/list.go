@@ -9,7 +9,12 @@ import (
 )
 
 // List retrieves a paginated list of participants with authorization check
-func (u *participantUsecase) List(ctx context.Context, userID uuid.UUID, isAdmin bool, input ListParticipantsInput) (ListParticipantsOutput, error) {
+func (u *participantUsecase) List(
+	ctx context.Context,
+	userID uuid.UUID,
+	isAdmin bool,
+	input ListParticipantsInput,
+) (ListParticipantsOutput, error) {
 	// Verify event exists and check authorization
 	event, err := u.eventRepo.FindByID(ctx, input.EventID)
 	if err != nil {
@@ -18,7 +23,9 @@ func (u *participantUsecase) List(ctx context.Context, userID uuid.UUID, isAdmin
 
 	// Authorization: event owner or admin only
 	if !isAdmin && event.OrganizerID != userID {
-		return ListParticipantsOutput{}, apperrors.Forbidden("you do not have permission to view participants for this event")
+		return ListParticipantsOutput{}, apperrors.Forbidden(
+			"you do not have permission to view participants for this event",
+		)
 	}
 
 	// Calculate pagination
