@@ -14,6 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	// percentageMultiplier is used to convert decimal to percentage (0.0-1.0 to 0.0-100.0)
+	percentageMultiplier = 100.0
+)
+
 // checkinRepository implements the CheckinRepository interface.
 type checkinRepository struct {
 	pool *pgxpool.Pool
@@ -166,7 +171,7 @@ func (r *checkinRepository) GetEventStats(ctx context.Context, eventID uuid.UUID
 
 	// Calculate check-in rate percentage
 	if stats.TotalParticipants > 0 {
-		stats.CheckinRate = (float64(stats.CheckedInCount) / float64(stats.TotalParticipants)) * 100.0
+		stats.CheckinRate = (float64(stats.CheckedInCount) / float64(stats.TotalParticipants)) * percentageMultiplier
 	} else {
 		stats.CheckinRate = 0.0
 	}
