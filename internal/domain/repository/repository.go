@@ -3,7 +3,16 @@
 // and implemented in the infrastructure layer.
 package repository
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+// Common repository errors
+var (
+	// ErrNotFound is returned when a requested resource is not found.
+	ErrNotFound = errors.New("not found")
+)
 
 // Transactor defines the interface for managing database transactions.
 // Repositories can use this to ensure atomic operations across multiple
