@@ -64,30 +64,8 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 		deps.Logger,
 	)
 
-	healthHandler := handler.NewHealthHandler(deps.DB, deps.Cache, deps.Logger)
-
-	authUseCases := deps.Container.UseCases.Auth
-	authHandler := handler.NewAuthHandler(
-		authUseCases.Register,
-		authUseCases.Login,
-		authUseCases.Refresh,
-		authUseCases.Logout,
-		deps.Logger,
-	)
-
-	eventHandler := handler.NewEventHandler(deps.Container.UseCases.Event, deps.Logger)
-
-	participantHandler := handler.NewParticipantHandler(
-		deps.Container.UseCases.Participant,
-		deps.Logger,
-	)
-
-	combinedHandler := handler.NewHandler(
-		healthHandler,
-		authHandler,
-		eventHandler,
-		participantHandler,
-	)
+	// Initialize all handlers
+	combinedHandler := initializeHandlers(deps)
 
 	// Register handlers with authentication middleware that respects OpenAPI security requirements
 	// This established the pattern for protecting routes:
@@ -107,4 +85,38 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	generated.RegisterHandlersWithOptions(v1, combinedHandler, options)
 
 	return router
+}
+
+// initializeHandlers creates and combines all HTTP handlers
+func initializeHandlers(deps *RouterDependencies) *handler.Handler {
+	healthHandler := handler.NewHealthHandler(deps.DB, deps.Cache, deps.Logger)
+
+	authUseCases := deps.Container.UseCases.Auth
+	authHandler := handler.NewAuthHandler(
+		authUseCases.Register,
+		authUseCases.Login,
+		authUseCases.Refresh,
+		authUseCases.Logout,
+		deps.Logger,
+	)
+
+	eventHandler := handler.NewEventHandler(deps.Container.UseCases.Event, deps.Logger)
+
+	participantHandler := handler.NewParticipantHandler(
+		deps.Container.UseCases.Participant,
+		deps.Logger,
+	)
+
+	checkinHandler := handler.NewCheckinHandler(
+		deps.Container.UseCases.Checkin,
+		deps.Logger,
+	)
+
+	return handler.NewHandler(
+		healthHandler,
+		authHandler,
+		eventHandler,
+		participantHandler,
+		checkinHandler,
+	)
 }

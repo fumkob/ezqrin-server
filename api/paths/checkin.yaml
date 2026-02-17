@@ -1,0 +1,186 @@
+# Check-in Endpoints
+
+/events/{id}/checkin:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  post:
+    tags:
+      - checkin
+    summary: Check in a participant
+    description: |
+      Check in a participant for an event using either QR code scanning or manual check-in.
+      QR code method validates the QR token, manual method requires participant ID.
+      Duplicate check-ins for the same participant are rejected with 409 Conflict.
+      Requires event owner, staff, or admin permissions.
+    operationId: checkInParticipant
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/checkin.yaml#/CheckInRequest'
+    responses:
+      '200':
+        description: Participant successfully checked in
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/checkin.yaml#/CheckInResponse'
+      '400':
+        description: Bad request - invalid method or missing required fields
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/bad-request"
+              title: "Bad Request"
+              status: 400
+              detail: "qr_code is required when method is qrcode"
+              instance: "/api/v1/events/123/checkin"
+              code: "INVALID_CHECKIN_REQUEST"
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        description: Event or participant not found, or QR code invalid
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/not-found"
+              title: "Resource Not Found"
+              status: 404
+              detail: "Invalid QR code or participant not found"
+              instance: "/api/v1/events/123/checkin"
+              code: "PARTICIPANT_NOT_FOUND"
+      '409':
+        description: Conflict - Participant already checked in
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+            example:
+              type: "https://api.ezqrin.com/problems/conflict"
+              title: "Conflict"
+              status: 409
+              detail: "This participant has already been checked in for this event"
+              instance: "/api/v1/events/123/checkin"
+              code: "ALREADY_CHECKED_IN"
+      '422':
+        $ref: '../components/responses.yaml#/ValidationErrorResponse'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/events/{id}/checkins:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  get:
+    tags:
+      - checkin
+    summary: List check-ins for an event
+    description: |
+      Get a paginated list of all check-ins for an event with participant information.
+      Supports sorting by check-in time. Requires event owner or admin permissions.
+    operationId: listCheckIns
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '../components/parameters.yaml#/PageParam'
+      - $ref: '../components/parameters.yaml#/PerPageParam'
+      - name: sort
+        in: query
+        description: Sort field name
+        required: false
+        schema:
+          type: string
+          enum:
+            - checked_in_at
+            - participant_name
+          default: "checked_in_at"
+          example: "checked_in_at"
+      - $ref: '../components/parameters.yaml#/OrderParam'
+    responses:
+      '200':
+        description: Successfully retrieved list of check-ins
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/checkin.yaml#/CheckInListResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        description: Event not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/participants/{id}/checkin-status:
+  parameters:
+    - $ref: '../components/parameters.yaml#/ParticipantIDParam'
+  get:
+    tags:
+      - checkin
+    summary: Get participant check-in status
+    description: |
+      Check whether a participant has been checked in for their event.
+      Returns participant and event details along with check-in information if checked in.
+      Requires event owner, staff, or admin permissions.
+    operationId: getCheckInStatus
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Check-in status retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/checkin.yaml#/CheckInStatusResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '404':
+        description: Participant not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+/checkins/{id}:
+  parameters:
+    - $ref: '../components/parameters.yaml#/CheckInIDParam'
+  delete:
+    tags:
+      - checkin
+    summary: Cancel a check-in
+    description: |
+      Remove a check-in record, allowing the participant to be checked in again.
+      This action cannot be undone. Requires event owner or admin permissions.
+    operationId: cancelCheckIn
+    security:
+      - bearerAuth: []
+    responses:
+      '204':
+        description: Check-in successfully cancelled
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        description: Check-in not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

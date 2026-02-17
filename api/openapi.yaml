@@ -105,9 +105,18 @@ paths:
   /participants/{id}/qrcode:
     $ref: './paths/participants.yaml#/~1participants~1{id}~1qrcode'
 
+  # Check-in endpoints
+  /events/{id}/checkin:
+    $ref: './paths/checkin.yaml#/~1events~1{id}~1checkin'
+  /events/{id}/checkins:
+    $ref: './paths/checkin.yaml#/~1events~1{id}~1checkins'
+  /participants/{id}/checkin-status:
+    $ref: './paths/checkin.yaml#/~1participants~1{id}~1checkin-status'
+  /checkins/{id}:
+    $ref: './paths/checkin.yaml#/~1checkins~1{id}'
+
   # Future endpoints will be added here as separate YAML files:
   # Users: ./paths/users.yaml
-  # Check-ins: ./paths/checkin.yaml
 
 components:
   securitySchemes:
@@ -158,6 +167,16 @@ components:
       $ref: './schemas/participants.yaml#/BulkCreateParticipantsResponse'
     ParticipantListResponse:
       $ref: './schemas/participants.yaml#/ParticipantListResponse'
+
+    # Check-in schemas
+    CheckInRequest:
+      $ref: './schemas/checkin.yaml#/CheckInRequest'
+    CheckInResponse:
+      $ref: './schemas/checkin.yaml#/CheckInResponse'
+    CheckInListResponse:
+      $ref: './schemas/checkin.yaml#/CheckInListResponse'
+    CheckInStatusResponse:
+      $ref: './schemas/checkin.yaml#/CheckInStatusResponse'
 
     # Enums
     UserRole:
