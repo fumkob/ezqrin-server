@@ -40,9 +40,13 @@ func (u *checkinUsecase) GetStatus(
 		var appErr *apperrors.AppError
 		if errors.As(err, &appErr) && appErr.Code == apperrors.CodeNotFound {
 			return &CheckInStatusOutput{
-				ParticipantID: participantID,
-				IsCheckedIn:   false,
-				CheckIn:       nil,
+				ParticipantID:    participantID,
+				ParticipantName:  participant.Name,
+				ParticipantEmail: participant.Email,
+				EventID:          event.ID,
+				EventName:        event.Name,
+				IsCheckedIn:      false,
+				CheckIn:          nil,
 			}, nil
 		}
 		return nil, fmt.Errorf("failed to get check-in status: %w", err)
@@ -50,18 +54,13 @@ func (u *checkinUsecase) GetStatus(
 
 	// Build output with check-in details
 	output := &CheckInStatusOutput{
-		ParticipantID: participantID,
-		IsCheckedIn:   true,
-		CheckIn: &CheckInOutput{
-			ID:               checkin.ID,
-			EventID:          checkin.EventID,
-			ParticipantID:    participant.ID,
-			ParticipantName:  participant.Name,
-			ParticipantEmail: participant.Email,
-			CheckedInAt:      checkin.CheckedInAt,
-			CheckedInBy:      checkin.CheckedInBy,
-			Method:           checkin.Method,
-		},
+		ParticipantID:    participantID,
+		ParticipantName:  participant.Name,
+		ParticipantEmail: participant.Email,
+		EventID:          event.ID,
+		EventName:        event.Name,
+		IsCheckedIn:      true,
+		CheckIn:          u.buildCheckInOutput(checkin, participant),
 	}
 
 	return output, nil
