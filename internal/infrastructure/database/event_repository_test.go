@@ -260,5 +260,48 @@ var _ = Describe("EventRepository", func() {
 			Expect(apperrors.IsNotFound(err)).To(BeTrue())
 			Expect(stats).To(BeNil())
 		})
+
+		Context("with participants of various statuses", func() {
+			var participantRepo repository.ParticipantRepository
+
+			BeforeEach(func() {
+				participantRepo = database.NewParticipantRepository(db.GetPool())
+				for i, status := range []entity.ParticipantStatus{
+					entity.ParticipantStatusConfirmed,
+					entity.ParticipantStatusTentative,
+					entity.ParticipantStatusCancelled,
+				} {
+					p := &entity.Participant{
+						ID:                uuid.New(),
+						EventID:           testEventID,
+						Name:              fmt.Sprintf("P%d", i),
+						Email:             fmt.Sprintf("p%d@test.com", i),
+						QRCode:            fmt.Sprintf("qr-status-%d", i),
+						QRCodeGeneratedAt: time.Now(),
+						Status:            status,
+						PaymentStatus:     entity.PaymentUnpaid,
+						CreatedAt:         time.Now(),
+						UpdatedAt:         time.Now(),
+					}
+					Expect(participantRepo.Create(ctx, p)).To(Succeed())
+				}
+			})
+
+			It("should count only active participants (confirmed + tentative)", func() {
+				stats, err := repo.GetStats(ctx, testEventID)
+				Expect(err).To(BeNil())
+				// confirmed(1) + tentative(1) = 2 (cancelled は除外)
+				Expect(stats.TotalParticipants).To(Equal(int64(2)))
+				Expect(stats.CheckedInCount).To(Equal(int64(0)))
+			})
+
+			It("should return by_status breakdown", func() {
+				stats, err := repo.GetStats(ctx, testEventID)
+				Expect(err).To(BeNil())
+				Expect(stats.ByStatus).To(HaveKeyWithValue("confirmed", int64(1)))
+				Expect(stats.ByStatus).To(HaveKeyWithValue("tentative", int64(1)))
+				Expect(stats.ByStatus).To(HaveKeyWithValue("cancelled", int64(1)))
+			})
+		})
 	})
 })
