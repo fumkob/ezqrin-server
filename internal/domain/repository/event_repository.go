@@ -23,6 +23,7 @@ type EventListFilter struct {
 type EventStats struct {
 	TotalParticipants int64
 	CheckedInCount    int64
+	ByStatus          map[string]int64 // Count by all participant statuses
 }
 
 // EventRepository defines the interface for event data persistence operations.

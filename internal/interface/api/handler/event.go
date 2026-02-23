@@ -238,7 +238,13 @@ func (h *EventHandler) GetEventsIdStats(c *gin.Context, id generated.EventIDPara
 	}
 
 	eventIDStr := openapi_types.UUID(output.EventID)
-	byStatus := make(map[string]int) // Placeholder
+
+	// Convert ByStatus from map[string]int64 to map[string]int
+	byStatus := make(map[string]int, len(output.ByStatus))
+	for k, v := range output.ByStatus {
+		byStatus[k] = int(v)
+	}
+
 	resp := generated.EventStatsResponse{
 		EventId:               eventIDStr,
 		TotalParticipants:     int(output.TotalParticipants),

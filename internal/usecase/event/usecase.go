@@ -141,14 +141,12 @@ func (u *eventUsecase) GetStats(
 		checkinRate = float64(stats.CheckedInCount) / float64(stats.TotalParticipants)
 	}
 
-	// Note: byStatus is a placeholder here as the repository doesn't support it yet
-	// In a real implementation, you might need another repo method or join.
 	return EventStatsOutput{
 		EventID:               id,
 		TotalParticipants:     stats.TotalParticipants,
 		CheckedInParticipants: stats.CheckedInCount,
 		CheckinRate:           checkinRate,
-		ByStatus:              make(map[string]int64),
+		ByStatus:              stats.ByStatus,
 	}, nil
 }
 

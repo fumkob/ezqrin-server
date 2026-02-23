@@ -246,20 +246,48 @@ func (r *EventRepository) GetStats(ctx context.Context, id uuid.UUID) (*reposito
 		return nil, apperrors.NotFound("event not found")
 	}
 
-	// Get total participants and checked-in count
-	query := `
+	// Get active participant count (tentative + confirmed) and checked-in count
+	statsQuery := `
 		SELECT
-			(SELECT COUNT(*) FROM participants WHERE event_id = $1) as total_participants,
+			(SELECT COUNT(*) FROM participants
+			 WHERE event_id = $1 AND status NOT IN ('cancelled', 'declined')) as total_participants,
 			(SELECT COUNT(*) FROM checkins WHERE event_id = $1) as checked_in_count
 	`
 
 	stats := &repository.EventStats{}
-	err := q.QueryRow(ctx, query, id).Scan(
+	err := q.QueryRow(ctx, statsQuery, id).Scan(
 		&stats.TotalParticipants,
 		&stats.CheckedInCount,
 	)
 	if err != nil {
 		return nil, apperrors.Wrapf(err, "failed to get event statistics")
+	}
+
+	// Get participant count by status
+	byStatusQuery := `
+		SELECT status, COUNT(*) as count
+		FROM participants
+		WHERE event_id = $1
+		GROUP BY status
+	`
+
+	rows, err := q.Query(ctx, byStatusQuery, id)
+	if err != nil {
+		return nil, apperrors.Wrapf(err, "failed to get participant status breakdown")
+	}
+	defer rows.Close()
+
+	stats.ByStatus = make(map[string]int64)
+	for rows.Next() {
+		var status string
+		var count int64
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, apperrors.Wrapf(err, "failed to scan status row")
+		}
+		stats.ByStatus[status] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, apperrors.Wrapf(err, "failed to iterate status rows")
 	}
 
 	return stats, nil
