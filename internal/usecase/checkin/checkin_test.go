@@ -132,6 +132,76 @@ var _ = Describe("CheckIn UseCase", func() {
 					Expect(appErr.Code).To(Equal(apperrors.CodeBadRequest))
 				})
 			})
+
+			Context("when participant status is cancelled", func() {
+				It("should return bad request error", func() {
+					cancelledParticipant := &entity.Participant{
+						ID:      uuid.New(),
+						EventID: testEventID,
+						Status:  entity.ParticipantStatusCancelled,
+						QRCode:  "cancelled-qr",
+					}
+					mockParticipant.participants["cancelled-qr"] = cancelledParticipant
+
+					event := &entity.Event{
+						ID:          testEventID,
+						OrganizerID: testOrganizerID,
+						Name:        "Test Event",
+					}
+					mockEventRepo.events[testEventID] = event
+
+					qrCode := "cancelled-qr"
+					input := checkin.CheckInInput{
+						EventID:     testEventID,
+						Method:      entity.CheckinMethodQRCode,
+						QRCode:      &qrCode,
+						CheckedInBy: testUserID,
+					}
+					result, err := usecase.CheckIn(ctx, testUserID, false, input)
+
+					Expect(result).To(BeNil())
+					Expect(err).NotTo(BeNil())
+					var appErr *apperrors.AppError
+					Expect(errors.As(err, &appErr)).To(BeTrue())
+					Expect(appErr.Code).To(Equal(apperrors.CodeBadRequest))
+					Expect(err.Error()).To(ContainSubstring("cannot check in"))
+				})
+			})
+
+			Context("when participant status is declined", func() {
+				It("should return bad request error", func() {
+					declinedParticipant := &entity.Participant{
+						ID:      uuid.New(),
+						EventID: testEventID,
+						Status:  entity.ParticipantStatusDeclined,
+						QRCode:  "declined-qr",
+					}
+					mockParticipant.participants["declined-qr"] = declinedParticipant
+
+					event := &entity.Event{
+						ID:          testEventID,
+						OrganizerID: testOrganizerID,
+						Name:        "Test Event",
+					}
+					mockEventRepo.events[testEventID] = event
+
+					qrCode := "declined-qr"
+					input := checkin.CheckInInput{
+						EventID:     testEventID,
+						Method:      entity.CheckinMethodQRCode,
+						QRCode:      &qrCode,
+						CheckedInBy: testUserID,
+					}
+					result, err := usecase.CheckIn(ctx, testUserID, false, input)
+
+					Expect(result).To(BeNil())
+					Expect(err).NotTo(BeNil())
+					var appErr *apperrors.AppError
+					Expect(errors.As(err, &appErr)).To(BeTrue())
+					Expect(appErr.Code).To(Equal(apperrors.CodeBadRequest))
+					Expect(err.Error()).To(ContainSubstring("cannot check in"))
+				})
+			})
 		})
 
 		When("checking in manually", func() {

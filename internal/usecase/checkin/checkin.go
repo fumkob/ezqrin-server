@@ -41,6 +41,13 @@ func (u *checkinUsecase) CheckIn(
 		return nil, apperrors.BadRequest("participant does not belong to this event")
 	}
 
+	// Verify participant is active (not cancelled or declined)
+	if participant.IsCancelled() || participant.IsDeclined() {
+		return nil, apperrors.BadRequest(
+			fmt.Sprintf("cannot check in: participant status is %s", participant.Status),
+		)
+	}
+
 	// Check for duplicate check-in
 	if err := u.checkDuplicateCheckIn(ctx, input.EventID, participant.ID); err != nil {
 		return nil, err
