@@ -263,4 +263,4 @@ settings.
 
 ## License
 
-This project is private and proprietary. All rights reserved.
+This project is licensed under the [MIT License](./LICENSE).
