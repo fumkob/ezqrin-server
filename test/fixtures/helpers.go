@@ -114,7 +114,9 @@ func (h *Helper) CreateParticipant(token, eventID, name, email string) *generate
 }
 
 // CreateParticipantWithEmployeeID adds a participant with an employee ID to an event.
-func (h *Helper) CreateParticipantWithEmployeeID(token, eventID, name, email, employeeID string) *generated.Participant {
+func (h *Helper) CreateParticipantWithEmployeeID(
+	token, eventID, name, email, employeeID string,
+) *generated.Participant {
 	reqBody := map[string]string{"name": name, "email": email, "employee_id": employeeID}
 	body, _ := json.Marshal(reqBody)
 
