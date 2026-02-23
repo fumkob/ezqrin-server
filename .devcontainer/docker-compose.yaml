@@ -1,3 +1,5 @@
+name: ezqrin
+
 services:
   api:
     container_name: ezqrin-api
