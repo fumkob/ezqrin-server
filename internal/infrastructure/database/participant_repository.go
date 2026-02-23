@@ -131,15 +131,16 @@ func (r *participantRepository) BulkCreate(ctx context.Context, participants []*
 	return nil
 }
 
-// FindByID retrieves a participant by its unique ID.
+// FindByID retrieves a participant by its unique ID with check-in status.
 func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Participant, error) {
 	query := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE id = $1
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.id = $1
 	`
 
 	row := r.pool.QueryRow(ctx, query, id)
@@ -195,15 +196,16 @@ func (r *participantRepository) FindByEventID(
 	return participants, total, nil
 }
 
-// FindByQRCode retrieves a participant by their QR code.
+// FindByQRCode retrieves a participant by their QR code with check-in status.
 func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error) {
 	query := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE qr_code = $1
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.qr_code = $1
 	`
 
 	row := r.pool.QueryRow(ctx, query, qrCode)
@@ -395,7 +397,7 @@ func (r *participantRepository) HealthCheck(ctx context.Context) error {
 	return r.pool.Ping(ctx)
 }
 
-// scanParticipantFromRow scans a single row into a Participant entity.
+// scanParticipantFromRow scans a single row into a Participant entity including check-in status.
 func (r *participantRepository) scanParticipantFromRow(row pgx.Row) (*entity.Participant, error) {
 	participant := &entity.Participant{}
 	err := row.Scan(
@@ -415,10 +417,12 @@ func (r *participantRepository) scanParticipantFromRow(row pgx.Row) (*entity.Par
 		&participant.PaymentDate,
 		&participant.CreatedAt,
 		&participant.UpdatedAt,
+		&participant.CheckedInAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	participant.CheckedIn = participant.CheckedInAt != nil
 	return participant, nil
 }
 
