@@ -1087,6 +1087,37 @@ var _ = Describe("EventUsecase", func() {
 			})
 		})
 
+		When("getting stats with participants of various statuses", func() {
+			Context("with by_status breakdown from repository", func() {
+				It("should return by_status breakdown", func() {
+					stats := &repository.EventStats{
+						TotalParticipants: 8, // active only
+						CheckedInCount:    3,
+						ByStatus: map[string]int64{
+							"confirmed": 6,
+							"tentative": 2,
+							"cancelled": 2,
+						},
+					}
+
+					mockRepo.findByIDFunc = func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
+						return testEvent, nil
+					}
+					mockRepo.getStatsFunc = func(ctx context.Context, id uuid.UUID) (*repository.EventStats, error) {
+						return stats, nil
+					}
+
+					result, err := usecase.GetStats(ctx, eventID, userID, false)
+
+					Expect(err).To(BeNil())
+					Expect(result.TotalParticipants).To(Equal(int64(8)))
+					Expect(result.ByStatus).To(HaveKeyWithValue("confirmed", int64(6)))
+					Expect(result.ByStatus).To(HaveKeyWithValue("tentative", int64(2)))
+					Expect(result.ByStatus).To(HaveKeyWithValue("cancelled", int64(2)))
+				})
+			})
+		})
+
 		When("context is cancelled", func() {
 			It("should propagate context error", func() {
 				cancelledCtx, cancel := context.WithCancel(ctx)
