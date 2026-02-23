@@ -115,12 +115,12 @@ func (h *CheckinHandler) GetCheckInStatus(c *gin.Context, participantID generate
 	response.Data(c, http.StatusOK, resp)
 }
 
-// CancelCheckIn handles canceling a check-in (DELETE /checkins/{id}).
-func (h *CheckinHandler) CancelCheckIn(c *gin.Context, checkinID generated.CheckInIDParam) {
+// CancelCheckIn handles canceling a check-in (DELETE /events/{id}/checkins/{cid}).
+func (h *CheckinHandler) CancelCheckIn(c *gin.Context, id generated.EventIDParam, cid openapi_types.UUID) {
 	userID := h.getUserID(c)
 	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
 
-	err := h.usecase.Cancel(c.Request.Context(), userID, isAdmin, uuid.UUID(checkinID))
+	err := h.usecase.Cancel(c.Request.Context(), userID, isAdmin, uuid.UUID(cid))
 	if err != nil {
 		response.ProblemFromError(c, err)
 		return

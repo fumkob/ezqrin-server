@@ -73,3 +73,13 @@ CheckInIDParam:
     type: string
     format: uuid
     example: "880e8400-e29b-41d4-a716-446655440000"
+
+CheckInCIDParam:
+  name: cid
+  in: path
+  description: Check-in unique identifier (UUID)
+  required: true
+  schema:
+    type: string
+    format: uuid
+    example: "880e8400-e29b-41d4-a716-446655440000"

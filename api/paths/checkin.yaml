@@ -124,6 +124,36 @@
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
+/events/{id}/checkins/{cid}:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+    - $ref: '../components/parameters.yaml#/CheckInCIDParam'
+  delete:
+    tags:
+      - checkin
+    summary: Cancel a check-in
+    description: |
+      Remove a check-in record, allowing the participant to be checked in again.
+      This action cannot be undone. Requires event owner or admin permissions.
+    operationId: cancelCheckIn
+    security:
+      - bearerAuth: []
+    responses:
+      '204':
+        description: Check-in successfully cancelled
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        description: Check-in not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
 /participants/{id}/checkin-status:
   parameters:
     - $ref: '../components/parameters.yaml#/ParticipantIDParam'
@@ -149,35 +179,6 @@
         $ref: '../components/responses.yaml#/Unauthorized'
       '404':
         description: Participant not found
-        content:
-          application/json:
-            schema:
-              $ref: '../schemas/responses.yaml#/ProblemDetails'
-      '500':
-        $ref: '../components/responses.yaml#/InternalError'
-
-/checkins/{id}:
-  parameters:
-    - $ref: '../components/parameters.yaml#/CheckInIDParam'
-  delete:
-    tags:
-      - checkin
-    summary: Cancel a check-in
-    description: |
-      Remove a check-in record, allowing the participant to be checked in again.
-      This action cannot be undone. Requires event owner or admin permissions.
-    operationId: cancelCheckIn
-    security:
-      - bearerAuth: []
-    responses:
-      '204':
-        description: Check-in successfully cancelled
-      '401':
-        $ref: '../components/responses.yaml#/Unauthorized'
-      '403':
-        $ref: '../components/responses.yaml#/Forbidden'
-      '404':
-        description: Check-in not found
         content:
           application/json:
             schema:

@@ -646,7 +646,7 @@ var _ = Describe("Check-in API Integration", func() {
 		})
 	})
 
-	Describe("DELETE /api/v1/checkins/:id", func() {
+	Describe("DELETE /api/v1/events/:id/checkins/:cid", func() {
 		var checkinID string
 
 		BeforeEach(func() {
@@ -670,7 +670,7 @@ var _ = Describe("Check-in API Integration", func() {
 		When("canceling check-in", func() {
 			Context("as event organizer", func() {
 				It("should successfully cancel check-in", func() {
-					req := httptest.NewRequest(http.MethodDelete, "/api/v1/checkins/"+checkinID, nil)
+					req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -692,7 +692,7 @@ var _ = Describe("Check-in API Integration", func() {
 
 			Context("as admin", func() {
 				It("should successfully cancel check-in", func() {
-					req := httptest.NewRequest(http.MethodDelete, "/api/v1/checkins/"+checkinID, nil)
+					req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
 					req.Header.Set("Authorization", "Bearer "+adminAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -705,7 +705,7 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("authentication is missing", func() {
 			It("should return 401 Unauthorized", func() {
-				req := httptest.NewRequest(http.MethodDelete, "/api/v1/checkins/"+checkinID, nil)
+				req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
 				// No Authorization header
 
 				w := httptest.NewRecorder()
@@ -721,7 +721,7 @@ var _ = Describe("Check-in API Integration", func() {
 				createTestUserV1(router, "other4@example.com", "Password123!", "Other User 4", "organizer")
 				otherAuth := loginTestUserV1(router, "other4@example.com", "Password123!")
 
-				req := httptest.NewRequest(http.MethodDelete, "/api/v1/checkins/"+checkinID, nil)
+				req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
 				req.Header.Set("Authorization", "Bearer "+otherAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -733,7 +733,7 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("check-in does not exist", func() {
 			It("should return 404 Not Found", func() {
-				req := httptest.NewRequest(http.MethodDelete, "/api/v1/checkins/00000000-0000-0000-0000-000000000000", nil)
+				req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/00000000-0000-0000-0000-000000000000", nil)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()

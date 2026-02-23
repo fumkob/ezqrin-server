@@ -110,10 +110,10 @@ paths:
     $ref: './paths/checkin.yaml#/~1events~1{id}~1checkin'
   /events/{id}/checkins:
     $ref: './paths/checkin.yaml#/~1events~1{id}~1checkins'
+  /events/{id}/checkins/{cid}:
+    $ref: './paths/checkin.yaml#/~1events~1{id}~1checkins~1{cid}'
   /participants/{id}/checkin-status:
     $ref: './paths/checkin.yaml#/~1participants~1{id}~1checkin-status'
-  /checkins/{id}:
-    $ref: './paths/checkin.yaml#/~1checkins~1{id}'
 
   # Future endpoints will be added here as separate YAML files:
   # Users: ./paths/users.yaml
