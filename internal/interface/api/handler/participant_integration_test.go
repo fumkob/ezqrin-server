@@ -190,7 +190,11 @@ var _ = Describe("Participant API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(participantReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/participants",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -218,7 +222,11 @@ var _ = Describe("Participant API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(participantReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/participants",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+adminAuth.AccessToken)
 
@@ -238,7 +246,11 @@ var _ = Describe("Participant API Integration", func() {
 				}
 
 				reqBody, _ := json.Marshal(participantReq)
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+				req := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants",
+					bytes.NewReader(reqBody),
+				)
 				req.Header.Set("Content-Type", "application/json")
 
 				w := httptest.NewRecorder()
@@ -260,7 +272,11 @@ var _ = Describe("Participant API Integration", func() {
 				}
 
 				reqBody, _ := json.Marshal(participantReq)
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+				req := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants",
+					bytes.NewReader(reqBody),
+				)
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer "+otherAuth.AccessToken)
 
@@ -281,7 +297,11 @@ var _ = Describe("Participant API Integration", func() {
 				reqBody, _ := json.Marshal(participantReq)
 
 				// First create
-				req1 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+				req1 := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants",
+					bytes.NewReader(reqBody),
+				)
 				req1.Header.Set("Content-Type", "application/json")
 				req1.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 				w1 := httptest.NewRecorder()
@@ -289,7 +309,11 @@ var _ = Describe("Participant API Integration", func() {
 				Expect(w1.Code).To(Equal(http.StatusCreated))
 
 				// Second create (duplicate)
-				req2 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants", bytes.NewReader(reqBody))
+				req2 := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants",
+					bytes.NewReader(reqBody),
+				)
 				req2.Header.Set("Content-Type", "application/json")
 				req2.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 				w2 := httptest.NewRecorder()
@@ -327,7 +351,11 @@ var _ = Describe("Participant API Integration", func() {
 
 			Context("with pagination", func() {
 				It("should respect per_page parameter", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/events/"+testEventID+"/participants?per_page=1", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/events/"+testEventID+"/participants?per_page=1",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -344,7 +372,11 @@ var _ = Describe("Participant API Integration", func() {
 
 			Context("with search", func() {
 				It("should filter by search query", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/events/"+testEventID+"/participants?search=alice", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/events/"+testEventID+"/participants?search=alice",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -402,7 +434,11 @@ var _ = Describe("Participant API Integration", func() {
 
 		When("participant does not exist", func() {
 			It("should return 404 Not Found", func() {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/00000000-0000-0000-0000-000000000000", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/participants/00000000-0000-0000-0000-000000000000",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -417,7 +453,13 @@ var _ = Describe("Participant API Integration", func() {
 		var participantID string
 
 		BeforeEach(func() {
-			p := createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Original Name", "original@example.com")
+			p := createTestParticipant(
+				router,
+				testEventID,
+				organizerAuth.AccessToken,
+				"Original Name",
+				"original@example.com",
+			)
 			participantID = p.Id.String()
 		})
 
@@ -429,7 +471,11 @@ var _ = Describe("Participant API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(updateReq)
-					req := httptest.NewRequest(http.MethodPut, "/api/v1/participants/"+participantID, bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPut,
+						"/api/v1/participants/"+participantID,
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -453,7 +499,11 @@ var _ = Describe("Participant API Integration", func() {
 				}
 
 				reqBody, _ := json.Marshal(updateReq)
-				req := httptest.NewRequest(http.MethodPut, "/api/v1/participants/"+participantID, bytes.NewReader(reqBody))
+				req := httptest.NewRequest(
+					http.MethodPut,
+					"/api/v1/participants/"+participantID,
+					bytes.NewReader(reqBody),
+				)
 				req.Header.Set("Content-Type", "application/json")
 
 				w := httptest.NewRecorder()
@@ -468,7 +518,13 @@ var _ = Describe("Participant API Integration", func() {
 		var participantID string
 
 		BeforeEach(func() {
-			p := createTestParticipant(router, testEventID, organizerAuth.AccessToken, "To Delete", "delete@example.com")
+			p := createTestParticipant(
+				router,
+				testEventID,
+				organizerAuth.AccessToken,
+				"To Delete",
+				"delete@example.com",
+			)
 			participantID = p.Id.String()
 		})
 
@@ -505,7 +561,11 @@ var _ = Describe("Participant API Integration", func() {
 		When("downloading QR code in PNG format", func() {
 			Context("as event organizer", func() {
 				It("should return PNG QR code", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+participantID+"/qrcode?format=png", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/participants/"+participantID+"/qrcode?format=png",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -521,7 +581,11 @@ var _ = Describe("Participant API Integration", func() {
 		When("downloading QR code in SVG format", func() {
 			Context("as event organizer", func() {
 				It("should return SVG QR code", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+participantID+"/qrcode?format=svg", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/participants/"+participantID+"/qrcode?format=svg",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -536,7 +600,11 @@ var _ = Describe("Participant API Integration", func() {
 
 		When("invalid format is requested", func() {
 			It("should return 400 Bad Request", func() {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+participantID+"/qrcode?format=invalid", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/participants/"+participantID+"/qrcode?format=invalid",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -560,7 +628,11 @@ var _ = Describe("Participant API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(bulkReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants/bulk", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/participants/bulk",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -581,7 +653,13 @@ var _ = Describe("Participant API Integration", func() {
 			Context("with partial failures", func() {
 				It("should create valid participants and report errors", func() {
 					// Create one participant first to cause duplicate
-					createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Existing", "existing@example.com")
+					createTestParticipant(
+						router,
+						testEventID,
+						organizerAuth.AccessToken,
+						"Existing",
+						"existing@example.com",
+					)
 
 					bulkReq := map[string]interface{}{
 						"participants": []map[string]interface{}{
@@ -592,7 +670,11 @@ var _ = Describe("Participant API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(bulkReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/participants/bulk", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/participants/bulk",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 

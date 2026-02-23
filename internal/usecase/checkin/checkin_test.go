@@ -769,14 +769,21 @@ func (m *mockCheckinRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 	return nil, apperrors.NotFound("check-in not found")
 }
 
-func (m *mockCheckinRepository) FindByParticipant(ctx context.Context, participantID uuid.UUID) (*entity.Checkin, error) {
+func (m *mockCheckinRepository) FindByParticipant(
+	ctx context.Context,
+	participantID uuid.UUID,
+) (*entity.Checkin, error) {
 	if checkin, ok := m.checkinsByParticipant[participantID]; ok {
 		return checkin, nil
 	}
 	return nil, apperrors.NotFound("check-in not found")
 }
 
-func (m *mockCheckinRepository) FindByEvent(ctx context.Context, eventID uuid.UUID, limit, offset int) ([]*entity.Checkin, int64, error) {
+func (m *mockCheckinRepository) FindByEvent(
+	ctx context.Context,
+	eventID uuid.UUID,
+	limit, offset int,
+) ([]*entity.Checkin, int64, error) {
 	m.lastLimit = limit
 	m.lastOffset = offset
 	checkins := m.checkinsByEvent[eventID]
@@ -786,7 +793,10 @@ func (m *mockCheckinRepository) FindByEvent(ctx context.Context, eventID uuid.UU
 	return checkins, int64(len(checkins)), nil
 }
 
-func (m *mockCheckinRepository) GetEventStats(ctx context.Context, eventID uuid.UUID) (*repository.CheckinStats, error) {
+func (m *mockCheckinRepository) GetEventStats(
+	ctx context.Context,
+	eventID uuid.UUID,
+) (*repository.CheckinStats, error) {
 	return &repository.CheckinStats{}, nil
 }
 
@@ -799,7 +809,10 @@ func (m *mockCheckinRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
-func (m *mockCheckinRepository) ExistsByParticipant(ctx context.Context, eventID, participantID uuid.UUID) (bool, error) {
+func (m *mockCheckinRepository) ExistsByParticipant(
+	ctx context.Context,
+	eventID, participantID uuid.UUID,
+) (bool, error) {
 	exists, ok := m.existsMap[participantID]
 	if !ok {
 		return false, nil
@@ -857,15 +870,27 @@ func (m *mockParticipantRepository) BulkCreate(ctx context.Context, participants
 	return nil
 }
 
-func (m *mockParticipantRepository) FindByEventID(ctx context.Context, eventID uuid.UUID, offset, limit int) ([]*entity.Participant, int64, error) {
+func (m *mockParticipantRepository) FindByEventID(
+	ctx context.Context,
+	eventID uuid.UUID,
+	offset, limit int,
+) ([]*entity.Participant, int64, error) {
 	return nil, 0, nil
 }
 
-func (m *mockParticipantRepository) Search(ctx context.Context, eventID uuid.UUID, query string, offset, limit int) ([]*entity.Participant, int64, error) {
+func (m *mockParticipantRepository) Search(
+	ctx context.Context,
+	eventID uuid.UUID,
+	query string,
+	offset, limit int,
+) ([]*entity.Participant, int64, error) {
 	return nil, 0, nil
 }
 
-func (m *mockParticipantRepository) GetPaymentStats(ctx context.Context, eventID uuid.UUID) (*repository.ParticipantPaymentStats, error) {
+func (m *mockParticipantRepository) GetPaymentStats(
+	ctx context.Context,
+	eventID uuid.UUID,
+) (*repository.ParticipantPaymentStats, error) {
 	return &repository.ParticipantPaymentStats{}, nil
 }
 
@@ -902,7 +927,11 @@ func (m *mockEventRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (m *mockEventRepository) List(ctx context.Context, filter repository.EventListFilter, offset, limit int) ([]*entity.Event, int64, error) {
+func (m *mockEventRepository) List(
+	ctx context.Context,
+	filter repository.EventListFilter,
+	offset, limit int,
+) ([]*entity.Event, int64, error) {
 	return nil, 0, nil
 }
 

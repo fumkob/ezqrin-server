@@ -168,8 +168,20 @@ var _ = Describe("Check-in API Integration", func() {
 		testEventID = event.Id.String()
 
 		// Create test participants
-		participant1 = createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Participant 1", "participant1@example.com")
-		participant2 = createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Participant 2", "participant2@example.com")
+		participant1 = createTestParticipant(
+			router,
+			testEventID,
+			organizerAuth.AccessToken,
+			"Participant 1",
+			"participant1@example.com",
+		)
+		participant2 = createTestParticipant(
+			router,
+			testEventID,
+			organizerAuth.AccessToken,
+			"Participant 2",
+			"participant2@example.com",
+		)
 	})
 
 	AfterEach(func() {
@@ -194,7 +206,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -220,7 +236,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -239,7 +259,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -260,7 +284,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -286,7 +314,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+adminAuth.AccessToken)
 
@@ -309,7 +341,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+otherAuth.AccessToken)
 
@@ -328,7 +364,11 @@ var _ = Describe("Check-in API Integration", func() {
 					}
 
 					reqBody, _ := json.Marshal(checkinReq)
-					req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+					req := httptest.NewRequest(
+						http.MethodPost,
+						"/api/v1/events/"+testEventID+"/checkin",
+						bytes.NewReader(reqBody),
+					)
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -349,7 +389,11 @@ var _ = Describe("Check-in API Integration", func() {
 				reqBody, _ := json.Marshal(checkinReq)
 
 				// First check-in
-				req1 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+				req1 := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/checkin",
+					bytes.NewReader(reqBody),
+				)
 				req1.Header.Set("Content-Type", "application/json")
 				req1.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 				w1 := httptest.NewRecorder()
@@ -357,7 +401,11 @@ var _ = Describe("Check-in API Integration", func() {
 				Expect(w1.Code).To(Equal(http.StatusOK))
 
 				// Second check-in (duplicate)
-				req2 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+				req2 := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/checkin",
+					bytes.NewReader(reqBody),
+				)
 				req2.Header.Set("Content-Type", "application/json")
 				req2.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 				w2 := httptest.NewRecorder()
@@ -374,7 +422,11 @@ var _ = Describe("Check-in API Integration", func() {
 				}
 
 				reqBody, _ := json.Marshal(checkinReq)
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+				req := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/checkin",
+					bytes.NewReader(reqBody),
+				)
 				req.Header.Set("Content-Type", "application/json")
 				// No Authorization header
 
@@ -388,7 +440,11 @@ var _ = Describe("Check-in API Integration", func() {
 		When("request body is invalid", func() {
 			It("should return 400 Bad Request", func() {
 				invalidJSON := []byte("{invalid json}")
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(invalidJSON))
+				req := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/checkin",
+					bytes.NewReader(invalidJSON),
+				)
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -407,7 +463,11 @@ var _ = Describe("Check-in API Integration", func() {
 				}
 
 				reqBody, _ := json.Marshal(checkinReq)
-				req := httptest.NewRequest(http.MethodPost, "/api/v1/events/00000000-0000-0000-0000-000000000000/checkin", bytes.NewReader(reqBody))
+				req := httptest.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/00000000-0000-0000-0000-000000000000/checkin",
+					bytes.NewReader(reqBody),
+				)
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
@@ -427,7 +487,11 @@ var _ = Describe("Check-in API Integration", func() {
 				"qr_code": participant1.QrCode,
 			}
 			reqBody1, _ := json.Marshal(checkin1)
-			req1 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody1))
+			req1 := httptest.NewRequest(
+				http.MethodPost,
+				"/api/v1/events/"+testEventID+"/checkin",
+				bytes.NewReader(reqBody1),
+			)
 			req1.Header.Set("Content-Type", "application/json")
 			req1.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 			w1 := httptest.NewRecorder()
@@ -438,7 +502,11 @@ var _ = Describe("Check-in API Integration", func() {
 				"participant_id": participant2.Id.String(),
 			}
 			reqBody2, _ := json.Marshal(checkin2)
-			req2 := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody2))
+			req2 := httptest.NewRequest(
+				http.MethodPost,
+				"/api/v1/events/"+testEventID+"/checkin",
+				bytes.NewReader(reqBody2),
+			)
 			req2.Header.Set("Content-Type", "application/json")
 			req2.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 			w2 := httptest.NewRecorder()
@@ -478,7 +546,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 			Context("with pagination", func() {
 				It("should respect per_page parameter", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/events/"+testEventID+"/checkins?per_page=1", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/events/"+testEventID+"/checkins?per_page=1",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -493,7 +565,11 @@ var _ = Describe("Check-in API Integration", func() {
 				})
 
 				It("should respect page parameter", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/events/"+testEventID+"/checkins?page=1&per_page=10", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/events/"+testEventID+"/checkins?page=1&per_page=10",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -534,7 +610,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("event does not exist", func() {
 			It("should return 404 Not Found", func() {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/events/00000000-0000-0000-0000-000000000000/checkins", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/events/00000000-0000-0000-0000-000000000000/checkins",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -550,8 +630,20 @@ var _ = Describe("Check-in API Integration", func() {
 		var notCheckedInParticipant *generated.Participant
 
 		BeforeEach(func() {
-			checkedInParticipant = createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Checked In", "checkedin@example.com")
-			notCheckedInParticipant = createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Not Checked In", "notcheckedin@example.com")
+			checkedInParticipant = createTestParticipant(
+				router,
+				testEventID,
+				organizerAuth.AccessToken,
+				"Checked In",
+				"checkedin@example.com",
+			)
+			notCheckedInParticipant = createTestParticipant(
+				router,
+				testEventID,
+				organizerAuth.AccessToken,
+				"Not Checked In",
+				"notcheckedin@example.com",
+			)
 
 			// Check in one participant
 			checkinReq := map[string]interface{}{
@@ -559,7 +651,11 @@ var _ = Describe("Check-in API Integration", func() {
 				"qr_code": checkedInParticipant.QrCode,
 			}
 			reqBody, _ := json.Marshal(checkinReq)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/api/v1/events/"+testEventID+"/checkin",
+				bytes.NewReader(reqBody),
+			)
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 			w := httptest.NewRecorder()
@@ -569,7 +665,11 @@ var _ = Describe("Check-in API Integration", func() {
 		When("checking status of checked-in participant", func() {
 			Context("as event organizer", func() {
 				It("should return checked-in status with details", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -589,7 +689,11 @@ var _ = Describe("Check-in API Integration", func() {
 		When("checking status of not checked-in participant", func() {
 			Context("as event organizer", func() {
 				It("should return not checked-in status", func() {
-					req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+notCheckedInParticipant.Id.String()+"/checkin-status", nil)
+					req := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/participants/"+notCheckedInParticipant.Id.String()+"/checkin-status",
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -608,7 +712,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("authentication is missing", func() {
 			It("should return 401 Unauthorized", func() {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status",
+					nil,
+				)
 				// No Authorization header
 
 				w := httptest.NewRecorder()
@@ -620,7 +728,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("participant does not exist", func() {
 			It("should return 404 Not Found", func() {
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/00000000-0000-0000-0000-000000000000/checkin-status", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/participants/00000000-0000-0000-0000-000000000000/checkin-status",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -636,7 +748,11 @@ var _ = Describe("Check-in API Integration", func() {
 				createTestUserV1(router, "other3@example.com", "Password123!", "Other User 3", "organizer")
 				otherAuth := loginTestUserV1(router, "other3@example.com", "Password123!")
 
-				req := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status", nil)
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/participants/"+checkedInParticipant.Id.String()+"/checkin-status",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+otherAuth.AccessToken)
 
 				w := httptest.NewRecorder()
@@ -657,7 +773,11 @@ var _ = Describe("Check-in API Integration", func() {
 				"qr_code": participant1.QrCode,
 			}
 			reqBody, _ := json.Marshal(checkinReq)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+testEventID+"/checkin", bytes.NewReader(reqBody))
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/api/v1/events/"+testEventID+"/checkin",
+				bytes.NewReader(reqBody),
+			)
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 			w := httptest.NewRecorder()
@@ -671,7 +791,11 @@ var _ = Describe("Check-in API Integration", func() {
 		When("canceling check-in", func() {
 			Context("as event organizer", func() {
 				It("should successfully cancel check-in", func() {
-					req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
+					req := httptest.NewRequest(
+						http.MethodDelete,
+						"/api/v1/events/"+testEventID+"/checkins/"+checkinID,
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -680,7 +804,11 @@ var _ = Describe("Check-in API Integration", func() {
 					Expect(w.Code).To(Equal(http.StatusNoContent))
 
 					// Verify check-in was canceled
-					statusReq := httptest.NewRequest(http.MethodGet, "/api/v1/participants/"+participant1.Id.String()+"/checkin-status", nil)
+					statusReq := httptest.NewRequest(
+						http.MethodGet,
+						"/api/v1/participants/"+participant1.Id.String()+"/checkin-status",
+						nil,
+					)
 					statusReq.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 					statusW := httptest.NewRecorder()
 					router.ServeHTTP(statusW, statusReq)
@@ -693,7 +821,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 			Context("as admin", func() {
 				It("should successfully cancel check-in", func() {
-					req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/"+checkinID, nil)
+					req := httptest.NewRequest(
+						http.MethodDelete,
+						"/api/v1/events/"+testEventID+"/checkins/"+checkinID,
+						nil,
+					)
 					req.Header.Set("Authorization", "Bearer "+adminAuth.AccessToken)
 
 					w := httptest.NewRecorder()
@@ -734,7 +866,11 @@ var _ = Describe("Check-in API Integration", func() {
 
 		When("check-in does not exist", func() {
 			It("should return 404 Not Found", func() {
-				req := httptest.NewRequest(http.MethodDelete, "/api/v1/events/"+testEventID+"/checkins/00000000-0000-0000-0000-000000000000", nil)
+				req := httptest.NewRequest(
+					http.MethodDelete,
+					"/api/v1/events/"+testEventID+"/checkins/00000000-0000-0000-0000-000000000000",
+					nil,
+				)
 				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
 
 				w := httptest.NewRecorder()

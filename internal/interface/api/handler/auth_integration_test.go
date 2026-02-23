@@ -159,7 +159,13 @@ var _ = Describe("Authentication API Integration", func() {
 		participantHandler := handler.NewParticipantHandler(nil, log)
 		checkinHandler := handler.NewCheckinHandler(nil, log)
 
-		combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler, participantHandler, checkinHandler)
+		combinedHandler := handler.NewHandler(
+			healthHandler,
+			authHandler,
+			eventHandler,
+			participantHandler,
+			checkinHandler,
+		)
 		options := generated.GinServerOptions{
 			Middlewares: []generated.MiddlewareFunc{
 				func(c *gin.Context) {
