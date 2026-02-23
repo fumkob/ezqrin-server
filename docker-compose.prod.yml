@@ -1,0 +1,121 @@
+name: ezqrin-prod
+
+# Production Docker Compose configuration for ezQRin Server.
+#
+# Prerequisites:
+#   - Copy .env.secrets.example to .env.secrets and fill in production values
+#   - Build the production image: docker build -t ezqrin-server:latest .
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Security note:
+#   This file does not contain secrets. All sensitive values are loaded from
+#   .env.secrets via the env_file directive.
+
+services:
+  api:
+    image: ezqrin-server:latest
+    container_name: ezqrin-api-prod
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.secrets
+    environment:
+      - SERVER_ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_SSL_MODE=require
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ezqrin-internal
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: ezqrin-postgres-prod
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    env_file:
+      - .env.secrets
+    environment:
+      # POSTGRES_USER and POSTGRES_PASSWORD are loaded from .env.secrets
+      # as DB_USER and DB_PASSWORD respectively. Map them here:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - ezqrin-internal
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    container_name: ezqrin-redis-prod
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    env_file:
+      - .env.secrets
+    networks:
+      - ezqrin-internal
+    security_opt:
+      - no-new-privileges:true
+    command: >
+      sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\" --maxmemory 256mb --maxmemory-policy allkeys-lru
+        else
+          redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+        fi
+      "
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - >
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a "$$REDIS_PASSWORD" ping;
+          else
+            redis-cli ping;
+          fi
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  ezqrin-internal:
+    driver: bridge
+    internal: true
