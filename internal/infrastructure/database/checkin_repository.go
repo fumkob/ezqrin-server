@@ -8,6 +8,7 @@ import (
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
+	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -80,7 +81,7 @@ func (r *checkinRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity
 	checkin, err := r.scanCheckinFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repository.ErrNotFound
+			return nil, apperrors.NotFound("check-in not found")
 		}
 		return nil, fmt.Errorf("failed to find checkin: %w", err)
 	}
@@ -102,7 +103,7 @@ func (r *checkinRepository) FindByParticipant(ctx context.Context, participantID
 	checkin, err := r.scanCheckinFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, repository.ErrNotFound
+			return nil, apperrors.NotFound("check-in not found")
 		}
 		return nil, fmt.Errorf("failed to find checkin by participant: %w", err)
 	}
@@ -192,7 +193,7 @@ func (r *checkinRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return repository.ErrNotFound
+		return apperrors.NotFound("check-in not found")
 	}
 
 	return nil

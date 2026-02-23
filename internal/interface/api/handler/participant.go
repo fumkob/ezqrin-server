@@ -424,6 +424,9 @@ func (h *ParticipantHandler) toGeneratedParticipant(p *entity.Participant) gener
 		genParticipant.CheckedInAt = p.CheckedInAt
 	}
 
+	genParticipant.QrCode = &p.QRCode
+	genParticipant.QrCodeGeneratedAt = &p.QRCodeGeneratedAt
+
 	return genParticipant
 }
 

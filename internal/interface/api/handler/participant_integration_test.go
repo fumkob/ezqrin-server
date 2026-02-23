@@ -145,10 +145,11 @@ var _ = Describe("Participant API Integration", func() {
 		eventReq := map[string]interface{}{
 			"name":        "Test Event for Participants",
 			"description": "A test event",
-			"start_date":  "2025-12-01T10:00:00Z",
-			"end_date":    "2025-12-01T18:00:00Z",
+			"start_date":  time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+			"end_date":    time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339),
 			"location":    "Test Location",
 			"timezone":    "Asia/Tokyo",
+			"status":      "draft",
 		}
 
 		eventJSON, _ := json.Marshal(eventReq)
@@ -203,7 +204,8 @@ var _ = Describe("Participant API Integration", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(participant.Name).To(Equal("John Doe"))
 					Expect(string(participant.Email)).To(Equal("john@example.com"))
-					Expect(participant.QrCode).NotTo(BeEmpty())
+					Expect(participant.QrCode).NotTo(BeNil())
+					Expect(*participant.QrCode).NotTo(BeEmpty())
 					Expect(participant.EventId.String()).To(Equal(testEventID))
 				})
 			})

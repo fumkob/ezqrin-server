@@ -75,7 +75,7 @@ func (h *CheckinHandler) CheckInParticipant(c *gin.Context, eventID generated.Ev
 
 	// Convert to response
 	resp := h.toCheckInResponse(result)
-	response.Data(c, http.StatusCreated, resp)
+	response.Data(c, http.StatusOK, resp)
 }
 
 // ListCheckIns handles listing check-ins for an event (GET /events/{id}/checkins).

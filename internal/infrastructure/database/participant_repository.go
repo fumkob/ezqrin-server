@@ -7,6 +7,7 @@ import (
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
+	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,11 +60,11 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 	if err != nil {
 		// Check for unique constraint violations
 		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_event_email\" (SQLSTATE 23505)" {
-			return fmt.Errorf("participant with this email already exists for this event: %w", err)
+			return apperrors.Conflict("participant with this email already exists for this event")
 		}
 		if err.Error() == "ERROR: duplicate key value violates unique constraint "+
 			"\"participants_qr_code_key\" (SQLSTATE 23505)" {
-			return fmt.Errorf("QR code already exists: %w", err)
+			return apperrors.Conflict("QR code already exists")
 		}
 		return fmt.Errorf("failed to insert participant: %w", err)
 	}
@@ -147,7 +148,7 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("participant not found: %w", err)
+			return nil, apperrors.NotFound("participant not found")
 		}
 		return nil, fmt.Errorf("failed to find participant: %w", err)
 	}
@@ -212,7 +213,7 @@ func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string)
 	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("participant not found")
+			return nil, apperrors.NotFound("participant not found")
 		}
 		return nil, fmt.Errorf("failed to find participant by QR code: %w", err)
 	}
@@ -262,7 +263,7 @@ func (r *participantRepository) Update(ctx context.Context, participant *entity.
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("participant not found")
+		return apperrors.NotFound("participant not found")
 	}
 
 	return nil
@@ -281,7 +282,7 @@ func (r *participantRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("participant not found")
+		return apperrors.NotFound("participant not found")
 	}
 
 	return nil

@@ -146,10 +146,11 @@ var _ = Describe("Check-in API Integration", func() {
 		eventReq := map[string]interface{}{
 			"name":        "Test Event for Check-in",
 			"description": "A test event for check-in functionality",
-			"start_date":  "2025-12-01T10:00:00Z",
-			"end_date":    "2025-12-01T18:00:00Z",
+			"start_date":  time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+			"end_date":    time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339),
 			"location":    "Test Location",
 			"timezone":    "Asia/Tokyo",
+			"status":      "draft",
 		}
 
 		eventJSON, _ := json.Marshal(eventReq)
@@ -744,64 +745,6 @@ var _ = Describe("Check-in API Integration", func() {
 		})
 	})
 })
-
-// Helper functions
-
-func createTestUserV1(router *gin.Engine, email, password, name, role string) {
-	reqBody := map[string]interface{}{
-		"email":    email,
-		"password": password,
-		"name":     name,
-		"role":     role,
-	}
-
-	body, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusCreated))
-}
-
-func loginTestUserV1(router *gin.Engine, email, password string) *generated.AuthResponse {
-	reqBody := map[string]interface{}{
-		"email":    email,
-		"password": password,
-	}
-
-	body, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusOK))
-
-	var response generated.AuthResponse
-	json.Unmarshal(w.Body.Bytes(), &response)
-	return &response
-}
-
-func createTestParticipant(router *gin.Engine, eventID, token, name, email string) *generated.Participant {
-	participantReq := map[string]interface{}{
-		"name":  name,
-		"email": email,
-	}
-
-	reqBody, _ := json.Marshal(participantReq)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/participants", bytes.NewReader(reqBody))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusCreated))
-
-	var participant generated.Participant
-	json.Unmarshal(w.Body.Bytes(), &participant)
-	return &participant
-}
 
 // cleanDatabaseForCheckins cleans all test data from database
 func cleanDatabaseForCheckins(db database.Service, redisClient *redisClient.Client) {
