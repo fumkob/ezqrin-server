@@ -221,6 +221,34 @@ func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string)
 	return participant, nil
 }
 
+// FindByEmployeeID retrieves a participant by their employee ID within an event.
+func (r *participantRepository) FindByEmployeeID(
+	ctx context.Context,
+	eventID uuid.UUID,
+	employeeID string,
+) (*entity.Participant, error) {
+	query := `
+		SELECT
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.event_id = $1 AND p.employee_id = $2
+	`
+
+	row := r.pool.QueryRow(ctx, query, eventID, employeeID)
+	participant, err := r.scanParticipantFromRow(row)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperrors.NotFound("participant not found")
+		}
+		return nil, fmt.Errorf("failed to find participant by employee ID: %w", err)
+	}
+
+	return participant, nil
+}
+
 // Update updates an existing participant's information.
 func (r *participantRepository) Update(ctx context.Context, participant *entity.Participant) error {
 	if err := participant.Validate(); err != nil {

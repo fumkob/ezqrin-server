@@ -19,6 +19,12 @@ CheckInRequest:
       format: uuid
       description: Participant ID (required when method is manual)
       example: "770e8400-e29b-41d4-a716-446655440000"
+    employee_id:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Employee ID (required when method is manual and using employee ID lookup)
+      example: "EMP001"
     device_info:
       type: object
       description: Device metadata for check-in tracking (max 5KB JSON, optional)

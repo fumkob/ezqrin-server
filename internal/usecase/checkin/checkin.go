@@ -89,6 +89,9 @@ func (u *checkinUsecase) findParticipantForCheckIn(
 		return u.findParticipantByQRCode(ctx, input)
 	}
 	if input.Method == entity.CheckinMethodManual {
+		if input.EmployeeID != nil {
+			return u.findParticipantByEmployeeID(ctx, input)
+		}
 		return u.findParticipantByID(ctx, input)
 	}
 	return nil, apperrors.BadRequest("invalid check-in method")
@@ -118,6 +121,21 @@ func (u *checkinUsecase) findParticipantByID(
 		return nil, apperrors.BadRequest("participant ID is required for manual check-in")
 	}
 	return u.participantRepo.FindByID(ctx, *input.ParticipantID)
+}
+
+// findParticipantByEmployeeID finds participant by employee ID
+func (u *checkinUsecase) findParticipantByEmployeeID(
+	ctx context.Context,
+	input CheckInInput,
+) (*entity.Participant, error) {
+	if input.EmployeeID == nil || *input.EmployeeID == "" {
+		return nil, apperrors.BadRequest("employee ID is required")
+	}
+	participant, err := u.participantRepo.FindByEmployeeID(ctx, input.EventID, *input.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	return participant, nil
 }
 
 // checkDuplicateCheckIn checks if participant has already checked in
