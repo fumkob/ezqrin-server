@@ -159,6 +159,7 @@ func (h *CheckinHandler) toCheckInResponse(output *checkin.CheckInOutput) genera
 	resp := generated.CheckInResponse{
 		Id:            openapi_types.UUID(output.ID),
 		EventId:       openapi_types.UUID(output.EventID),
+		ParticipantId: openapi_types.UUID(output.ParticipantID),
 		CheckinMethod: generated.CheckInMethod(output.Method),
 		CheckedInAt:   output.CheckedInAt,
 		Message:       "Check-in successful",

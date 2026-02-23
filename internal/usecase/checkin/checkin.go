@@ -140,13 +140,9 @@ func (u *checkinUsecase) createCheckinRecord(
 		EventID:       input.EventID,
 		ParticipantID: participantID,
 		CheckedInAt:   time.Now(),
-		CheckedInBy:   nil,
+		CheckedInBy:   &input.CheckedInBy,
 		Method:        input.Method,
 		DeviceInfo:    deviceInfo,
-	}
-
-	if input.Method == entity.CheckinMethodManual {
-		checkin.CheckedInBy = &input.CheckedInBy
 	}
 
 	if err := checkin.Validate(); err != nil {
