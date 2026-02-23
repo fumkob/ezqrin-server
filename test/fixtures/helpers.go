@@ -13,6 +13,8 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+const eventStartOffsetHours = 24
+
 // Helper provides HTTP test helper methods for making API calls.
 type Helper struct {
 	Router *gin.Engine
@@ -73,7 +75,7 @@ func (h *Helper) Login(email, password string) *generated.AuthResponse {
 func (h *Helper) CreateEvent(token, name string) *generated.Event {
 	reqBody := generated.CreateEventRequest{
 		Name:      name,
-		StartDate: time.Now().Add(24 * time.Hour),
+		StartDate: time.Now().Add(eventStartOffsetHours * time.Hour),
 		Status:    generated.EventStatusPublished,
 	}
 	body, _ := json.Marshal(reqBody)

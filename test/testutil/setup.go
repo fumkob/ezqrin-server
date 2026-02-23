@@ -19,6 +19,18 @@ import (
 const (
 	TestJWTSecret = "test-secret-key-minimum-32-characters-long-for-testing"
 	TestDBName    = "ezqrin_test"
+
+	testDBPort          = 5432
+	testDBMaxConns      = 10
+	testDBMinConns      = 2
+	testDBMaxConnLife   = 30
+	testDBMaxConnIdle   = 5
+	testRedisPort       = 6379
+	testRedisPoolSize   = 10
+	testRedisMinIdle    = 2
+	testRedisMaxRetries = 3
+	testRedisDialSec    = 5
+	testRedisRWSec      = 3
 )
 
 // NewTestConfig creates a standard test configuration from environment variables with sensible defaults.
@@ -41,27 +53,27 @@ func NewTestConfig() *config.Config {
 	return &config.Config{
 		Database: config.DatabaseConfig{
 			Host:            dbHost,
-			Port:            5432,
+			Port:            testDBPort,
 			User:            "ezqrin",
 			Password:        "ezqrin_dev",
 			Name:            TestDBName,
 			SSLMode:         "disable",
-			MaxConns:        10,
-			MinConns:        2,
-			MaxConnLifetime: 30 * time.Minute,
-			MaxConnIdleTime: 5 * time.Minute,
+			MaxConns:        testDBMaxConns,
+			MinConns:        testDBMinConns,
+			MaxConnLifetime: testDBMaxConnLife * time.Minute,
+			MaxConnIdleTime: testDBMaxConnIdle * time.Minute,
 		},
 		Redis: config.RedisConfig{
 			Host:         redisHost,
-			Port:         6379,
+			Port:         testRedisPort,
 			Password:     "",
 			DB:           redisDB,
-			PoolSize:     10,
-			MinIdleConns: 2,
-			MaxRetries:   3,
-			DialTimeout:  5 * time.Second,
-			ReadTimeout:  3 * time.Second,
-			WriteTimeout: 3 * time.Second,
+			PoolSize:     testRedisPoolSize,
+			MinIdleConns: testRedisMinIdle,
+			MaxRetries:   testRedisMaxRetries,
+			DialTimeout:  testRedisDialSec * time.Second,
+			ReadTimeout:  testRedisRWSec * time.Second,
+			WriteTimeout: testRedisRWSec * time.Second,
 		},
 		JWT: config.JWTConfig{
 			Secret: TestJWTSecret,
