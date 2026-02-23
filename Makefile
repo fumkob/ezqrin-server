@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all lint-fix
+.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all lint-fix test-coverage-local test-unit-coverage-local
 
 #
 # Container Runtime Detection (Docker/Podman)
@@ -200,6 +200,14 @@ test: check-runtime
 # Run only unit tests
 test-unit: check-runtime
 	cd .devcontainer && $(COMPOSE_CMD) exec -T api bash -c "cd /workspace && go test -count=1 ./..."
+
+# Run tests with coverage report (local, no container)
+test-coverage-local:
+	@./scripts/run-tests.sh
+
+# Run unit tests with coverage (local)
+test-unit-coverage-local:
+	@./scripts/run-tests.sh --unit-only
 
 # Setup test database (create + migrate)
 test-setup: db-create-test migrate-test-up
