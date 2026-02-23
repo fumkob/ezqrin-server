@@ -419,6 +419,14 @@ func (h *ParticipantHandler) toGeneratedParticipant(p *entity.Participant) gener
 		genParticipant.PaymentDate = p.PaymentDate
 	}
 
+	genParticipant.CheckedIn = &p.CheckedIn
+	if p.CheckedInAt != nil {
+		genParticipant.CheckedInAt = p.CheckedInAt
+	}
+
+	genParticipant.QrCode = &p.QRCode
+	genParticipant.QrCodeGeneratedAt = &p.QRCodeGeneratedAt
+
 	return genParticipant
 }
 

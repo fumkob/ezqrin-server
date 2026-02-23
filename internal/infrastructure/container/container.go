@@ -8,6 +8,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
+	"github.com/fumkob/ezqrin-server/internal/usecase/checkin"
 	"github.com/fumkob/ezqrin-server/internal/usecase/event"
 	"github.com/fumkob/ezqrin-server/internal/usecase/participant"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
@@ -24,6 +25,7 @@ type RepositoryContainer struct {
 	User        repository.UserRepository
 	Event       repository.EventRepository
 	Participant repository.ParticipantRepository
+	Checkin     repository.CheckinRepository
 	Blacklist   repository.TokenBlacklistRepository
 }
 
@@ -32,6 +34,7 @@ type UseCaseContainer struct {
 	Auth        *AuthUseCases
 	Event       event.Usecase
 	Participant participant.Usecase
+	Checkin     checkin.Usecase
 }
 
 // AuthUseCases holds authentication-related use cases
@@ -54,6 +57,7 @@ func NewContainer(
 		User:        database.NewUserRepository(db.GetPool(), logger),
 		Event:       database.NewEventRepository(db.GetPool(), logger),
 		Participant: database.NewParticipantRepository(db.GetPool()),
+		Checkin:     database.NewCheckinRepository(db.GetPool()),
 	}
 
 	// TokenBlacklistRepository comes from Redis client
@@ -74,6 +78,7 @@ func NewContainer(
 		},
 		Event:       event.NewUsecase(repos.Event),
 		Participant: participant.NewUsecase(repos.Participant, repos.Event, qrGenerator),
+		Checkin:     checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event),
 	}
 
 	return &Container{

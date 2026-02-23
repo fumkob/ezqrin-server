@@ -157,8 +157,15 @@ var _ = Describe("Authentication API Integration", func() {
 		// In a real scenario, we might want to mock it or initialize it
 		eventHandler := handler.NewEventHandler(nil, log)
 		participantHandler := handler.NewParticipantHandler(nil, log)
+		checkinHandler := handler.NewCheckinHandler(nil, log)
 
-		combinedHandler := handler.NewHandler(healthHandler, authHandler, eventHandler, participantHandler)
+		combinedHandler := handler.NewHandler(
+			healthHandler,
+			authHandler,
+			eventHandler,
+			participantHandler,
+			checkinHandler,
+		)
 		options := generated.GinServerOptions{
 			Middlewares: []generated.MiddlewareFunc{
 				func(c *gin.Context) {

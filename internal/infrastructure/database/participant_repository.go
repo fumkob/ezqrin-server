@@ -7,6 +7,7 @@ import (
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
+	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,11 +60,11 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 	if err != nil {
 		// Check for unique constraint violations
 		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_event_email\" (SQLSTATE 23505)" {
-			return fmt.Errorf("participant with this email already exists for this event: %w", err)
+			return apperrors.Conflict("participant with this email already exists for this event")
 		}
 		if err.Error() == "ERROR: duplicate key value violates unique constraint "+
 			"\"participants_qr_code_key\" (SQLSTATE 23505)" {
-			return fmt.Errorf("QR code already exists: %w", err)
+			return apperrors.Conflict("QR code already exists")
 		}
 		return fmt.Errorf("failed to insert participant: %w", err)
 	}
@@ -131,22 +132,23 @@ func (r *participantRepository) BulkCreate(ctx context.Context, participants []*
 	return nil
 }
 
-// FindByID retrieves a participant by its unique ID.
+// FindByID retrieves a participant by its unique ID with check-in status.
 func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Participant, error) {
 	query := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE id = $1
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.id = $1
 	`
 
 	row := r.pool.QueryRow(ctx, query, id)
 	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("participant not found: %w", err)
+			return nil, apperrors.NotFound("participant not found")
 		}
 		return nil, fmt.Errorf("failed to find participant: %w", err)
 	}
@@ -154,7 +156,7 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 	return participant, nil
 }
 
-// FindByEventID retrieves paginated participants for an event.
+// FindByEventID retrieves paginated participants for an event with check-in status.
 func (r *participantRepository) FindByEventID(
 	ctx context.Context,
 	eventID uuid.UUID,
@@ -166,12 +168,13 @@ func (r *participantRepository) FindByEventID(
 ) {
 	query := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE event_id = $1
-		ORDER BY created_at DESC
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.event_id = $1
+		ORDER BY p.created_at DESC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -181,7 +184,7 @@ func (r *participantRepository) FindByEventID(
 		WHERE event_id = $1
 	`
 
-	participants, err := r.queryParticipants(ctx, query, eventID, limit, offset)
+	participants, err := r.queryParticipantsWithCheckin(ctx, query, eventID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -194,22 +197,23 @@ func (r *participantRepository) FindByEventID(
 	return participants, total, nil
 }
 
-// FindByQRCode retrieves a participant by their QR code.
+// FindByQRCode retrieves a participant by their QR code with check-in status.
 func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error) {
 	query := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE qr_code = $1
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.qr_code = $1
 	`
 
 	row := r.pool.QueryRow(ctx, query, qrCode)
 	participant, err := r.scanParticipantFromRow(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("participant not found")
+			return nil, apperrors.NotFound("participant not found")
 		}
 		return nil, fmt.Errorf("failed to find participant by QR code: %w", err)
 	}
@@ -259,7 +263,7 @@ func (r *participantRepository) Update(ctx context.Context, participant *entity.
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("participant not found")
+		return apperrors.NotFound("participant not found")
 	}
 
 	return nil
@@ -278,7 +282,7 @@ func (r *participantRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("participant not found")
+		return apperrors.NotFound("participant not found")
 	}
 
 	return nil
@@ -299,17 +303,18 @@ func (r *participantRepository) Search(
 
 	sqlQuery := `
 		SELECT
-			id, event_id, name, email, employee_id, phone, qr_email, status,
-			qr_code, qr_code_generated_at, metadata, payment_status, payment_amount,
-			payment_date, created_at, updated_at
-		FROM participants
-		WHERE event_id = $1
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.event_id = $1
 		AND (
-			name ILIKE $2
-			OR email ILIKE $2
-			OR employee_id ILIKE $2
+			p.name ILIKE $2
+			OR p.email ILIKE $2
+			OR p.employee_id ILIKE $2
 		)
-		ORDER BY created_at DESC
+		ORDER BY p.created_at DESC
 		LIMIT $3 OFFSET $4
 	`
 
@@ -324,7 +329,7 @@ func (r *participantRepository) Search(
 		)
 	`
 
-	participants, err := r.queryParticipants(ctx, sqlQuery, eventID, searchPattern, limit, offset)
+	participants, err := r.queryParticipantsWithCheckin(ctx, sqlQuery, eventID, searchPattern, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -393,7 +398,7 @@ func (r *participantRepository) HealthCheck(ctx context.Context) error {
 	return r.pool.Ping(ctx)
 }
 
-// scanParticipantFromRow scans a single row into a Participant entity.
+// scanParticipantFromRow scans a single row into a Participant entity including check-in status.
 func (r *participantRepository) scanParticipantFromRow(row pgx.Row) (*entity.Participant, error) {
 	participant := &entity.Participant{}
 	err := row.Scan(
@@ -413,15 +418,17 @@ func (r *participantRepository) scanParticipantFromRow(row pgx.Row) (*entity.Par
 		&participant.PaymentDate,
 		&participant.CreatedAt,
 		&participant.UpdatedAt,
+		&participant.CheckedInAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	participant.CheckedIn = participant.CheckedInAt != nil
 	return participant, nil
 }
 
-// scanParticipant scans a row into a Participant entity.
-func (r *participantRepository) scanParticipant(rows pgx.Rows) (*entity.Participant, error) {
+// scanParticipantWithCheckin scans a row into a Participant entity including check-in status.
+func (r *participantRepository) scanParticipantWithCheckin(rows pgx.Rows) (*entity.Participant, error) {
 	participant := &entity.Participant{}
 	err := rows.Scan(
 		&participant.ID,
@@ -440,15 +447,17 @@ func (r *participantRepository) scanParticipant(rows pgx.Rows) (*entity.Particip
 		&participant.PaymentDate,
 		&participant.CreatedAt,
 		&participant.UpdatedAt,
+		&participant.CheckedInAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	participant.CheckedIn = participant.CheckedInAt != nil
 	return participant, nil
 }
 
-// queryParticipants executes a query and returns participants.
-func (r *participantRepository) queryParticipants(
+// queryParticipantsWithCheckin executes a query and returns participants with check-in status.
+func (r *participantRepository) queryParticipantsWithCheckin(
 	ctx context.Context,
 	query string,
 	args ...interface{},
@@ -465,7 +474,7 @@ func (r *participantRepository) queryParticipants(
 
 	participants := make([]*entity.Participant, 0, defaultCapacity)
 	for rows.Next() {
-		participant, err := r.scanParticipant(rows)
+		participant, err := r.scanParticipantWithCheckin(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan participant: %w", err)
 		}

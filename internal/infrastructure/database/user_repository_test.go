@@ -149,7 +149,6 @@ var _ = Describe("UserRepository", func() {
 				Expect(err.Error()).To(ContainSubstring("already exists"))
 			})
 		})
-
 	})
 
 	When("finding user by ID", func() {

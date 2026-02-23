@@ -76,6 +76,9 @@ type Participant struct {
 	PaymentDate       *time.Time // Nullable payment date
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	// CheckedIn and CheckedInAt are populated only when fetched with check-in join queries.
+	CheckedIn   bool
+	CheckedInAt *time.Time
 }
 
 // Validate validates the Participant entity fields.

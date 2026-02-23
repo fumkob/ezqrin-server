@@ -58,3 +58,6 @@ tmp/
 
 # Git operations
 .wtp.yaml
+
+# MacOS specific files
+.DS_Store

@@ -10,6 +10,7 @@ type Handler struct {
 	*AuthHandler
 	*EventHandler
 	*ParticipantHandler
+	*CheckinHandler
 }
 
 // Compile-time check to ensure Handler implements ServerInterface
@@ -21,12 +22,14 @@ func NewHandler(
 	auth *AuthHandler,
 	event *EventHandler,
 	participant *ParticipantHandler,
+	checkin *CheckinHandler,
 ) *Handler {
 	return &Handler{
 		HealthHandler:      health,
 		AuthHandler:        auth,
 		EventHandler:       event,
 		ParticipantHandler: participant,
+		CheckinHandler:     checkin,
 	}
 }
 
