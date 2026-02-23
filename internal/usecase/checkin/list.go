@@ -45,17 +45,7 @@ func (u *checkinUsecase) List(
 			continue
 		}
 
-		output := &CheckInOutput{
-			ID:               checkin.ID,
-			EventID:          checkin.EventID,
-			ParticipantID:    participant.ID,
-			ParticipantName:  participant.Name,
-			ParticipantEmail: participant.Email,
-			CheckedInAt:      checkin.CheckedInAt,
-			CheckedInBy:      checkin.CheckedInBy,
-			Method:           checkin.Method,
-		}
-		outputs = append(outputs, output)
+		outputs = append(outputs, u.buildCheckInOutput(checkin, participant))
 	}
 
 	return &ListCheckInsOutput{

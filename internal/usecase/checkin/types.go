@@ -14,26 +14,31 @@ type CheckInInput struct {
 	QRCode        *string
 	ParticipantID *uuid.UUID
 	CheckedInBy   uuid.UUID
-	DeviceInfo    map[string]interface{}
+	DeviceInfo    map[string]any
 }
 
 // CheckInOutput represents output after checking in
 type CheckInOutput struct {
-	ID               uuid.UUID
-	EventID          uuid.UUID
-	ParticipantID    uuid.UUID
-	ParticipantName  string
-	ParticipantEmail string
-	CheckedInAt      time.Time
-	CheckedInBy      *uuid.UUID
-	Method           entity.CheckinMethod
+	ID                    uuid.UUID
+	EventID               uuid.UUID
+	ParticipantID         uuid.UUID
+	ParticipantName       string
+	ParticipantEmail      string
+	ParticipantEmployeeID *string
+	CheckedInAt           time.Time
+	CheckedInBy           *uuid.UUID
+	Method                entity.CheckinMethod
 }
 
 // CheckInStatusOutput represents check-in status for a participant
 type CheckInStatusOutput struct {
-	ParticipantID uuid.UUID
-	IsCheckedIn   bool
-	CheckIn       *CheckInOutput
+	ParticipantID    uuid.UUID
+	ParticipantName  string
+	ParticipantEmail string
+	EventID          uuid.UUID
+	EventName        string
+	IsCheckedIn      bool
+	CheckIn          *CheckInOutput
 }
 
 // ListCheckInsInput represents input for listing check-ins

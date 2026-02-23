@@ -262,7 +262,7 @@ func (h *CheckinHandler) convertCheckInsToItems(checkIns []*checkin.CheckInOutpu
 		Name string             `json:"name"`
 	} `json:"checked_in_by"`
 	CheckinMethod generated.CheckInMethod `json:"checkin_method"`
-	DeviceInfo    *map[string]interface{} `json:"device_info,omitempty"`
+	DeviceInfo    *map[string]any         `json:"device_info,omitempty"`
 	EventId       openapi_types.UUID      `json:"event_id"`
 	Id            openapi_types.UUID      `json:"id"`
 	Participant   struct {
@@ -279,7 +279,7 @@ func (h *CheckinHandler) convertCheckInsToItems(checkIns []*checkin.CheckInOutpu
 			Name string             `json:"name"`
 		} `json:"checked_in_by"`
 		CheckinMethod generated.CheckInMethod `json:"checkin_method"`
-		DeviceInfo    *map[string]interface{} `json:"device_info,omitempty"`
+		DeviceInfo    *map[string]any         `json:"device_info,omitempty"`
 		EventId       openapi_types.UUID      `json:"event_id"`
 		Id            openapi_types.UUID      `json:"id"`
 		Participant   struct {
@@ -296,6 +296,7 @@ func (h *CheckinHandler) convertCheckInsToItems(checkIns []*checkin.CheckInOutpu
 		items[i].ParticipantId = openapi_types.UUID(ci.ParticipantID)
 		items[i].Participant.Name = ci.ParticipantName
 		items[i].Participant.Email = openapi_types.Email(ci.ParticipantEmail)
+		items[i].Participant.EmployeeId = ci.ParticipantEmployeeID
 		items[i].CheckedInAt = ci.CheckedInAt
 		items[i].CheckinMethod = generated.CheckInMethod(ci.Method)
 
@@ -319,9 +320,17 @@ func (h *CheckinHandler) buildCheckInStatusResponse(
 	output *checkin.CheckInStatusOutput,
 ) generated.CheckInStatusResponse {
 	resp := generated.CheckInStatusResponse{
-		ParticipantId: openapi_types.UUID(output.ParticipantID),
-		CheckedIn:     output.IsCheckedIn,
-		Checkin:       nil,
+		ParticipantId:   openapi_types.UUID(output.ParticipantID),
+		ParticipantName: output.ParticipantName,
+		EventId:         openapi_types.UUID(output.EventID),
+		EventName:       output.EventName,
+		CheckedIn:       output.IsCheckedIn,
+		Checkin:         nil,
+	}
+
+	if output.ParticipantEmail != "" {
+		email := openapi_types.Email(output.ParticipantEmail)
+		resp.ParticipantEmail = &email
 	}
 
 	if output.CheckIn != nil {
@@ -332,7 +341,7 @@ func (h *CheckinHandler) buildCheckInStatusResponse(
 				Name string             `json:"name"`
 			} `json:"checked_in_by"`
 			CheckinMethod generated.CheckInMethod `json:"checkin_method"`
-			DeviceInfo    *map[string]interface{} `json:"device_info,omitempty"`
+			DeviceInfo    *map[string]any         `json:"device_info,omitempty"`
 			Id            openapi_types.UUID      `json:"id"`
 		}{
 			Id:            openapi_types.UUID(output.CheckIn.ID),

@@ -133,14 +133,24 @@ func (u *checkinUsecase) createCheckinRecord(
 	input CheckInInput,
 	participantID uuid.UUID,
 ) (*entity.Checkin, error) {
-	deviceInfo := convertDeviceInfo(input.DeviceInfo)
+	deviceInfo, err := convertDeviceInfo(input.DeviceInfo)
+	if err != nil {
+		return nil, apperrors.Validation(fmt.Sprintf("invalid device info: %v", err))
+	}
+
+	// uuid.Nil の場合は CheckedInBy を nil に設定（セルフサービスキオスク対応）
+	var checkedInBy *uuid.UUID
+	if input.CheckedInBy != uuid.Nil {
+		id := input.CheckedInBy
+		checkedInBy = &id
+	}
 
 	checkin := &entity.Checkin{
 		ID:            uuid.New(),
 		EventID:       input.EventID,
 		ParticipantID: participantID,
 		CheckedInAt:   time.Now(),
-		CheckedInBy:   &input.CheckedInBy,
+		CheckedInBy:   checkedInBy,
 		Method:        input.Method,
 		DeviceInfo:    deviceInfo,
 	}
@@ -153,16 +163,16 @@ func (u *checkinUsecase) createCheckinRecord(
 }
 
 // convertDeviceInfo converts device info map to json.RawMessage
-func convertDeviceInfo(deviceInfo map[string]interface{}) *json.RawMessage {
+func convertDeviceInfo(deviceInfo map[string]any) (*json.RawMessage, error) {
 	if deviceInfo == nil {
-		return nil
+		return nil, nil
 	}
 	data, err := json.Marshal(deviceInfo)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("failed to marshal device info: %w", err)
 	}
 	raw := json.RawMessage(data)
-	return &raw
+	return &raw, nil
 }
 
 // handleCheckinCreateError handles check-in creation errors
@@ -179,13 +189,14 @@ func (u *checkinUsecase) buildCheckInOutput(
 	participant *entity.Participant,
 ) *CheckInOutput {
 	return &CheckInOutput{
-		ID:               checkin.ID,
-		EventID:          checkin.EventID,
-		ParticipantID:    participant.ID,
-		ParticipantName:  participant.Name,
-		ParticipantEmail: participant.Email,
-		CheckedInAt:      checkin.CheckedInAt,
-		CheckedInBy:      checkin.CheckedInBy,
-		Method:           checkin.Method,
+		ID:                    checkin.ID,
+		EventID:               checkin.EventID,
+		ParticipantID:         participant.ID,
+		ParticipantName:       participant.Name,
+		ParticipantEmail:      participant.Email,
+		ParticipantEmployeeID: participant.EmployeeID,
+		CheckedInAt:           checkin.CheckedInAt,
+		CheckedInBy:           checkin.CheckedInBy,
+		Method:                checkin.Method,
 	}
 }
