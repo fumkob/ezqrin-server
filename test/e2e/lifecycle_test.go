@@ -80,9 +80,10 @@ var _ = Describe("Full Event Lifecycle", func() {
 				Expect(checkin1.ParticipantId.String()).To(Equal(p1.Id.String()))
 				Expect(string(checkin1.CheckinMethod)).To(Equal("qrcode"))
 
-				By("Step 6: Check in participant 2 by manual (participant ID)")
+				By("Step 6: Check in participant 2 by manual (participant ID, organizer only)")
+				// Manual check-in requires the organizer or admin: staff role is not permitted
 				checkin2, status2 := helper.CheckInByManual(
-					staffAuth.AccessToken, eventID, p2.Id.String(),
+					organizerAuth.AccessToken, eventID, p2.Id.String(),
 				)
 				Expect(status2).To(Equal(http.StatusOK))
 				Expect(checkin2.ParticipantId.String()).To(Equal(p2.Id.String()))
@@ -94,11 +95,13 @@ var _ = Describe("Full Event Lifecycle", func() {
 				Expect(stats.TotalParticipants).To(Equal(3))
 				Expect(stats.CheckedInParticipants).To(Equal(2))
 
-				By("Step 8: Verify participant 3 is NOT checked in (status endpoint)")
-				w := helper.DoRequest(http.MethodGet,
-					"/api/v1/participants/"+p3.Id.String()+"/checkin-status",
-					organizerAuth.AccessToken, nil)
-				Expect(w.Code).To(Equal(http.StatusOK))
+				By("Step 8: Staff user can perform QR check-in on participant 3")
+				// Staff role is allowed for QR check-in (only manual requires organizer/admin)
+				checkin3, status3 := helper.CheckInByQR(
+					staffAuth.AccessToken, eventID, *p3.QrCode,
+				)
+				Expect(status3).To(Equal(http.StatusOK))
+				Expect(checkin3.ParticipantId.String()).To(Equal(p3.Id.String()))
 
 				By("Step 9: Duplicate check-in should be rejected")
 				_, dupStatus := helper.CheckInByQR(
