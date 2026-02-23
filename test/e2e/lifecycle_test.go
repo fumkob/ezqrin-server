@@ -59,18 +59,22 @@ var _ = Describe("Full Event Lifecycle", func() {
 				Expect(event.Name).To(Equal("Annual Conference 2026"))
 				eventID := event.Id.String()
 
-				By("Step 4: Add 3 participants to the event")
+				By("Step 4: Add 4 participants to the event")
 				p1 := helper.CreateParticipant(organizerAuth.AccessToken, eventID,
 					"Alice Smith", "alice@lifecycle-test.com")
 				p2 := helper.CreateParticipant(organizerAuth.AccessToken, eventID,
 					"Bob Johnson", "bob@lifecycle-test.com")
 				p3 := helper.CreateParticipant(organizerAuth.AccessToken, eventID,
 					"Carol Williams", "carol@lifecycle-test.com")
+				p4 := helper.CreateParticipantWithEmployeeID(organizerAuth.AccessToken, eventID,
+					"Dave Employee", "dave@lifecycle-test.com", "EMP001")
 
 				Expect(p1.QrCode).NotTo(BeNil(), "QR code should be auto-generated")
 				Expect(p2.QrCode).NotTo(BeNil())
 				Expect(p3.QrCode).NotTo(BeNil())
 				Expect(*p1.QrCode).NotTo(Equal(*p2.QrCode), "QR codes must be globally unique")
+				Expect(p4.EmployeeId).NotTo(BeNil())
+				Expect(*p4.EmployeeId).To(Equal("EMP001"))
 
 				By("Step 5: Check in participant 1 by QR code")
 				checkin1, status1 := helper.CheckInByQR(
@@ -89,13 +93,21 @@ var _ = Describe("Full Event Lifecycle", func() {
 				Expect(checkin2.ParticipantId.String()).To(Equal(p2.Id.String()))
 				Expect(string(checkin2.CheckinMethod)).To(Equal("manual"))
 
-				By("Step 7: Verify event statistics reflect 2 check-ins out of 3 participants")
+				By("Step 7: Check in participant 4 by employee ID")
+				checkin4, status4 := helper.CheckInByEmployeeID(
+					organizerAuth.AccessToken, eventID, "EMP001",
+				)
+				Expect(status4).To(Equal(http.StatusOK))
+				Expect(checkin4.ParticipantId.String()).To(Equal(p4.Id.String()))
+				Expect(string(checkin4.CheckinMethod)).To(Equal("manual"))
+
+				By("Step 8: Verify event statistics reflect 3 check-ins out of 4 participants")
 				stats, statsStatus := helper.GetEventStats(organizerAuth.AccessToken, eventID)
 				Expect(statsStatus).To(Equal(http.StatusOK))
-				Expect(stats.TotalParticipants).To(Equal(3))
-				Expect(stats.CheckedInParticipants).To(Equal(2))
+				Expect(stats.TotalParticipants).To(Equal(4))
+				Expect(stats.CheckedInParticipants).To(Equal(3))
 
-				By("Step 8: Staff user can perform QR check-in on participant 3")
+				By("Step 9: Staff user can perform QR check-in on participant 3")
 				// Staff role is allowed for QR check-in (only manual requires organizer/admin)
 				checkin3, status3 := helper.CheckInByQR(
 					staffAuth.AccessToken, eventID, *p3.QrCode,
@@ -103,7 +115,7 @@ var _ = Describe("Full Event Lifecycle", func() {
 				Expect(status3).To(Equal(http.StatusOK))
 				Expect(checkin3.ParticipantId.String()).To(Equal(p3.Id.String()))
 
-				By("Step 9: Duplicate check-in should be rejected")
+				By("Step 10: Duplicate check-in should be rejected")
 				_, dupStatus := helper.CheckInByQR(
 					organizerAuth.AccessToken, eventID, *p1.QrCode,
 				)

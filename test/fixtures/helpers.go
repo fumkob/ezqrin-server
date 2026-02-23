@@ -113,9 +113,47 @@ func (h *Helper) CreateParticipant(token, eventID, name, email string) *generate
 	return &resp
 }
 
+// CreateParticipantWithEmployeeID adds a participant with an employee ID to an event.
+func (h *Helper) CreateParticipantWithEmployeeID(token, eventID, name, email, employeeID string) *generated.Participant {
+	reqBody := map[string]string{"name": name, "email": email, "employee_id": employeeID}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/participants", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	h.Router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		panic(fmt.Sprintf("CreateParticipantWithEmployeeID failed: status=%d body=%s", w.Code, w.Body.String()))
+	}
+	var resp generated.Participant
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	return &resp
+}
+
 // CheckInByQR performs a QR-code check-in via POST /api/v1/events/:id/checkin.
 func (h *Helper) CheckInByQR(token, eventID, qrCode string) (*generated.CheckInResponse, int) {
 	reqBody := map[string]string{"method": "qrcode", "qr_code": qrCode}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/checkin", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	h.Router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		return nil, w.Code
+	}
+	var resp generated.CheckInResponse
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	return &resp, w.Code
+}
+
+// CheckInByEmployeeID performs a manual check-in by employee ID.
+func (h *Helper) CheckInByEmployeeID(token, eventID, employeeID string) (*generated.CheckInResponse, int) {
+	reqBody := map[string]string{"method": "manual", "employee_id": employeeID}
 	body, _ := json.Marshal(reqBody)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/checkin", bytes.NewReader(body))
