@@ -196,8 +196,12 @@ func (h *CheckinHandler) setCheckinMethodFields(
 	}
 
 	if req.Method == generated.Manual {
+		if req.EmployeeId != nil && *req.EmployeeId != "" {
+			input.EmployeeID = req.EmployeeId
+			return nil
+		}
 		if req.ParticipantId == nil {
-			return apperrors.BadRequest("participant_id is required for manual check-in")
+			return apperrors.BadRequest("participant_id or employee_id is required for manual check-in")
 		}
 		participantID := uuid.UUID(*req.ParticipantId)
 		input.ParticipantID = &participantID

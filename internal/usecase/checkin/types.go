@@ -13,6 +13,7 @@ type CheckInInput struct {
 	Method        entity.CheckinMethod
 	QRCode        *string
 	ParticipantID *uuid.UUID
+	EmployeeID    *string
 	CheckedInBy   uuid.UUID
 	DeviceInfo    map[string]any
 }

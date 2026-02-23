@@ -21,12 +21,12 @@ Check in a participant to an event.
 | --------- | ---- | ----------- |
 | id        | UUID | Event ID    |
 
-**Request Body:**
+**Request Body (QR code):**
 
 ```json
 {
+  "method": "qrcode",
   "qr_code": "evt_550e8400_prt_770e8400_abc123def456",
-  "checkin_method": "qrcode",
   "device_info": {
     "device_type": "mobile",
     "os": "iOS 17.0",
@@ -35,16 +35,37 @@ Check in a participant to an event.
 }
 ```
 
+**Request Body (manual — by participant UUID):**
+
+```json
+{
+  "method": "manual",
+  "participant_id": "770e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Request Body (manual — by employee ID):**
+
+```json
+{
+  "method": "manual",
+  "employee_id": "EMP001"
+}
+```
+
 **Request Fields:**
 
-| Field          | Type   | Required | Description                                  |
-| -------------- | ------ | -------- | -------------------------------------------- |
-| qr_code        | string | Yes\*    | QR code token from participant               |
-| participant_id | UUID   | Yes\*    | Participant UUID (alternative to qr_code)    |
-| checkin_method | string | No       | Method: `qrcode`, `manual` (default: qrcode) |
-| device_info    | object | No       | Device metadata (max 5KB)                    |
+| Field          | Type   | Required | Description                                              |
+| -------------- | ------ | -------- | -------------------------------------------------------- |
+| method         | string | Yes      | Check-in method: `qrcode` or `manual`                   |
+| qr_code        | string | Yes\*    | QR code token from participant (required when `qrcode`)  |
+| participant_id | UUID   | Yes\*    | Participant UUID (manual check-in by UUID)               |
+| employee_id    | string | Yes\*    | Employee ID (manual check-in by employee ID, max 100)   |
+| device_info    | object | No       | Device metadata (max 5KB)                                |
 
-\*Either `qr_code` or `participant_id` must be provided
+\*One of `qr_code`, `participant_id`, or `employee_id` must be provided depending on the method:
+- `method: qrcode` → `qr_code` required
+- `method: manual` → either `participant_id` or `employee_id` required (`employee_id` takes precedence)
 
 **Response:** `201 Created`
 
@@ -210,14 +231,22 @@ evt_{event_id}_prt_{participant_id}_{random_token}
 
 **Process:**
 
-1. Staff searches for participant by name or email
+1. Staff looks up participant by UUID or employee ID
 2. Staff manually confirms participant identity
 3. Check-in record created with `manual` method
+
+**Lookup Methods:**
+
+| Input          | When to use                                      |
+| -------------- | ------------------------------------------------ |
+| `participant_id` | UUID displayed in admin dashboard               |
+| `employee_id`    | Company employee ID printed on badge or ID card |
 
 **Use Cases:**
 
 - QR code not available
 - QR code scanner malfunction
+- Badge / employee ID card scan
 - Backup check-in method
 
 ---

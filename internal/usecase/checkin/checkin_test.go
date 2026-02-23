@@ -329,6 +329,71 @@ var _ = Describe("CheckIn UseCase", func() {
 					Expect(appErr.Code).To(Equal(apperrors.CodeBadRequest))
 				})
 			})
+
+			Context("with employee ID", func() {
+				It("should successfully check in participant", func() {
+					employeeID := "EMP001"
+					participant := &entity.Participant{
+						ID:         uuid.New(),
+						EventID:    testEventID,
+						Name:       "Employee User",
+						Email:      "emp@example.com",
+						EmployeeID: &employeeID,
+					}
+
+					event := &entity.Event{
+						ID:          testEventID,
+						OrganizerID: testUserID,
+						Name:        "Test Event",
+					}
+
+					mockEventRepo.events[testEventID] = event
+					key := testEventID.String() + ":" + employeeID
+					mockParticipant.participantsByEmployeeID[key] = participant
+					mockCheckinRepo.existsMap[participant.ID] = false
+
+					input := checkin.CheckInInput{
+						EventID:     testEventID,
+						Method:      entity.CheckinMethodManual,
+						EmployeeID:  &employeeID,
+						CheckedInBy: testUserID,
+					}
+
+					result, err := usecase.CheckIn(ctx, testUserID, false, input)
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result).NotTo(BeNil())
+					Expect(result.ParticipantID).To(Equal(participant.ID))
+					Expect(result.Method).To(Equal(entity.CheckinMethodManual))
+				})
+			})
+
+			Context("with invalid employee ID", func() {
+				It("should return not found error", func() {
+					employeeID := "INVALID999"
+					event := &entity.Event{
+						ID:          testEventID,
+						OrganizerID: testUserID,
+						Name:        "Test Event",
+					}
+					mockEventRepo.events[testEventID] = event
+
+					input := checkin.CheckInInput{
+						EventID:     testEventID,
+						Method:      entity.CheckinMethodManual,
+						EmployeeID:  &employeeID,
+						CheckedInBy: testUserID,
+					}
+
+					result, err := usecase.CheckIn(ctx, testUserID, false, input)
+
+					Expect(err).To(HaveOccurred())
+					Expect(result).To(BeNil())
+					var appErr *apperrors.AppError
+					Expect(errors.As(err, &appErr)).To(BeTrue())
+					Expect(appErr.Code).To(Equal(apperrors.CodeNotFound))
+				})
+			})
 		})
 
 		When("participant already checked in", func() {
@@ -895,14 +960,16 @@ func (m *mockCheckinRepository) HealthCheck(ctx context.Context) error {
 }
 
 type mockParticipantRepository struct {
-	participants     map[string]*entity.Participant // key is QR code
-	participantsByID map[uuid.UUID]*entity.Participant
+	participants             map[string]*entity.Participant // key is QR code
+	participantsByID         map[uuid.UUID]*entity.Participant
+	participantsByEmployeeID map[string]*entity.Participant // key is "eventID:employeeID"
 }
 
 func newMockParticipantRepository() *mockParticipantRepository {
 	return &mockParticipantRepository{
-		participants:     make(map[string]*entity.Participant),
-		participantsByID: make(map[uuid.UUID]*entity.Participant),
+		participants:             make(map[string]*entity.Participant),
+		participantsByID:         make(map[uuid.UUID]*entity.Participant),
+		participantsByEmployeeID: make(map[string]*entity.Participant),
 	}
 }
 
@@ -915,6 +982,18 @@ func (m *mockParticipantRepository) FindByQRCode(ctx context.Context, qrCode str
 
 func (m *mockParticipantRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Participant, error) {
 	if p, ok := m.participantsByID[id]; ok {
+		return p, nil
+	}
+	return nil, apperrors.NotFound("participant not found")
+}
+
+func (m *mockParticipantRepository) FindByEmployeeID(
+	ctx context.Context,
+	eventID uuid.UUID,
+	employeeID string,
+) (*entity.Participant, error) {
+	key := eventID.String() + ":" + employeeID
+	if p, ok := m.participantsByEmployeeID[key]; ok {
 		return p, nil
 	}
 	return nil, apperrors.NotFound("participant not found")

@@ -38,6 +38,10 @@ type ParticipantRepository interface {
 	// Returns ErrNotFound if no participant has the given QR code.
 	FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error)
 
+	// FindByEmployeeID retrieves a participant by their employee ID within an event.
+	// Returns ErrNotFound if no participant has the given employee ID in that event.
+	FindByEmployeeID(ctx context.Context, eventID uuid.UUID, employeeID string) (*entity.Participant, error)
+
 	// Update updates an existing participant's information.
 	// Returns ErrNotFound if the participant does not exist.
 	Update(ctx context.Context, participant *entity.Participant) error
