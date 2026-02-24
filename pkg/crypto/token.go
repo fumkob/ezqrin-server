@@ -19,6 +19,10 @@ const (
 	// which provides sufficient uniqueness (2^192 possible tokens).
 	TOKEN_BYTES = 24
 
+	// QR_TOKEN_RANDOM_BYTES is the number of random bytes for the QR token random part.
+	// 6 bytes produces a 12-character hex string.
+	QR_TOKEN_RANDOM_BYTES = 6
+
 	// tokenDelimiter separates the random token and HMAC signature.
 	tokenDelimiter = "."
 )
@@ -102,8 +106,8 @@ func GenerateParticipantQRToken(eventID, participantID uuid.UUID, secret string)
 		return "", fmt.Errorf("%w: secret cannot be empty", ErrInvalidHMACToken)
 	}
 
-	// Generate 6 random bytes (= 12 hex characters for the random part)
-	randomBytes := make([]byte, 6)
+	// Generate QR_TOKEN_RANDOM_BYTES random bytes (= 12 hex characters for the random part)
+	randomBytes := make([]byte, QR_TOKEN_RANDOM_BYTES)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrTokenGeneration, err)
 	}

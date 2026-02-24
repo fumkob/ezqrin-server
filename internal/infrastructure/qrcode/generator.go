@@ -148,10 +148,18 @@ func (g *Generator) GenerateSVG(ctx context.Context, token string, size int) (st
 
 	// Encode PNG as base64 and embed in SVG <image> element
 	b64 := base64.StdEncoding.EncodeToString(pngBytes)
-	svg := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%d" height="%d" viewBox="0 0 %d %d">
-  <image href="data:image/png;base64,%s" width="%d" height="%d"/>
-</svg>`, size, size, size, size, b64, size, size)
+	svgHeader := `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
+	svgOpen := fmt.Sprintf(
+		`<svg xmlns="http://www.w3.org/2000/svg"`+
+			` xmlns:xlink="http://www.w3.org/1999/xlink"`+
+			` width="%d" height="%d" viewBox="0 0 %d %d">`,
+		size, size, size, size,
+	)
+	svgBody := fmt.Sprintf(
+		"\n  "+`<image href="data:image/png;base64,%s" width="%d" height="%d"/>`+"\n</svg>",
+		b64, size, size,
+	)
+	svg := svgHeader + svgOpen + svgBody
 
 	return svg, nil
 }

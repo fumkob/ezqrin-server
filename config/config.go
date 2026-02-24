@@ -362,21 +362,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// validateQRCode validates QR code configuration.
-func (c *Config) validateQRCode() error {
-	if c.QRCode.HMACSecret == "" {
-		return fmt.Errorf("QR code HMAC secret is required (set QR_HMAC_SECRET)")
-	}
-	if len(c.QRCode.HMACSecret) < qrHMACSecretMinLength {
-		return fmt.Errorf(
-			"QR code HMAC secret must be at least %d characters, got %d",
-			qrHMACSecretMinLength,
-			len(c.QRCode.HMACSecret),
-		)
-	}
-	return nil
-}
-
 // GetDatabaseDSN returns the PostgreSQL connection string
 func (c *Config) GetDatabaseDSN() string {
 	return fmt.Sprintf(
@@ -398,6 +383,21 @@ func (c *Config) GetRedisAddr() string {
 // IsProduction returns true if running in production environment
 func (c *Config) IsProduction() bool {
 	return c.Server.Environment == "production"
+}
+
+// validateQRCode validates QR code configuration.
+func (c *Config) validateQRCode() error {
+	if c.QRCode.HMACSecret == "" {
+		return fmt.Errorf("QR code HMAC secret is required (set QR_HMAC_SECRET)")
+	}
+	if len(c.QRCode.HMACSecret) < qrHMACSecretMinLength {
+		return fmt.Errorf(
+			"QR code HMAC secret must be at least %d characters, got %d",
+			qrHMACSecretMinLength,
+			len(c.QRCode.HMACSecret),
+		)
+	}
+	return nil
 }
 
 // validateServer validates server configuration.
