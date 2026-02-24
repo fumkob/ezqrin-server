@@ -28,6 +28,7 @@ services:
       - REDIS_PORT=6379
       - JWT_SECRET=dev-secret-key-minimum-32-chars-long-for-development-only
       - QR_HMAC_SECRET=dev-qr-hmac-secret-key-minimum-32-chars-long-for-development-only
+      # - QR_HOSTING_BASE_URL=  # Optional: QR code hosting server base URL
       - SERVER_PORT=8080
       - SERVER_ENV=development
       - LOG_LEVEL=debug

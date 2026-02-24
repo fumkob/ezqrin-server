@@ -426,6 +426,9 @@ func (h *ParticipantHandler) toGeneratedParticipant(p *entity.Participant) gener
 
 	genParticipant.QrCode = &p.QRCode
 	genParticipant.QrCodeGeneratedAt = &p.QRCodeGeneratedAt
+	if p.QRDistributionURL != "" {
+		genParticipant.QrDistributionUrl = &p.QRDistributionURL
+	}
 
 	return genParticipant
 }

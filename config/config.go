@@ -97,7 +97,8 @@ type CORSConfig struct {
 
 // QRCodeConfig contains QR code generation configuration
 type QRCodeConfig struct {
-	HMACSecret string
+	HMACSecret     string
+	HostingBaseURL string
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -227,7 +228,8 @@ var envKeyMap = map[string]string{
 	"CORS_ALLOW_CREDENTIALS": "cors.allow_credentials",
 
 	// QR Code
-	"QR_HMAC_SECRET": "qrcode.hmac_secret",
+	"QR_HMAC_SECRET":      "qrcode.hmac_secret",
+	"QR_HOSTING_BASE_URL": "qrcode.hosting_base_url",
 }
 
 // convertEnvKeyToViperKey converts environment variable key to viper key
@@ -303,6 +305,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.CORS.AllowCredentials = v.GetBool("cors.allow_credentials")
 
 	cfg.QRCode.HMACSecret = v.GetString("qrcode.hmac_secret")
+	cfg.QRCode.HostingBaseURL = v.GetString("qrcode.hosting_base_url")
 
 	// Validate required fields
 	if cfg.Database.User == "" {

@@ -70,6 +70,7 @@ type Participant struct {
 	Status            ParticipantStatus
 	QRCode            string
 	QRCodeGeneratedAt time.Time
+	QRDistributionURL string           // Distribution URL for QR code hosting (empty if not configured)
 	Metadata          *json.RawMessage // Custom participant data (max 10KB)
 	PaymentStatus     PaymentStatus
 	PaymentAmount     *float64   // Nullable payment amount
