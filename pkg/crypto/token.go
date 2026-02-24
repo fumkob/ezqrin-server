@@ -5,9 +5,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -78,6 +81,42 @@ func GenerateHMACSignedToken(secret string) (string, error) {
 	}
 
 	// Compute HMAC-SHA256 signature of the raw token
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(rawToken))
+	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	return rawToken + tokenDelimiter + signature, nil
+}
+
+// GenerateParticipantQRToken generates a structured QR token for a participant.
+// Format: evt_{event_id[:8]}_prt_{participant_id[:8]}_{random_12hex}.{base64url_hmac_sha256}
+//
+// Parameters:
+//   - eventID: The UUID of the event
+//   - participantID: The UUID of the participant
+//   - secret: The HMAC signing secret (must be non-empty)
+//
+// Returns the signed structured token string or an error.
+func GenerateParticipantQRToken(eventID, participantID uuid.UUID, secret string) (string, error) {
+	if secret == "" {
+		return "", fmt.Errorf("%w: secret cannot be empty", ErrInvalidHMACToken)
+	}
+
+	// Generate 6 random bytes (= 12 hex characters for the random part)
+	randomBytes := make([]byte, 6)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrTokenGeneration, err)
+	}
+	randomPart := hex.EncodeToString(randomBytes)
+
+	// Build structured raw token
+	rawToken := fmt.Sprintf("evt_%s_prt_%s_%s",
+		eventID.String()[:8],
+		participantID.String()[:8],
+		randomPart,
+	)
+
+	// Sign with HMAC-SHA256
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(rawToken))
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
