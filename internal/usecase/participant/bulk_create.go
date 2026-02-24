@@ -87,8 +87,8 @@ func (u *participantUsecase) buildParticipantEntity(
 	input CreateParticipantInput,
 	eventID uuid.UUID,
 ) (*entity.Participant, error) {
-	// Generate QR code token
-	qrToken, err := crypto.GenerateToken()
+	// Generate QR code token (HMAC-signed for security)
+	qrToken, err := crypto.GenerateHMACSignedToken(u.qrHMACSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate QR token: %w", err)
 	}

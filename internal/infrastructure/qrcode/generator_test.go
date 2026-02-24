@@ -344,14 +344,16 @@ var _ = Describe("QR Code Generator", func() {
 					Expect(svg).NotTo(BeEmpty())
 				})
 
-				It("should generate valid QR code representation", func() {
+				It("should generate valid SVG document", func() {
 					svg, err := generator.GenerateSVG(ctx, token, 256)
 
 					Expect(err).NotTo(HaveOccurred())
-					// The library returns ASCII art representation
-					// Should contain block characters used for QR code
+					// Should be a valid SVG document
+					Expect(svg).To(ContainSubstring("<?xml"))
+					Expect(svg).To(ContainSubstring("<svg"))
+					Expect(svg).To(ContainSubstring("image/png;base64,"))
 					Expect(len(svg)).To(BeNumerically(">", 100),
-						"QR code representation should be substantial")
+						"SVG document should be substantial")
 				})
 
 				It("should generate different SVG for different tokens", func() {

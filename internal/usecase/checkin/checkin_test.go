@@ -8,11 +8,16 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/usecase/checkin"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+// testQRHMACSecret is the HMAC secret used for tests.
+// It is 32+ characters long to satisfy the minimum length requirement.
+const testQRHMACSecret = "test-hmac-secret-for-testing-only-32chars"
 
 var _ = Describe("CheckIn UseCase", func() {
 	var (
@@ -36,14 +41,16 @@ var _ = Describe("CheckIn UseCase", func() {
 		mockParticipant = newMockParticipantRepository()
 		mockEventRepo = newMockEventRepository()
 
-		usecase = checkin.NewUsecase(mockCheckinRepo, mockParticipant, mockEventRepo)
+		usecase = checkin.NewUsecase(mockCheckinRepo, mockParticipant, mockEventRepo, testQRHMACSecret)
 	})
 
 	Describe("CheckIn", func() {
 		When("checking in with QR code", func() {
 			Context("with valid QR code", func() {
 				It("should successfully check in participant", func() {
-					qrCode := "valid-qr-code-123"
+					qrCode, err := crypto.GenerateHMACSignedToken(testQRHMACSecret)
+					Expect(err).NotTo(HaveOccurred())
+
 					participant := &entity.Participant{
 						ID:      uuid.New(),
 						EventID: testEventID,
@@ -82,7 +89,8 @@ var _ = Describe("CheckIn UseCase", func() {
 
 			Context("with invalid QR code", func() {
 				It("should return not found error", func() {
-					qrCode := "invalid-qr-code"
+					// A non-HMAC-signed string will fail HMAC verification
+					qrCode := "invalid-qr-code-not-hmac-signed"
 					event := &entity.Event{
 						ID:          testEventID,
 						OrganizerID: testOrganizerID,
@@ -135,13 +143,16 @@ var _ = Describe("CheckIn UseCase", func() {
 
 			Context("when participant status is cancelled", func() {
 				It("should return bad request error", func() {
+					cancelledQR, err := crypto.GenerateHMACSignedToken(testQRHMACSecret)
+					Expect(err).NotTo(HaveOccurred())
+
 					cancelledParticipant := &entity.Participant{
 						ID:      uuid.New(),
 						EventID: testEventID,
 						Status:  entity.ParticipantStatusCancelled,
-						QRCode:  "cancelled-qr",
+						QRCode:  cancelledQR,
 					}
-					mockParticipant.participants["cancelled-qr"] = cancelledParticipant
+					mockParticipant.participants[cancelledQR] = cancelledParticipant
 
 					event := &entity.Event{
 						ID:          testEventID,
@@ -150,11 +161,10 @@ var _ = Describe("CheckIn UseCase", func() {
 					}
 					mockEventRepo.events[testEventID] = event
 
-					qrCode := "cancelled-qr"
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
 						Method:      entity.CheckinMethodQRCode,
-						QRCode:      &qrCode,
+						QRCode:      &cancelledQR,
 						CheckedInBy: testUserID,
 					}
 					result, err := usecase.CheckIn(ctx, testUserID, false, input)
@@ -170,13 +180,16 @@ var _ = Describe("CheckIn UseCase", func() {
 
 			Context("when participant status is declined", func() {
 				It("should return bad request error", func() {
+					declinedQR, err := crypto.GenerateHMACSignedToken(testQRHMACSecret)
+					Expect(err).NotTo(HaveOccurred())
+
 					declinedParticipant := &entity.Participant{
 						ID:      uuid.New(),
 						EventID: testEventID,
 						Status:  entity.ParticipantStatusDeclined,
-						QRCode:  "declined-qr",
+						QRCode:  declinedQR,
 					}
-					mockParticipant.participants["declined-qr"] = declinedParticipant
+					mockParticipant.participants[declinedQR] = declinedParticipant
 
 					event := &entity.Event{
 						ID:          testEventID,
@@ -185,11 +198,10 @@ var _ = Describe("CheckIn UseCase", func() {
 					}
 					mockEventRepo.events[testEventID] = event
 
-					qrCode := "declined-qr"
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
 						Method:      entity.CheckinMethodQRCode,
-						QRCode:      &qrCode,
+						QRCode:      &declinedQR,
 						CheckedInBy: testUserID,
 					}
 					result, err := usecase.CheckIn(ctx, testUserID, false, input)

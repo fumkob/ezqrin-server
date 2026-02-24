@@ -30,8 +30,8 @@ func (u *participantUsecase) Create(
 		return nil, apperrors.Forbidden("you do not have permission to add participants to this event")
 	}
 
-	// Generate QR code token
-	qrToken, err := crypto.GenerateToken()
+	// Generate QR code token (HMAC-signed for security)
+	qrToken, err := crypto.GenerateHMACSignedToken(u.qrHMACSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate QR token: %w", err)
 	}

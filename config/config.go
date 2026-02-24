@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	envKeyValueParts   = 2
-	jwtSecretMinLength = 32
-	minPort            = 1
-	maxPort            = 65535
-	minDatabaseConns   = 1
-	minRedisDB         = 0
+	envKeyValueParts      = 2
+	jwtSecretMinLength    = 32
+	qrHMACSecretMinLength = 32
+	minPort               = 1
+	maxPort               = 65535
+	minDatabaseConns      = 1
+	minRedisDB            = 0
 )
 
 // Config holds all application configuration
@@ -28,6 +29,7 @@ type Config struct {
 	JWT      JWTConfig
 	Logging  LoggingConfig
 	CORS     CORSConfig
+	QRCode   QRCodeConfig
 }
 
 // ServerConfig contains server-related configuration
@@ -91,6 +93,11 @@ type CORSConfig struct {
 	AllowedMethods   []string
 	AllowedHeaders   []string
 	AllowCredentials bool
+}
+
+// QRCodeConfig contains QR code generation configuration
+type QRCodeConfig struct {
+	HMACSecret string
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -218,6 +225,9 @@ var envKeyMap = map[string]string{
 	"CORS_ALLOWED_METHODS":   "cors.allowed_methods",
 	"CORS_ALLOWED_HEADERS":   "cors.allowed_headers",
 	"CORS_ALLOW_CREDENTIALS": "cors.allow_credentials",
+
+	// QR Code
+	"QR_HMAC_SECRET": "qrcode.hmac_secret",
 }
 
 // convertEnvKeyToViperKey converts environment variable key to viper key
@@ -292,6 +302,8 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.CORS.AllowedHeaders = v.GetStringSlice("cors.allowed_headers")
 	cfg.CORS.AllowCredentials = v.GetBool("cors.allow_credentials")
 
+	cfg.QRCode.HMACSecret = v.GetString("qrcode.hmac_secret")
+
 	// Validate required fields
 	if cfg.Database.User == "" {
 		return fmt.Errorf("database user is required (set DB_USER)")
@@ -343,6 +355,24 @@ func (c *Config) Validate() error {
 	}
 	if err := c.validateLogging(); err != nil {
 		return err
+	}
+	if err := c.validateQRCode(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateQRCode validates QR code configuration.
+func (c *Config) validateQRCode() error {
+	if c.QRCode.HMACSecret == "" {
+		return fmt.Errorf("QR code HMAC secret is required (set QR_HMAC_SECRET)")
+	}
+	if len(c.QRCode.HMACSecret) < qrHMACSecretMinLength {
+		return fmt.Errorf(
+			"QR code HMAC secret must be at least %d characters, got %d",
+			qrHMACSecretMinLength,
+			len(c.QRCode.HMACSecret),
+		)
 	}
 	return nil
 }

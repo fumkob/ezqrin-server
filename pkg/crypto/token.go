@@ -1,10 +1,13 @@
 package crypto
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -12,12 +15,18 @@ const (
 	// 24 bytes of entropy produces ~32 character base64url-encoded tokens
 	// which provides sufficient uniqueness (2^192 possible tokens).
 	TOKEN_BYTES = 24
+
+	// tokenDelimiter separates the random token and HMAC signature.
+	tokenDelimiter = "."
 )
 
 // Token errors
 var (
 	// ErrTokenGeneration indicates random token generation failed.
 	ErrTokenGeneration = errors.New("failed to generate random token")
+
+	// ErrInvalidHMACToken indicates the token format is invalid for HMAC operations.
+	ErrInvalidHMACToken = errors.New("invalid HMAC token format")
 )
 
 // GenerateToken generates a cryptographically secure random token.
@@ -46,4 +55,65 @@ func GenerateToken() (string, error) {
 	token := base64.RawURLEncoding.EncodeToString(bytes)
 
 	return token, nil
+}
+
+// GenerateHMACSignedToken generates a cryptographically secure random token
+// and signs it with HMAC-SHA256 using the provided secret.
+//
+// Format: {base64url_random}.{base64url_hmac_sha256_of_random}
+//
+// Parameters:
+//   - secret: The HMAC signing secret (must be non-empty)
+//
+// Returns the signed token string or an error.
+func GenerateHMACSignedToken(secret string) (string, error) {
+	if secret == "" {
+		return "", fmt.Errorf("%w: secret cannot be empty", ErrInvalidHMACToken)
+	}
+
+	// Generate random base token
+	rawToken, err := GenerateToken()
+	if err != nil {
+		return "", err
+	}
+
+	// Compute HMAC-SHA256 signature of the raw token
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(rawToken))
+	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	return rawToken + tokenDelimiter + signature, nil
+}
+
+// VerifyHMACToken verifies that the signed token was generated with the given secret.
+// Returns true if the token is valid, false otherwise.
+//
+// Parameters:
+//   - secret: The HMAC signing secret
+//   - signedToken: The token to verify (format: {raw}.{signature})
+func VerifyHMACToken(secret, signedToken string) bool {
+	if secret == "" || signedToken == "" {
+		return false
+	}
+
+	// Split the signed token into raw token and signature
+	delimIdx := strings.LastIndex(signedToken, tokenDelimiter)
+	if delimIdx == -1 {
+		return false
+	}
+
+	rawToken := signedToken[:delimIdx]
+	providedSig := signedToken[delimIdx+1:]
+
+	if rawToken == "" || providedSig == "" {
+		return false
+	}
+
+	// Compute expected signature
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(rawToken))
+	expectedSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	// Use constant-time comparison to prevent timing attacks
+	return hmac.Equal([]byte(providedSig), []byte(expectedSig))
 }

@@ -54,3 +54,8 @@ cors:
     - Accept
     - Authorization
   allow_credentials: true
+
+# QR Code Configuration
+qrcode:
+  # HMAC secret for QR code signing (set via QR_HMAC_SECRET env var)
+  hmac_secret: ""
