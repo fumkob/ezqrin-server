@@ -204,6 +204,13 @@ Participant:
       description: QR code generation timestamp (ISO 8601)
       example: "2025-11-08T10:00:00Z"
       readOnly: true
+    qr_distribution_url:
+      type: string
+      format: uri
+      description: Distribution URL for the QR code (only available when QR_HOSTING_BASE_URL is configured)
+      example: "https://qr.example.com/qr/ZXZ0XzU1MGU4NDAwX3BydF83NzBlODQwMF..."
+      nullable: true
+      readOnly: true
     metadata:
       type: object
       description: Custom participant data (max 10KB JSON, not included in list responses)
