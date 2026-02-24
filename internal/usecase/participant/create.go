@@ -46,6 +46,9 @@ func (u *participantUsecase) Create(
 		metadata = &raw
 	}
 
+	// Generate distribution URL if hosting base URL is configured
+	distributionURL := crypto.GenerateQRDistributionURL(u.qrHostingBaseURL, qrToken)
+
 	// Create participant entity
 	now := time.Now()
 	participant := &entity.Participant{
@@ -58,6 +61,7 @@ func (u *participantUsecase) Create(
 		Phone:             input.Phone,
 		QRCode:            qrToken,
 		QRCodeGeneratedAt: now,
+		QRDistributionURL: distributionURL,
 		Status:            input.Status,
 		Metadata:          metadata,
 		PaymentStatus:     input.PaymentStatus,
