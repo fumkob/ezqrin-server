@@ -76,9 +76,11 @@ func NewContainer(
 			Refresh:  auth.NewRefreshTokenUseCase(repos.User, repos.Blacklist, cfg.JWT.Secret, logger),
 			Logout:   auth.NewLogoutUseCase(repos.Blacklist, cfg.JWT.Secret, logger),
 		},
-		Event:       event.NewUsecase(repos.Event),
-		Participant: participant.NewUsecase(repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret, cfg.QRCode.HostingBaseURL),
-		Checkin:     checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
+		Event: event.NewUsecase(repos.Event),
+		Participant: participant.NewUsecase(
+			repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret, cfg.QRCode.HostingBaseURL,
+		),
+		Checkin: checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
 	}
 
 	return &Container{
