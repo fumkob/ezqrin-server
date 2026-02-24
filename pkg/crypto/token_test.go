@@ -2,9 +2,12 @@ package crypto_test
 
 import (
 	"encoding/base64"
+	"errors"
 	"regexp"
+	"strings"
 
 	"github.com/fumkob/ezqrin-server/pkg/crypto"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -341,6 +344,242 @@ var _ = Describe("Token Generation", func() {
 					// at alphanumeric mode with error correction
 					Expect(len(token)).To(BeNumerically("<=", 50),
 						"Token should be compact for QR code encoding")
+				})
+			})
+		})
+	})
+
+	Describe("GenerateHMACSignedToken", func() {
+		When("generating an HMAC signed token", func() {
+			Context("with valid secret", func() {
+				It("should generate a non-empty signed token without error", func() {
+					token, err := crypto.GenerateHMACSignedToken("my-secret")
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).NotTo(BeEmpty())
+				})
+
+				It("should generate a token that contains the delimiter", func() {
+					token, err := crypto.GenerateHMACSignedToken("my-secret")
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).To(ContainSubstring("."))
+				})
+
+				It("should generate a token with exactly two parts when split by the delimiter", func() {
+					token, err := crypto.GenerateHMACSignedToken("my-secret")
+
+					Expect(err).NotTo(HaveOccurred())
+
+					parts := strings.SplitN(token, ".", 2)
+					Expect(parts).To(HaveLen(2))
+					Expect(parts[0]).NotTo(BeEmpty())
+					Expect(parts[1]).NotTo(BeEmpty())
+				})
+
+				It("should generate unique tokens on successive calls with the same secret", func() {
+					token1, err := crypto.GenerateHMACSignedToken("my-secret")
+					Expect(err).NotTo(HaveOccurred())
+
+					token2, err := crypto.GenerateHMACSignedToken("my-secret")
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(token1).NotTo(Equal(token2))
+				})
+
+				It("should generate a token that passes VerifyHMACToken round-trip", func() {
+					secret := "round-trip-secret"
+					token, err := crypto.GenerateHMACSignedToken(secret)
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(crypto.VerifyHMACToken(secret, token)).To(BeTrue())
+				})
+			})
+
+			Context("with empty secret", func() {
+				It("should return ErrInvalidHMACToken", func() {
+					token, err := crypto.GenerateHMACSignedToken("")
+
+					Expect(err).To(HaveOccurred())
+					Expect(token).To(BeEmpty())
+					Expect(errors.Is(err, crypto.ErrInvalidHMACToken)).To(BeTrue())
+				})
+			})
+		})
+	})
+
+	Describe("GenerateParticipantQRToken", func() {
+		var (
+			validEventID       uuid.UUID
+			validParticipantID uuid.UUID
+			validSecret        string
+		)
+
+		BeforeEach(func() {
+			validEventID = uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+			validParticipantID = uuid.MustParse("770e8400-e29b-41d4-a716-446655440001")
+			validSecret = "test-secret-for-unit-tests-minimum-32"
+		})
+
+		When("generating a participant QR token", func() {
+			Context("with valid inputs", func() {
+				It("should generate a non-empty token", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).NotTo(BeEmpty())
+				})
+
+				It("should have the correct prefix format", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).To(HavePrefix("evt_550e8400_prt_770e8400_"))
+				})
+
+				It("should contain the delimiter between raw token and HMAC", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).To(ContainSubstring("."))
+				})
+
+				It("should pass VerifyHMACToken with the same secret", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(crypto.VerifyHMACToken(validSecret, token)).To(BeTrue())
+				})
+
+				It("should fail VerifyHMACToken with a different secret", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(crypto.VerifyHMACToken("wrong-secret", token)).To(BeFalse())
+				})
+
+				It("should have a 12-char hex random part", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					// Format: evt_XXXXXXXX_prt_XXXXXXXX_{12hex}.{hmac}
+					rawPart, _, _ := strings.Cut(token, ".")
+					// After "evt_550e8400_prt_770e8400_"
+					parts := strings.Split(rawPart, "_")
+					// parts: ["evt", "550e8400", "prt", "770e8400", "{12hex}"]
+					Expect(parts).To(HaveLen(5))
+					randomPart := parts[4]
+					Expect(randomPart).To(HaveLen(12))
+					hexPattern := regexp.MustCompile(`^[0-9a-f]+$`)
+					Expect(hexPattern.MatchString(randomPart)).To(BeTrue())
+				})
+
+				It("should generate unique tokens on successive calls", func() {
+					token1, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					token2, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, validSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token1).NotTo(Equal(token2))
+				})
+			})
+
+			Context("with empty secret", func() {
+				It("should return ErrInvalidHMACToken", func() {
+					token, err := crypto.GenerateParticipantQRToken(validEventID, validParticipantID, "")
+					Expect(err).To(HaveOccurred())
+					Expect(token).To(BeEmpty())
+					Expect(errors.Is(err, crypto.ErrInvalidHMACToken)).To(BeTrue())
+				})
+			})
+		})
+	})
+
+	Describe("VerifyHMACToken", func() {
+		const validSecret = "verify-test-secret"
+
+		When("verifying an HMAC token", func() {
+			Context("with a valid token and matching secret", func() {
+				It("should return true", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crypto.VerifyHMACToken(validSecret, token)).To(BeTrue())
+				})
+			})
+
+			Context("with a different secret", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crypto.VerifyHMACToken("wrong-secret", token)).To(BeFalse())
+				})
+			})
+
+			Context("with a tampered rawToken part", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					delimIdx := strings.Index(token, ".")
+					originalSig := token[delimIdx:]
+					tamperedToken := "tampered" + originalSig
+
+					Expect(crypto.VerifyHMACToken(validSecret, tamperedToken)).To(BeFalse())
+				})
+			})
+
+			Context("with a tampered signature part", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					originalRaw, _, _ := strings.Cut(token, ".")
+					tamperedToken := originalRaw + ".tampered"
+
+					Expect(crypto.VerifyHMACToken(validSecret, tamperedToken)).To(BeFalse())
+				})
+			})
+
+			Context("with a token that has no delimiter", func() {
+				It("should return false", func() {
+					tokenWithoutDelimiter := base64.RawURLEncoding.EncodeToString([]byte("nodottoken"))
+
+					Expect(crypto.VerifyHMACToken(validSecret, tokenWithoutDelimiter)).To(BeFalse())
+				})
+			})
+
+			Context("with an empty token", func() {
+				It("should return false", func() {
+					Expect(crypto.VerifyHMACToken(validSecret, "")).To(BeFalse())
+				})
+			})
+
+			Context("with an empty secret", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(crypto.VerifyHMACToken("", token)).To(BeFalse())
+				})
+			})
+
+			Context("with an empty rawToken part (format: .{signature})", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					delimIdx := strings.Index(token, ".")
+					sigPart := token[delimIdx:]
+					tokenWithEmptyRaw := sigPart // starts with "."
+
+					Expect(crypto.VerifyHMACToken(validSecret, tokenWithEmptyRaw)).To(BeFalse())
+				})
+			})
+
+			Context("with an empty signature part (format: {raw}.)", func() {
+				It("should return false", func() {
+					token, err := crypto.GenerateHMACSignedToken(validSecret)
+					Expect(err).NotTo(HaveOccurred())
+
+					rawPart, _, _ := strings.Cut(token, ".")
+					tokenWithEmptySig := rawPart + "."
+
+					Expect(crypto.VerifyHMACToken(validSecret, tokenWithEmptySig)).To(BeFalse())
 				})
 			})
 		})

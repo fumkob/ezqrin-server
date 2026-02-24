@@ -77,7 +77,7 @@ JWT_SECRET=your-jwt-secret-minimum-32-characters
 
 ## MVP Configuration Variables
 
-The following 20 environment variables are required for MVP operation:
+The following 21 environment variables are required for MVP operation:
 
 ### Database Configuration
 
@@ -175,6 +175,31 @@ openssl rand -base64 48
 
 ```bash
 JWT_ACCESS_TOKEN_EXPIRY=15m
+```
+
+---
+
+### QR Code Configuration
+
+#### QR_HMAC_SECRET
+
+**Description:** Secret key for HMAC-SHA256 signing of QR code tokens **Type:** String (sensitive) **Required:** Yes
+**Security:** Must be strong, randomly generated, minimum 32 characters
+
+```bash
+QR_HMAC_SECRET=your_qr_hmac_secret_key_at_least_32_characters_long
+```
+
+**Purpose:** QR code tokens are signed with this secret to prevent forgery. The format is:
+`evt_{event_id}_prt_{participant_id}_{random}.{hmac_signature}`
+
+Check-in validation rejects tokens whose signature does not match, protecting against forged QR codes.
+
+**Generate Secure Secret:**
+
+```bash
+# Linux/macOS
+openssl rand -base64 48
 ```
 
 ---
@@ -325,6 +350,9 @@ REDIS_PORT=6379
 JWT_SECRET=dev_secret_key_do_not_use_in_production_min_32_chars
 JWT_ACCESS_TOKEN_EXPIRY=15m
 
+# QR Code
+QR_HMAC_SECRET=dev_qr_hmac_secret_do_not_use_in_production_min_32_chars
+
 # Server
 PORT=8080
 ENV=development
@@ -367,6 +395,9 @@ RATE_LIMIT_ENABLED=true
 # JWT Secret (48+ characters)
 openssl rand -base64 48
 
+# QR HMAC Secret (48+ characters)
+openssl rand -base64 48
+
 # Database Password (32+ characters)
 openssl rand -base64 32
 ```
@@ -406,6 +437,7 @@ required_vars=(
     "REDIS_PORT"
     "JWT_SECRET"
     "JWT_ACCESS_TOKEN_EXPIRY"
+    "QR_HMAC_SECRET"
     "PORT"
     "ENV"
     "LOG_LEVEL"

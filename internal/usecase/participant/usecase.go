@@ -59,6 +59,7 @@ type participantUsecase struct {
 	participantRepo repository.ParticipantRepository
 	eventRepo       repository.EventRepository
 	qrGenerator     *qrcode.Generator
+	qrHMACSecret    string
 }
 
 // NewUsecase creates a new participant usecase instance
@@ -66,10 +67,12 @@ func NewUsecase(
 	participantRepo repository.ParticipantRepository,
 	eventRepo repository.EventRepository,
 	qrGenerator *qrcode.Generator,
+	qrHMACSecret string,
 ) Usecase {
 	return &participantUsecase{
 		participantRepo: participantRepo,
 		eventRepo:       eventRepo,
 		qrGenerator:     qrGenerator,
+		qrHMACSecret:    qrHMACSecret,
 	}
 }

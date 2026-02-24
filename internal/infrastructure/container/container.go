@@ -77,8 +77,8 @@ func NewContainer(
 			Logout:   auth.NewLogoutUseCase(repos.Blacklist, cfg.JWT.Secret, logger),
 		},
 		Event:       event.NewUsecase(repos.Event),
-		Participant: participant.NewUsecase(repos.Participant, repos.Event, qrGenerator),
-		Checkin:     checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event),
+		Participant: participant.NewUsecase(repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret),
+		Checkin:     checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
 	}
 
 	return &Container{

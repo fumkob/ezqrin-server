@@ -87,8 +87,11 @@ func (u *participantUsecase) buildParticipantEntity(
 	input CreateParticipantInput,
 	eventID uuid.UUID,
 ) (*entity.Participant, error) {
-	// Generate QR code token
-	qrToken, err := crypto.GenerateToken()
+	// Generate participant ID first so it can be embedded in the QR token
+	participantID := uuid.New()
+
+	// Generate QR code token with structured format
+	qrToken, err := crypto.GenerateParticipantQRToken(eventID, participantID, u.qrHMACSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate QR token: %w", err)
 	}
@@ -103,7 +106,7 @@ func (u *participantUsecase) buildParticipantEntity(
 	// Create participant entity
 	now := time.Now()
 	participant := &entity.Participant{
-		ID:                uuid.New(),
+		ID:                participantID, // Use pre-generated ID
 		EventID:           eventID,
 		Name:              input.Name,
 		Email:             input.Email,

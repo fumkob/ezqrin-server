@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 )
@@ -105,6 +106,12 @@ func (u *checkinUsecase) findParticipantByQRCode(
 	if input.QRCode == nil || *input.QRCode == "" {
 		return nil, apperrors.BadRequest("QR code is required for QR code check-in")
 	}
+
+	// Verify HMAC signature to ensure token was issued by this server
+	if !crypto.VerifyHMACToken(u.qrHMACSecret, *input.QRCode) {
+		return nil, apperrors.NotFound("invalid QR code or participant not found")
+	}
+
 	participant, err := u.participantRepo.FindByQRCode(ctx, *input.QRCode)
 	if err != nil {
 		return nil, apperrors.NotFound("invalid QR code or participant not found")

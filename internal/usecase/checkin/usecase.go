@@ -41,6 +41,7 @@ type checkinUsecase struct {
 	checkinRepo     repository.CheckinRepository
 	participantRepo repository.ParticipantRepository
 	eventRepo       repository.EventRepository
+	qrHMACSecret    string
 }
 
 // NewUsecase creates a new check-in usecase instance
@@ -48,10 +49,12 @@ func NewUsecase(
 	checkinRepo repository.CheckinRepository,
 	participantRepo repository.ParticipantRepository,
 	eventRepo repository.EventRepository,
+	qrHMACSecret string,
 ) Usecase {
 	return &checkinUsecase{
 		checkinRepo:     checkinRepo,
 		participantRepo: participantRepo,
 		eventRepo:       eventRepo,
+		qrHMACSecret:    qrHMACSecret,
 	}
 }

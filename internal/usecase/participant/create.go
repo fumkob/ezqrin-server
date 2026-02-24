@@ -30,8 +30,11 @@ func (u *participantUsecase) Create(
 		return nil, apperrors.Forbidden("you do not have permission to add participants to this event")
 	}
 
-	// Generate QR code token
-	qrToken, err := crypto.GenerateToken()
+	// Generate participant ID first so it can be embedded in the QR token
+	participantID := uuid.New()
+
+	// Generate QR code token with structured format: evt_{event_id}_prt_{participant_id}_{random}
+	qrToken, err := crypto.GenerateParticipantQRToken(input.EventID, participantID, u.qrHMACSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate QR token: %w", err)
 	}
@@ -46,7 +49,7 @@ func (u *participantUsecase) Create(
 	// Create participant entity
 	now := time.Now()
 	participant := &entity.Participant{
-		ID:                uuid.New(),
+		ID:                participantID, // Use pre-generated ID
 		EventID:           input.EventID,
 		Name:              input.Name,
 		Email:             input.Email,

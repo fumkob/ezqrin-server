@@ -128,36 +128,38 @@ func (g *Generator) GeneratePNGBase64(ctx context.Context, token string, size in
 	return encoded, nil
 }
 
-// GenerateSVG generates a QR code as an ASCII art string representation.
-// This is useful for debugging and console output. The size parameter is currently
-// not used in the ASCII representation but is validated for API consistency.
-//
-// For true SVG generation, consider using GeneratePNG with image-to-SVG conversion,
-// or a dedicated SVG library.
+// GenerateSVG generates a QR code as a valid SVG document.
+// The QR code PNG is generated via GeneratePNG (which handles validation),
+// then embedded as a base64-encoded image within an SVG <image> element,
+// producing a valid scalable vector graphic that can be used in web pages.
 //
 // Parameters:
 //   - ctx: Context for cancellation (reserved for future async support)
 //   - token: The token string to encode in the QR code
-//   - size: Validated but not used in ASCII generation (kept for API consistency)
+//   - size: The QR code size in pixels (must be between 64 and 2048)
 //
-// Returns an ASCII art representation of the QR code or an error if generation fails.
+// Returns a valid SVG XML string or an error if generation fails.
 func (g *Generator) GenerateSVG(ctx context.Context, token string, size int) (string, error) {
-	if token == "" {
-		return "", ErrEmptyToken
-	}
-
-	if err := validateSize(size); err != nil {
+	// Reuse GeneratePNG which handles validation and QR code generation
+	pngBytes, err := g.GeneratePNG(ctx, token, size)
+	if err != nil {
 		return "", err
 	}
 
-	// Generate QR code
-	qr, err := qrcode.New(token, g.errorCorrection)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrGenerationFailed, err)
-	}
-
-	// Generate SVG with specified size
-	svg := qr.ToSmallString(false)
+	// Encode PNG as base64 and embed in SVG <image> element
+	b64 := base64.StdEncoding.EncodeToString(pngBytes)
+	svgHeader := `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
+	svgOpen := fmt.Sprintf(
+		`<svg xmlns="http://www.w3.org/2000/svg"`+
+			` xmlns:xlink="http://www.w3.org/1999/xlink"`+
+			` width="%d" height="%d" viewBox="0 0 %d %d">`,
+		size, size, size, size,
+	)
+	svgBody := fmt.Sprintf(
+		"\n  "+`<image href="data:image/png;base64,%s" width="%d" height="%d"/>`+"\n</svg>",
+		b64, size, size,
+	)
+	svg := svgHeader + svgOpen + svgBody
 
 	return svg, nil
 }

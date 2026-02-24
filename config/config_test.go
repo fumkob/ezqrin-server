@@ -27,6 +27,7 @@ var _ = Describe("Config", func() {
 			"JWT_SECRET", "JWT_ACCESS_TOKEN_EXPIRY", "JWT_REFRESH_TOKEN_EXPIRY_WEB", "JWT_REFRESH_TOKEN_EXPIRY_MOBILE",
 			"LOG_LEVEL", "LOG_FORMAT",
 			"CORS_ALLOWED_ORIGINS", "CORS_ALLOWED_METHODS", "CORS_ALLOWED_HEADERS", "CORS_ALLOW_CREDENTIALS",
+			"QR_HMAC_SECRET",
 		}
 		for _, key := range envVars {
 			originalEnv[key] = os.Getenv(key)
@@ -55,6 +56,7 @@ var _ = Describe("Config", func() {
 				_ = os.Setenv("DB_PASSWORD", "testpass")
 				_ = os.Setenv("DB_NAME", "testdb")
 				_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				_ = os.Setenv("QR_HMAC_SECRET", "test-qr-hmac-secret-with-at-least-32-chars-long")
 			})
 
 			It("should load configuration successfully", func() {
@@ -104,6 +106,7 @@ var _ = Describe("Config", func() {
 				_ = os.Setenv("JWT_REFRESH_TOKEN_EXPIRY_MOBILE", "4320h")
 				_ = os.Setenv("LOG_LEVEL", "warn")
 				_ = os.Setenv("LOG_FORMAT", "text")
+				_ = os.Setenv("QR_HMAC_SECRET", "production-qr-hmac-secret-very-long-and-secure-string")
 			})
 
 			It("should load all custom values correctly", func() {
@@ -126,6 +129,7 @@ var _ = Describe("Config", func() {
 				Expect(cfg.Redis.DB).To(Equal(1))
 				Expect(cfg.Logging.Level).To(Equal("warn"))
 				Expect(cfg.Logging.Format).To(Equal("text"))
+				Expect(cfg.QRCode.HMACSecret).To(Equal("production-qr-hmac-secret-very-long-and-secure-string"))
 			})
 		})
 
@@ -171,6 +175,21 @@ var _ = Describe("Config", func() {
 					Expect(err.Error()).To(ContainSubstring("jwt secret is required"))
 				})
 			})
+
+			When("QR_HMAC_SECRET is missing", func() {
+				BeforeEach(func() {
+					_ = os.Setenv("DB_USER", "testuser")
+					_ = os.Setenv("DB_PASSWORD", "testpass")
+					_ = os.Setenv("DB_NAME", "testdb")
+					_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				})
+
+				It("should return an error", func() {
+					_, err := config.Load()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("QR code HMAC secret is required"))
+				})
+			})
 		})
 
 		Context("with invalid values", func() {
@@ -179,6 +198,7 @@ var _ = Describe("Config", func() {
 				_ = os.Setenv("DB_PASSWORD", "testpass")
 				_ = os.Setenv("DB_NAME", "testdb")
 				_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+				_ = os.Setenv("QR_HMAC_SECRET", "test-qr-hmac-secret-with-at-least-32-chars-long")
 			})
 
 			When("SERVER_PORT is invalid", func() {
@@ -227,6 +247,7 @@ var _ = Describe("Config", func() {
 			_ = os.Setenv("DB_PASSWORD", "testpass")
 			_ = os.Setenv("DB_NAME", "testdb")
 			_ = os.Setenv("JWT_SECRET", "test-secret-key-with-at-least-32-characters-long")
+			_ = os.Setenv("QR_HMAC_SECRET", "test-qr-hmac-secret-with-at-least-32-chars-long")
 
 			var err error
 			cfg, err = config.Load()
@@ -298,6 +319,22 @@ var _ = Describe("Config", func() {
 				Expect(err.Error()).To(ContainSubstring("log format must be"))
 			})
 		})
+
+		Context("with invalid QR code HMAC secret", func() {
+			It("should return validation error for empty secret", func() {
+				cfg.QRCode.HMACSecret = ""
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("QR code HMAC secret is required"))
+			})
+
+			It("should return validation error for short secret", func() {
+				cfg.QRCode.HMACSecret = "too-short"
+				err := cfg.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("QR code HMAC secret must be at least 32 characters"))
+			})
+		})
 	})
 
 	Describe("Helper Methods", func() {
@@ -314,6 +351,7 @@ var _ = Describe("Config", func() {
 			_ = os.Setenv("REDIS_HOST", "redis.example.com")
 			_ = os.Setenv("REDIS_PORT", "6380")
 			_ = os.Setenv("JWT_SECRET", "production-secret-key-very-long-and-secure-string-here")
+			_ = os.Setenv("QR_HMAC_SECRET", "production-qr-hmac-secret-very-long-and-secure-string")
 
 			var err error
 			cfg, err = config.Load()
