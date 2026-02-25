@@ -55,16 +55,19 @@ type ListParticipantsOutput struct {
 
 // BulkCreateInput represents input for bulk creating participants
 type BulkCreateInput struct {
-	EventID      uuid.UUID
-	Participants []CreateParticipantInput
+	EventID        uuid.UUID
+	Participants   []CreateParticipantInput
+	SkipDuplicates bool
 }
 
 // BulkCreateOutput represents output for bulk creating participants
 type BulkCreateOutput struct {
 	CreatedCount int
 	FailedCount  int
+	SkippedCount int
 	Participants []*entity.Participant
 	Errors       []BulkCreateError
+	SkippedRows  []BulkCreateError
 }
 
 // BulkCreateError represents an error during bulk creation

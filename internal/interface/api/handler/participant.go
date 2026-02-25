@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
@@ -10,6 +11,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	"github.com/fumkob/ezqrin-server/internal/usecase/participant"
+	"github.com/fumkob/ezqrin-server/pkg/csvparser"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -98,6 +100,64 @@ func (h *ParticipantHandler) BulkCreateParticipants(c *gin.Context, eventID gene
 	// Convert to response
 	bulkResp := h.convertBulkCreateResponse(output)
 	response.Data(c, http.StatusCreated, bulkResp)
+}
+
+const maxCSVUploadSize = 10 << 20 // 10MB
+
+// ImportParticipantsCSV handles CSV bulk import (POST /events/{id}/participants/import).
+func (h *ParticipantHandler) ImportParticipantsCSV(
+	c *gin.Context,
+	eventID generated.EventIDParam,
+	params generated.ImportParticipantsCSVParams,
+) {
+	// Limit request body to 10MB
+	if err := c.Request.ParseMultipartForm(maxCSVUploadSize); err != nil {
+		response.ProblemFromError(c, apperrors.BadRequest("request body too large (max 10MB)"))
+		return
+	}
+
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		h.logger.WithContext(c.Request.Context()).Warn("missing file field", zap.Error(err))
+		response.ProblemFromError(c, apperrors.BadRequest("file field is required"))
+		return
+	}
+	defer func(file multipart.File) { _ = file.Close() }(file)
+
+	parsedInputs, rowErrors, err := csvparser.ParseParticipantCSV(file)
+	if err != nil {
+		response.ProblemFromError(c, apperrors.BadRequest(err.Error()))
+		return
+	}
+
+	userID := h.getUserID(c)
+	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+
+	skipDuplicates := params.SkipDuplicates != nil && *params.SkipDuplicates
+	eventUUID := uuid.UUID(eventID)
+
+	bulkParticipants := make([]participant.CreateParticipantInput, len(parsedInputs))
+	rowNumbers := make([]int, len(parsedInputs))
+	for i, p := range parsedInputs {
+		p.Input.EventID = eventUUID
+		bulkParticipants[i] = p.Input
+		rowNumbers[i] = p.Row
+	}
+
+	bulkInput := participant.BulkCreateInput{
+		EventID:        eventUUID,
+		Participants:   bulkParticipants,
+		SkipDuplicates: skipDuplicates,
+	}
+
+	output, err := h.usecase.BulkCreate(c.Request.Context(), userID, isAdmin, bulkInput)
+	if err != nil {
+		response.ProblemFromError(c, err)
+		return
+	}
+
+	resp := h.convertImportCSVResponse(output, rowErrors, rowNumbers)
+	response.Data(c, http.StatusOK, resp)
 }
 
 // ListParticipants handles listing participants (GET /events/{id}/participants).
@@ -482,4 +542,67 @@ func convertRawMessageToMap(raw *json.RawMessage) map[string]any {
 		return nil
 	}
 	return result
+}
+
+// convertImportCSVResponse converts BulkCreateOutput + CSV row errors to ImportParticipantsCSVResponse.
+func (h *ParticipantHandler) convertImportCSVResponse(
+	output participant.BulkCreateOutput,
+	rowErrors []csvparser.RowError,
+	rowNumbers []int,
+) generated.ImportParticipantsCSVResponse {
+	type errItem = struct {
+		Email   *string `json:"email,omitempty"`
+		Message string  `json:"message"`
+		Row     int     `json:"row"`
+	}
+	type skipItem = struct {
+		Email  *string `json:"email,omitempty"`
+		Reason string  `json:"reason"`
+		Row    int     `json:"row"`
+	}
+
+	errors := make([]errItem, 0)
+	// CSV parse errors
+	for _, re := range rowErrors {
+		item := errItem{Row: re.Row, Message: re.Message}
+		if re.Email != "" {
+			item.Email = &re.Email
+		}
+		errors = append(errors, item)
+	}
+	// BulkCreate failures
+	for _, e := range output.Errors {
+		row := 0
+		if e.Index < len(rowNumbers) {
+			row = rowNumbers[e.Index]
+		}
+		item := errItem{Row: row, Message: e.Message}
+		if e.Email != "" {
+			item.Email = &e.Email
+		}
+		errors = append(errors, item)
+	}
+
+	skippedRows := make([]skipItem, 0)
+	for _, s := range output.SkippedRows {
+		row := 0
+		if s.Index < len(rowNumbers) {
+			row = rowNumbers[s.Index]
+		}
+		item := skipItem{Row: row, Reason: s.Message}
+		if s.Email != "" {
+			item.Email = &s.Email
+		}
+		skippedRows = append(skippedRows, item)
+	}
+
+	failedCount := output.FailedCount + len(rowErrors)
+
+	return generated.ImportParticipantsCSVResponse{
+		ImportedCount: output.CreatedCount,
+		SkippedCount:  output.SkippedCount,
+		FailedCount:   failedCount,
+		Errors:        &errors,
+		SkippedRows:   &skippedRows,
+	}
 }

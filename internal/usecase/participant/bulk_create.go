@@ -38,7 +38,10 @@ func (u *participantUsecase) BulkCreate(
 
 	// Process each participant
 	for i, participantInput := range input.Participants {
-		if err := u.processSingleParticipant(ctx, i, participantInput, input.EventID, &output); err != nil {
+		err := u.processSingleParticipant(
+			ctx, i, participantInput, input.EventID, input.SkipDuplicates, &output,
+		)
+		if err != nil {
 			// Error already recorded in output
 			continue
 		}
@@ -53,6 +56,7 @@ func (u *participantUsecase) processSingleParticipant(
 	index int,
 	input CreateParticipantInput,
 	eventID uuid.UUID,
+	skipDuplicates bool,
 	output *BulkCreateOutput,
 ) error {
 	participant, err := u.buildParticipantEntity(input, eventID)
@@ -66,8 +70,16 @@ func (u *participantUsecase) processSingleParticipant(
 		return err
 	}
 
-	// Save to repository
 	if err := u.participantRepo.Create(ctx, participant); err != nil {
+		if skipDuplicates && apperrors.IsConflict(err) {
+			output.SkippedCount++
+			output.SkippedRows = append(output.SkippedRows, BulkCreateError{
+				Index:   index,
+				Email:   input.Email,
+				Message: err.Error(),
+			})
+			return err
+		}
 		output.FailedCount++
 		output.Errors = append(output.Errors, BulkCreateError{
 			Index:   index,
