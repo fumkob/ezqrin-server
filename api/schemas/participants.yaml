@@ -203,3 +203,68 @@ ParticipantListResponse:
           type: array
           items:
             $ref: './entities.yaml#/Participant'
+
+ImportParticipantsCSVResponse:
+  type: object
+  required:
+    - imported_count
+    - skipped_count
+    - failed_count
+  properties:
+    imported_count:
+      type: integer
+      minimum: 0
+      description: Number of successfully imported participants
+      example: 148
+    skipped_count:
+      type: integer
+      minimum: 0
+      description: Number of rows skipped due to duplicate email (skip_duplicates=true)
+      example: 2
+    failed_count:
+      type: integer
+      minimum: 0
+      description: Number of rows that failed to import
+      example: 1
+    errors:
+      type: array
+      description: List of row-level errors
+      items:
+        type: object
+        required:
+          - row
+          - message
+        properties:
+          row:
+            type: integer
+            description: 1-based row number in the CSV (excluding header)
+            example: 3
+          email:
+            type: string
+            description: Email of the failed row (if available)
+            example: "bad@example.com"
+          message:
+            type: string
+            description: Error message
+            example: "validation failed: name is required"
+    skipped_rows:
+      type: array
+      description: List of rows skipped due to duplicate email
+      items:
+        type: object
+        required:
+          - row
+          - reason
+        properties:
+          row:
+            type: integer
+            description: 1-based row number in the CSV (excluding header)
+            example: 5
+          email:
+            type: string
+            description: Email of the skipped row
+            example: "dup@example.com"
+          reason:
+            type: string
+            description: Reason for skipping
+            example: "Email already exists for this event"

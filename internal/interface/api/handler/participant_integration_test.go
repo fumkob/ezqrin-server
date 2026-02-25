@@ -8,10 +8,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
@@ -689,6 +691,163 @@ var _ = Describe("Participant API Integration", func() {
 					Expect(response.CreatedCount).To(BeNumerically(">=", 2))
 					Expect(response.FailedCount).To(BeNumerically(">=", 1))
 				})
+			})
+		})
+	})
+	Describe("POST /api/v1/events/:id/participants/import", func() {
+		When("importing a valid CSV as event organizer", func() {
+			It("should import all rows and return imported_count=2", func() {
+				body := &bytes.Buffer{}
+				writer := multipart.NewWriter(body)
+				part, err := writer.CreateFormFile("file", "participants.csv")
+				Expect(err).To(BeNil())
+				_, err = strings.NewReader("name,email\nJane Smith,jane-csv@example.com\nJohn Doe,john-csv@example.com").WriteTo(part)
+				Expect(err).To(BeNil())
+				Expect(writer.Close()).To(Succeed())
+
+				req, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					body,
+				)
+				req.Header.Set("Content-Type", writer.FormDataContentType())
+				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusOK))
+				var resp map[string]interface{}
+				Expect(json.Unmarshal(w.Body.Bytes(), &resp)).To(Succeed())
+				data := resp["data"].(map[string]interface{})
+				Expect(data["imported_count"]).To(BeNumerically("==", 2))
+				Expect(data["failed_count"]).To(BeNumerically("==", 0))
+			})
+		})
+
+		When("importing CSV with duplicate email and skip_duplicates=true", func() {
+			It("should skip the duplicate row and return skipped_count=1", func() {
+				// First import
+				body1 := &bytes.Buffer{}
+				w1 := multipart.NewWriter(body1)
+				part1, _ := w1.CreateFormFile("file", "p.csv")
+				_, _ = strings.NewReader("name,email\nDup User,dup-import@example.com").WriteTo(part1)
+				_ = w1.Close()
+				req1, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					body1,
+				)
+				req1.Header.Set("Content-Type", w1.FormDataContentType())
+				req1.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+				router.ServeHTTP(httptest.NewRecorder(), req1)
+
+				// Second import with skip_duplicates=true
+				body2 := &bytes.Buffer{}
+				w2 := multipart.NewWriter(body2)
+				part2, _ := w2.CreateFormFile("file", "p.csv")
+				_, _ = strings.NewReader("name,email\nDup User,dup-import@example.com").WriteTo(part2)
+				_ = w2.Close()
+				req2, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import?skip_duplicates=true",
+					body2,
+				)
+				req2.Header.Set("Content-Type", w2.FormDataContentType())
+				req2.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				rec := httptest.NewRecorder()
+				router.ServeHTTP(rec, req2)
+
+				Expect(rec.Code).To(Equal(http.StatusOK))
+				var resp map[string]interface{}
+				Expect(json.Unmarshal(rec.Body.Bytes(), &resp)).To(Succeed())
+				data := resp["data"].(map[string]interface{})
+				Expect(data["imported_count"]).To(BeNumerically("==", 0))
+				Expect(data["skipped_count"]).To(BeNumerically("==", 1))
+			})
+		})
+
+		When("importing CSV with duplicate email and skip_duplicates=false (default)", func() {
+			It("should record the duplicate row as an error", func() {
+				// First import
+				body1 := &bytes.Buffer{}
+				w1 := multipart.NewWriter(body1)
+				part1, _ := w1.CreateFormFile("file", "p.csv")
+				_, _ = strings.NewReader("name,email\nErr User,err-dup@example.com").WriteTo(part1)
+				_ = w1.Close()
+				req1, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					body1,
+				)
+				req1.Header.Set("Content-Type", w1.FormDataContentType())
+				req1.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+				router.ServeHTTP(httptest.NewRecorder(), req1)
+
+				// Second import without skip_duplicates
+				body2 := &bytes.Buffer{}
+				w2 := multipart.NewWriter(body2)
+				part2, _ := w2.CreateFormFile("file", "p.csv")
+				_, _ = strings.NewReader("name,email\nErr User,err-dup@example.com").WriteTo(part2)
+				_ = w2.Close()
+				req2, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					body2,
+				)
+				req2.Header.Set("Content-Type", w2.FormDataContentType())
+				req2.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				rec := httptest.NewRecorder()
+				router.ServeHTTP(rec, req2)
+
+				Expect(rec.Code).To(Equal(http.StatusOK))
+				var resp map[string]interface{}
+				Expect(json.Unmarshal(rec.Body.Bytes(), &resp)).To(Succeed())
+				data := resp["data"].(map[string]interface{})
+				Expect(data["failed_count"]).To(BeNumerically("==", 1))
+				Expect(data["skipped_count"]).To(BeNumerically("==", 0))
+			})
+		})
+
+		When("request has no file field", func() {
+			It("should return 400", func() {
+				req, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					bytes.NewBufferString(""),
+				)
+				req.Header.Set("Content-Type", "multipart/form-data; boundary=xyz")
+				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		When("CSV has invalid format (missing required columns)", func() {
+			It("should return 400", func() {
+				body := &bytes.Buffer{}
+				writer := multipart.NewWriter(body)
+				part, _ := writer.CreateFormFile("file", "bad.csv")
+				_, _ = strings.NewReader("phone,employee_id\n+1-555,EMP001").WriteTo(part)
+				_ = writer.Close()
+
+				req, _ := http.NewRequest(
+					http.MethodPost,
+					"/api/v1/events/"+testEventID+"/participants/import",
+					body,
+				)
+				req.Header.Set("Content-Type", writer.FormDataContentType())
+				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusBadRequest))
 			})
 		})
 	})

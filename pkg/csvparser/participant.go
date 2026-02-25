@@ -32,48 +32,64 @@ func ParseParticipantCSV(r io.Reader) ([]ParsedInput, []RowError, error) {
 	reader := csv.NewReader(r)
 	reader.TrimLeadingSpace = true
 
+	colIndex, err := readAndValidateHeader(reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return readDataRows(reader, colIndex)
+}
+
+// readAndValidateHeader reads the CSV header and validates required columns.
+func readAndValidateHeader(reader *csv.Reader) (map[string]int, error) {
 	headers, err := reader.Read()
 	if err == io.EOF {
-		return nil, nil, fmt.Errorf("CSV file is empty")
+		return nil, fmt.Errorf("CSV file is empty")
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read CSV header: %w", err)
+		return nil, fmt.Errorf("failed to read CSV header: %w", err)
 	}
 
 	colIndex := buildColumnIndex(headers)
 
 	if _, ok := colIndex["name"]; !ok {
-		return nil, nil, fmt.Errorf("required column 'name' not found in CSV header")
+		return nil, fmt.Errorf("required column 'name' not found in CSV header")
 	}
 	if _, ok := colIndex["email"]; !ok {
-		return nil, nil, fmt.Errorf("required column 'email' not found in CSV header")
+		return nil, fmt.Errorf("required column 'email' not found in CSV header")
 	}
 
+	return colIndex, nil
+}
+
+// readDataRows reads all data rows from the CSV and returns parsed inputs and row errors.
+func readDataRows(reader *csv.Reader, colIndex map[string]int) ([]ParsedInput, []RowError, error) {
 	var inputs []ParsedInput
 	var rowErrors []RowError
-	rowNum := 0
+	csvRowNum := 1 // 1 for header row
 
 	for {
 		row, err := reader.Read()
 		if err == io.EOF {
 			break
 		}
+		csvRowNum++
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read CSV row %d: %w", rowNum+2, err)
+			return nil, nil, fmt.Errorf("failed to read CSV row %d: %w", csvRowNum, err)
 		}
-		rowNum++
 
+		dataRowNum := csvRowNum - 1 // 1-based data row number (excluding header)
 		email := getField(colIndex, row, "email")
 		input, parseErr := parseRow(colIndex, row)
 		if parseErr != nil {
 			rowErrors = append(rowErrors, RowError{
-				Row:     rowNum,
+				Row:     dataRowNum,
 				Email:   email,
 				Message: parseErr.Error(),
 			})
 			continue
 		}
-		inputs = append(inputs, ParsedInput{Row: rowNum, Input: input})
+		inputs = append(inputs, ParsedInput{Row: dataRowNum, Input: input})
 	}
 
 	if len(inputs) == 0 && len(rowErrors) == 0 {
@@ -138,7 +154,8 @@ func parseRow(colIndex map[string]int, row []string) (participant.CreateParticip
 	if s := getField(colIndex, row, "payment_date"); s != "" {
 		t, err := time.Parse(time.RFC3339, s)
 		if err != nil {
-			return participant.CreateParticipantInput{}, fmt.Errorf("invalid payment_date %q: expected RFC3339 format (e.g. 2025-11-08T12:30:00Z)", s)
+			err := fmt.Errorf("invalid payment_date %q: expected RFC3339 format (e.g. 2025-11-08T12:30:00Z)", s)
+			return participant.CreateParticipantInput{}, err
 		}
 		input.PaymentDate = &t
 	}

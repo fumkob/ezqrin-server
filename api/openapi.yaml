@@ -100,6 +100,8 @@ paths:
     $ref: './paths/participants.yaml#/~1events~1{id}~1participants'
   /events/{id}/participants/bulk:
     $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1bulk'
+  /events/{id}/participants/import:
+    $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1import'
   /participants/{id}:
     $ref: './paths/participants.yaml#/~1participants~1{id}'
   /participants/{id}/qrcode:
@@ -167,6 +169,8 @@ components:
       $ref: './schemas/participants.yaml#/BulkCreateParticipantsResponse'
     ParticipantListResponse:
       $ref: './schemas/participants.yaml#/ParticipantListResponse'
+    ImportParticipantsCSVResponse:
+      $ref: './schemas/participants.yaml#/ImportParticipantsCSVResponse'
 
     # Check-in schemas
     CheckInRequest:

@@ -162,6 +162,70 @@
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
+/events/{id}/participants/import:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  post:
+    tags:
+      - participants
+    summary: Import participants from CSV
+    description: |
+      Bulk import participants from a CSV file.
+      The CSV must have a header row with at least 'name' and 'email' columns.
+      Column order is flexible. QR codes are automatically generated.
+      Requires event owner or admin permissions.
+    operationId: importParticipantsCSV
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: skip_duplicates
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: When true, rows with duplicate email are skipped instead of treated as errors
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                format: binary
+                description: "CSV file (max 10MB). Required columns: name, email"
+    responses:
+      '200':
+        description: Import completed (partial success is possible)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/participants.yaml#/ImportParticipantsCSVResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        description: Event not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '413':
+        description: Payload Too Large - CSV file exceeds 10MB
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/responses.yaml#/ProblemDetails'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
 /participants/{id}:
   parameters:
     - $ref: '../components/parameters.yaml#/ParticipantIDParam'

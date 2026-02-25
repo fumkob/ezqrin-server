@@ -3,10 +3,9 @@ package csvparser_test
 import (
 	"strings"
 
+	"github.com/fumkob/ezqrin-server/pkg/csvparser"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/fumkob/ezqrin-server/pkg/csvparser"
 )
 
 var _ = Describe("ParseParticipantCSV", func() {
