@@ -1,0 +1,30 @@
+# Version control
+.git
+.github
+
+# Claude configuration
+.claude
+
+# Documentation
+docs
+
+# Markdown files
+*.md
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Development containers
+.devcontainer
+
+# Temporary files
+tmp/
+
+# Test output
+*.test
+*.out
+
+# Serena
+.serena
