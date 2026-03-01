@@ -109,8 +109,8 @@ type QRCodeConfig struct {
 func Load() (*Config, error) {
 	v := viper.New()
 
-	// Load .env.secrets file if it exists (for local development)
-	_ = loadEnvFile(v, ".env.secrets")
+	// Load .env file if it exists (for local development)
+	_ = loadEnvFile(v, ".env")
 
 	// Determine environment
 	environment := getEnvOrDefault("SERVER_ENV", "development")
@@ -175,6 +175,11 @@ func loadEnvFile(v *viper.Viper, filepath string) error {
 
 		key := strings.TrimSpace(parts[0])
 		value := strings.TrimSpace(parts[1])
+
+		// Skip if the OS environment variable is already set (e.g. DevContainer)
+		if os.Getenv(key) != "" {
+			continue
+		}
 
 		viperKey := convertEnvKeyToViperKey(key)
 		v.Set(viperKey, value)

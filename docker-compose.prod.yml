@@ -3,7 +3,7 @@ name: ezqrin-prod
 # Production Docker Compose configuration for ezQRin Server.
 #
 # Prerequisites:
-#   - Copy .env.secrets.example to .env.secrets and fill in production values
+#   - Copy .env.example to .env and fill in production values
 #   - Build the production image: docker build -t ezqrin-server:latest .
 #
 # Usage:
@@ -11,7 +11,7 @@ name: ezqrin-prod
 #
 # Security note:
 #   This file does not contain secrets. All sensitive values are loaded from
-#   .env.secrets via the env_file directive.
+#   .env via the env_file directive.
 
 services:
   api:
@@ -21,7 +21,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env.secrets
+      - .env
     environment:
       - SERVER_ENV=production
       - LOG_LEVEL=info
@@ -57,9 +57,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     env_file:
-      - .env.secrets
+      - .env
     environment:
-      # POSTGRES_USER and POSTGRES_PASSWORD are loaded from .env.secrets
+      # POSTGRES_USER and POSTGRES_PASSWORD are loaded from .env
       # as DB_USER and DB_PASSWORD respectively. Map them here:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -82,7 +82,7 @@ services:
     volumes:
       - redis-data:/data
     env_file:
-      - .env.secrets
+      - .env
     networks:
       - ezqrin-internal
     security_opt:
