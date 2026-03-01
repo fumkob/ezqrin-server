@@ -93,6 +93,7 @@ Edit `.env.secrets` with real production values:
 # Generate secure values
 openssl rand -base64 32   # For DB_PASSWORD
 openssl rand -base64 48   # For JWT_SECRET (longer for production)
+openssl rand -base64 32   # For QR_HMAC_SECRET
 openssl rand -base64 24   # For REDIS_PASSWORD
 ```
 
@@ -103,6 +104,7 @@ DB_USER=ezqrin_prod
 DB_PASSWORD=<strong-random-password>
 DB_NAME=ezqrin_db
 JWT_SECRET=<strong-random-secret-min-32-chars>
+QR_HMAC_SECRET=<strong-random-secret-min-32-chars>
 REDIS_PASSWORD=<strong-random-password>
 ```
 
@@ -190,6 +192,7 @@ These must never be committed to version control.
 | `DB_PASSWORD`    | PostgreSQL password (generate with `openssl rand -base64 32`) | Yes |
 | `DB_NAME`        | PostgreSQL database name                                 | Yes      |
 | `JWT_SECRET`     | JWT signing secret (minimum 32 characters, use 48+ for production) | Yes |
+| `QR_HMAC_SECRET` | HMAC-SHA256 secret for QR code signing (minimum 32 characters) | Yes |
 | `REDIS_PASSWORD` | Redis password (leave empty to disable Redis auth)       | No       |
 
 ### Non-Secret Variables (set in `docker-compose.prod.yml` or override)
