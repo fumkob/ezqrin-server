@@ -29,7 +29,7 @@ Docker Compose.
 
 ### Software
 
-Install Docker and Docker Compose on your server:
+**Option A: Docker**
 
 ```bash
 # Install Docker (Ubuntu/Debian example)
@@ -40,6 +40,19 @@ sudo usermod -aG docker $USER
 docker --version
 docker compose version
 ```
+
+**Option B: Podman**
+
+```bash
+# Install Podman (Ubuntu/Debian example)
+sudo apt-get install -y podman podman-compose
+
+# Verify installation
+podman --version
+podman-compose --version
+```
+
+> **Note:** Podman runs daemonless and rootless by default. All `docker` commands in this guide can be replaced with `podman`, and `docker compose` with `podman-compose`.
 
 ---
 
@@ -54,39 +67,15 @@ cd ezqrin-server
 
 ### 2. Build the Production Image
 
-The production image should be built from the project's `Dockerfile` located in the repository
-root. If no production `Dockerfile` exists yet, use the following minimal multi-stage build
-as a starting point:
-
-```dockerfile
-# Build stage
-FROM golang:1.25.5-alpine AS builder
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags="-w -s" -o ezqrin-server cmd/api/main.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags="-w -s" -o ezqrin-migrate cmd/migrate/main.go
-
-# Production stage
-FROM alpine:3.21
-RUN apk add --no-cache ca-certificates wget
-WORKDIR /app
-COPY --from=builder /build/ezqrin-server .
-COPY --from=builder /build/ezqrin-migrate .
-COPY config/ ./config/
-COPY internal/infrastructure/database/migrations/ ./internal/infrastructure/database/migrations/
-EXPOSE 8080
-USER nobody
-CMD ["./ezqrin-server"]
-```
-
-Build and tag the image:
+The production image is built from the `Dockerfile` at the repository root using a
+multi-stage build (builder: `golang:1.25.5-alpine`, runtime: `alpine:3.21`).
 
 ```bash
+# Docker
 docker build -t ezqrin-server:latest .
+
+# Podman
+podman build -t ezqrin-server:latest .
 ```
 
 ### 3. Configure Secrets
@@ -122,13 +111,21 @@ REDIS_PASSWORD=<strong-random-password>
 ### 4. Start Production Services
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml up -d
+
+# Podman
+podman-compose -f docker-compose.prod.yml up -d
 ```
 
 Check that all services are running:
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml ps
+
+# Podman
+podman-compose -f docker-compose.prod.yml ps
 ```
 
 Expected output:
@@ -146,21 +143,31 @@ Migrations must be applied after the first deployment and after any update that 
 schema changes. The production image includes a compiled migration binary (`ezqrin-migrate`):
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate up
+
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate up
 ```
 
 To check the current migration version before running:
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate version
+
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate version
 ```
 
 ### 6. Verify the Deployment
 
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:8080/api/v1/health
 ```
 
 Expected response:
@@ -231,21 +238,36 @@ The production Docker image includes a pre-compiled `ezqrin-migrate` binary alon
 ### Apply All Pending Migrations
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate up
+
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate up
 ```
 
 ### Check Current Migration Version
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate version
+
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate version
 ```
 
 ### Rollback Last Migration
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate down
+
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate down
 ```
 
@@ -264,9 +286,9 @@ docker compose -f docker-compose.prod.yml exec api \
 
 | Endpoint       | Purpose                                           | Expected Response              |
 | -------------- | ------------------------------------------------- | ------------------------------ |
-| `GET /health`  | Basic application health check                    | `200 OK` with `{"status":"ok"}` |
-| `GET /health/ready` | Readiness probe (DB and Redis connectivity)  | `200 OK` when ready            |
-| `GET /health/live`  | Liveness probe (process alive)               | `200 OK` always                |
+| `GET /api/v1/health`       | Basic application health check                   | `200 OK` with `{"status":"ok"}` |
+| `GET /api/v1/health/ready` | Readiness probe (DB and Redis connectivity)      | `200 OK` when ready            |
+| `GET /api/v1/health/live`  | Liveness probe (process alive)                   | `200 OK` always                |
 
 Use `/health/ready` and `/health/live` for Kubernetes probes or container orchestration.
 
@@ -274,13 +296,22 @@ Use `/health/ready` and `/health/live` for Kubernetes probes or container orches
 
 ```bash
 # Follow all service logs
+# Docker
 docker compose -f docker-compose.prod.yml logs -f
+# Podman
+podman-compose -f docker-compose.prod.yml logs -f
 
 # API server logs only
+# Docker
 docker compose -f docker-compose.prod.yml logs -f api
+# Podman
+podman-compose -f docker-compose.prod.yml logs -f api
 
 # Last 100 lines
+# Docker
 docker compose -f docker-compose.prod.yml logs --tail=100 api
+# Podman
+podman-compose -f docker-compose.prod.yml logs --tail=100 api
 ```
 
 Logs are structured JSON in production, suitable for ingestion by log aggregation systems
@@ -305,21 +336,34 @@ Logs are structured JSON in production, suitable for ingestion by log aggregatio
 git pull origin main
 
 # 2. Build new image
+# Docker
 docker build -t ezqrin-server:latest .
+# Podman
+podman build -t ezqrin-server:latest .
 
 # 3. Apply migrations (if any schema changes)
+# Docker
 docker compose -f docker-compose.prod.yml exec api \
+    ./ezqrin-migrate up
+# Podman
+podman-compose -f docker-compose.prod.yml exec api \
     ./ezqrin-migrate up
 
 # 4. Restart the API service (other services continue running)
+# Docker
 docker compose -f docker-compose.prod.yml up -d --no-deps api
+# Podman
+podman-compose -f docker-compose.prod.yml up -d --no-deps api
 ```
 
 ### Verify Update
 
 ```bash
-curl http://localhost:8080/health
+curl http://localhost:8080/api/v1/health
+# Docker
 docker compose -f docker-compose.prod.yml logs --tail=50 api
+# Podman
+podman-compose -f docker-compose.prod.yml logs --tail=50 api
 ```
 
 ---
@@ -330,7 +374,12 @@ docker compose -f docker-compose.prod.yml logs --tail=50 api
 
 ```bash
 # Create a timestamped backup
+# Docker
 docker compose -f docker-compose.prod.yml exec postgres \
+    pg_dump -U ${DB_USER} ${DB_NAME} \
+    > backup_$(date +%Y%m%d_%H%M%S).sql
+# Podman
+podman-compose -f docker-compose.prod.yml exec postgres \
     pg_dump -U ${DB_USER} ${DB_NAME} \
     > backup_$(date +%Y%m%d_%H%M%S).sql
 
@@ -350,14 +399,24 @@ Automate with a cron job:
 
 ```bash
 # Stop the API to prevent writes during restore
+# Docker
 docker compose -f docker-compose.prod.yml stop api
+# Podman
+podman-compose -f docker-compose.prod.yml stop api
 
 # Restore from backup
+# Docker
 cat backup.sql | docker compose -f docker-compose.prod.yml exec -T postgres \
+    psql -U ${DB_USER} ${DB_NAME}
+# Podman
+cat backup.sql | podman-compose -f docker-compose.prod.yml exec -T postgres \
     psql -U ${DB_USER} ${DB_NAME}
 
 # Restart the API
+# Docker
 docker compose -f docker-compose.prod.yml start api
+# Podman
+podman-compose -f docker-compose.prod.yml start api
 ```
 
 ### Volume Backup
@@ -382,15 +441,25 @@ docker run --rm \
 Check container logs for errors:
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml logs api
 docker compose -f docker-compose.prod.yml logs postgres
 docker compose -f docker-compose.prod.yml logs redis
+
+# Podman
+podman-compose -f docker-compose.prod.yml logs api
+podman-compose -f docker-compose.prod.yml logs postgres
+podman-compose -f docker-compose.prod.yml logs redis
 ```
 
 Verify all services are healthy:
 
 ```bash
+# Docker
 docker compose -f docker-compose.prod.yml ps
+
+# Podman
+podman-compose -f docker-compose.prod.yml ps
 ```
 
 ### API Returns 503 or Connection Errors
@@ -399,11 +468,19 @@ The API depends on PostgreSQL and Redis being healthy before it starts. Check de
 
 ```bash
 # Check PostgreSQL
+# Docker
 docker compose -f docker-compose.prod.yml exec postgres \
+    pg_isready -U ${DB_USER} -d ${DB_NAME}
+# Podman
+podman-compose -f docker-compose.prod.yml exec postgres \
     pg_isready -U ${DB_USER} -d ${DB_NAME}
 
 # Check Redis
+# Docker
 docker compose -f docker-compose.prod.yml exec redis \
+    redis-cli -a ${REDIS_PASSWORD} ping
+# Podman
+podman-compose -f docker-compose.prod.yml exec redis \
     redis-cli -a ${REDIS_PASSWORD} ping
 ```
 
@@ -413,8 +490,12 @@ Verify `.env.secrets` contains correct credentials:
 
 ```bash
 # Print non-sensitive env vars (do not log DB_PASSWORD or JWT_SECRET)
+# Docker
 docker compose -f docker-compose.prod.yml exec api env | grep DB_HOST
 docker compose -f docker-compose.prod.yml exec api env | grep DB_PORT
+# Podman
+podman-compose -f docker-compose.prod.yml exec api env | grep DB_HOST
+podman-compose -f docker-compose.prod.yml exec api env | grep DB_PORT
 ```
 
 Confirm `DB_SSL_MODE=require` is set for production and that the PostgreSQL instance
@@ -444,8 +525,13 @@ ports:
 Check volume sizes:
 
 ```bash
+# Docker
 docker system df
 docker volume ls
+
+# Podman
+podman system df
+podman volume ls
 ```
 
 Clean up unused Docker resources (be careful in production):
