@@ -208,6 +208,8 @@ These must never be committed to version control.
 | `REDIS_PORT`          | `6379`         | Redis port                                          |
 | `LOG_LEVEL`           | `info`         | Log verbosity (`debug`, `info`, `warn`, `error`)    |
 | `LOG_FORMAT`          | `json`         | Log format (`json` for production)                  |
+| `CORS_ALLOWED_ORIGINS` | *(empty)*     | Comma-separated list of allowed frontend origins (e.g. `https://app.example.com`). Set this in production to restrict cross-origin requests. |
+| `QR_HOSTING_BASE_URL` | *(empty)*      | Base URL of the QR hosting server (e.g. `https://qr.example.com`). Required only when using QR distribution URL generation. |
 
 ### YAML Configuration
 

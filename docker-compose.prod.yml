@@ -31,6 +31,10 @@ services:
       - DB_SSL_MODE=require
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # CORS: set to your frontend origin(s), comma-separated
+      # - CORS_ALLOWED_ORIGINS=https://app.example.com
+      # QR hosting server URL (required for QR distribution URL generation)
+      # - QR_HOSTING_BASE_URL=https://qr.example.com
     depends_on:
       postgres:
         condition: service_healthy
