@@ -78,35 +78,38 @@ docker build -t ezqrin-server:latest .
 podman build -t ezqrin-server:latest .
 ```
 
-### 3. Configure Secrets
+### 3. Configure Environment
 
-Copy the secrets example and fill in production values:
+Copy the example and fill in values for your deployment:
 
 ```bash
-cp .env.secrets.example .env.secrets
-chmod 600 .env.secrets
+cp .env.example .env
+chmod 600 .env
 ```
 
-Edit `.env.secrets` with real production values:
+Edit `.env` with your production values. Generate secure values for secrets:
 
 ```bash
-# Generate secure values
 openssl rand -base64 32   # For DB_PASSWORD
 openssl rand -base64 48   # For JWT_SECRET (longer for production)
+openssl rand -base64 32   # For QR_HMAC_SECRET
 openssl rand -base64 24   # For REDIS_PASSWORD
 ```
 
-Required values in `.env.secrets`:
+Key values to configure in `.env`:
 
-```bash
-DB_USER=ezqrin_prod
-DB_PASSWORD=<strong-random-password>
-DB_NAME=ezqrin_db
-JWT_SECRET=<strong-random-secret-min-32-chars>
-REDIS_PASSWORD=<strong-random-password>
-```
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DB_USER` | Yes | PostgreSQL username |
+| `DB_PASSWORD` | Yes | Generate with `openssl rand -base64 32` |
+| `DB_NAME` | Yes | PostgreSQL database name |
+| `JWT_SECRET` | Yes | Minimum 32 characters; use 48+ for production |
+| `QR_HMAC_SECRET` | Yes | Minimum 32 characters |
+| `REDIS_PASSWORD` | No | Leave empty to disable Redis auth |
+| `CORS_ALLOWED_ORIGINS` | Recommended | Comma-separated frontend origins (e.g. `https://app.example.com`) |
+| `QR_HOSTING_BASE_URL` | No | Base URL of the QR hosting server |
 
-**CRITICAL:** Never commit `.env.secrets` to version control. Verify it is listed in `.gitignore`.
+**CRITICAL:** Never commit `.env` to version control. Verify it is listed in `.gitignore`.
 
 ### 4. Start Production Services
 
@@ -180,31 +183,7 @@ Expected response:
 
 ## Environment Variables
 
-### Secret Variables (`.env.secrets`)
-
-These must never be committed to version control.
-
-| Variable         | Description                                              | Required |
-| ---------------- | -------------------------------------------------------- | -------- |
-| `DB_USER`        | PostgreSQL username                                      | Yes      |
-| `DB_PASSWORD`    | PostgreSQL password (generate with `openssl rand -base64 32`) | Yes |
-| `DB_NAME`        | PostgreSQL database name                                 | Yes      |
-| `JWT_SECRET`     | JWT signing secret (minimum 32 characters, use 48+ for production) | Yes |
-| `REDIS_PASSWORD` | Redis password (leave empty to disable Redis auth)       | No       |
-
-### Non-Secret Variables (set in `docker-compose.prod.yml` or override)
-
-| Variable              | Default        | Description                                         |
-| --------------------- | -------------- | --------------------------------------------------- |
-| `SERVER_ENV`          | `production`   | Application environment                             |
-| `SERVER_PORT`         | `8080`         | HTTP server port                                    |
-| `DB_HOST`             | `postgres`     | PostgreSQL hostname (Docker service name)           |
-| `DB_PORT`             | `5432`         | PostgreSQL port                                     |
-| `DB_SSL_MODE`         | `require`      | SSL mode (`require` for production)                 |
-| `REDIS_HOST`          | `redis`        | Redis hostname (Docker service name)                |
-| `REDIS_PORT`          | `6379`         | Redis port                                          |
-| `LOG_LEVEL`           | `info`         | Log verbosity (`debug`, `info`, `warn`, `error`)    |
-| `LOG_FORMAT`          | `json`         | Log format (`json` for production)                  |
+All configuration is managed in `.env` (see `.env.example` for the full template). The `docker-compose.prod.yml` `environment:` section sets defaults for non-secret values: `SERVER_ENV`, `LOG_LEVEL`, `LOG_FORMAT`, `DB_HOST`, `DB_PORT`, `DB_SSL_MODE`, `REDIS_HOST`, and `REDIS_PORT`. Values defined in `.env` override these defaults.
 
 ### YAML Configuration
 
@@ -486,7 +465,7 @@ podman-compose -f docker-compose.prod.yml exec redis \
 
 ### Database Connection Refused
 
-Verify `.env.secrets` contains correct credentials:
+Verify `.env` contains correct credentials:
 
 ```bash
 # Print non-sensitive env vars (do not log DB_PASSWORD or JWT_SECRET)
@@ -551,7 +530,7 @@ docker volume prune
 
 Before going live, verify the following:
 
-- `.env.secrets` is not committed to version control
+- `.env` is not committed to version control
 - All secrets use strong random values (`openssl rand`)
 - `DB_SSL_MODE=require` is set for PostgreSQL connections
 - Redis has a strong password configured

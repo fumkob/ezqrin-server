@@ -29,9 +29,6 @@ go.work.sum
 .env.secrets
 config/local.yaml
 
-# Keep examples
-!.env.secrets.example
-
 # Editor/IDE
 .vscode/
 

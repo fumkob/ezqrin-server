@@ -161,5 +161,5 @@ func printUsage() {
 	fmt.Println("  1. config/default.yaml (base configuration)")
 	fmt.Println("  2. config/development.yaml or config/production.yaml (environment-specific)")
 	fmt.Println("  3. Environment variables (DB_USER, DB_PASSWORD, DB_NAME, etc.)")
-	fmt.Println("\n  See .env.secrets.example for required environment variables.")
+	fmt.Println("\n  See .env.example for required environment variables.")
 }
