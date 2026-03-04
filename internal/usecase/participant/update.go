@@ -50,6 +50,8 @@ func (u *participantUsecase) Update(
 		return nil, err
 	}
 
+	u.populateDistributionURL(participant)
+
 	return participant, nil
 }
 
