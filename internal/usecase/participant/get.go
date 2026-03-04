@@ -32,5 +32,7 @@ func (u *participantUsecase) GetByID(
 		return nil, apperrors.Forbidden("you do not have permission to view this participant")
 	}
 
+	u.populateDistributionURL(participant)
+
 	return participant, nil
 }
