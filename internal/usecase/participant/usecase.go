@@ -6,6 +6,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	"github.com/google/uuid"
 )
 
@@ -77,5 +78,18 @@ func NewUsecase(
 		qrGenerator:      qrGenerator,
 		qrHMACSecret:     qrHMACSecret,
 		qrHostingBaseURL: qrHostingBaseURL,
+	}
+}
+
+// populateDistributionURL computes and sets QRDistributionURL for a participant
+// based on the QR code token and the configured hosting base URL.
+func (u *participantUsecase) populateDistributionURL(p *entity.Participant) {
+	p.QRDistributionURL = crypto.GenerateQRDistributionURL(u.qrHostingBaseURL, p.QRCode)
+}
+
+// populateDistributionURLs computes and sets QRDistributionURL for multiple participants.
+func (u *participantUsecase) populateDistributionURLs(participants []*entity.Participant) {
+	for _, p := range participants {
+		u.populateDistributionURL(p)
 	}
 }

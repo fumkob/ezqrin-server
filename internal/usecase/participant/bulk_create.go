@@ -127,6 +127,7 @@ func (u *participantUsecase) buildParticipantEntity(
 		Phone:             input.Phone,
 		QRCode:            qrToken,
 		QRCodeGeneratedAt: now,
+		QRDistributionURL: crypto.GenerateQRDistributionURL(u.qrHostingBaseURL, qrToken),
 		Status:            input.Status,
 		Metadata:          metadata,
 		PaymentStatus:     input.PaymentStatus,
