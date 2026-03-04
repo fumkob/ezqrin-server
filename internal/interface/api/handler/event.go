@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
@@ -111,7 +112,7 @@ func (h *EventHandler) PostEvents(c *gin.Context) {
 	input := event.CreateEventInput{
 		OrganizerID: userID,
 		Name:        req.Name,
-		StartDate:   req.StartDate,
+		StartDate:   req.StartDate.UTC(),
 		Status:      entity.EventStatus(req.Status),
 	}
 
@@ -119,13 +120,20 @@ func (h *EventHandler) PostEvents(c *gin.Context) {
 		input.Description = *req.Description
 	}
 	if req.EndDate != nil {
-		input.EndDate = req.EndDate
+		utcEnd := req.EndDate.UTC()
+		input.EndDate = &utcEnd
 	}
 	if req.Location != nil {
 		input.Location = *req.Location
 	}
 	if req.Timezone != nil {
+		if _, err := time.LoadLocation(*req.Timezone); err != nil {
+			response.ProblemFromError(c, apperrors.BadRequest("invalid IANA timezone identifier"))
+			return
+		}
 		input.Timezone = *req.Timezone
+	} else {
+		input.Timezone = "UTC"
 	}
 
 	evt, err := h.usecase.Create(c.Request.Context(), input)
@@ -183,15 +191,21 @@ func (h *EventHandler) PutEventsId(c *gin.Context, id generated.EventIDParam) {
 		input.Description = req.Description
 	}
 	if req.StartDate != nil {
-		input.StartDate = req.StartDate
+		utcStart := req.StartDate.UTC()
+		input.StartDate = &utcStart
 	}
 	if req.EndDate != nil {
-		input.EndDate = req.EndDate
+		utcEnd := req.EndDate.UTC()
+		input.EndDate = &utcEnd
 	}
 	if req.Location != nil {
 		input.Location = req.Location
 	}
 	if req.Timezone != nil {
+		if _, err := time.LoadLocation(*req.Timezone); err != nil {
+			response.ProblemFromError(c, apperrors.BadRequest("invalid IANA timezone identifier"))
+			return
+		}
 		input.Timezone = req.Timezone
 	}
 	if req.Status != nil {
@@ -285,15 +299,18 @@ func (h *EventHandler) getUserRole(c *gin.Context) string {
 func (h *EventHandler) toGeneratedEvent(e *entity.Event) generated.Event {
 	id := openapi_types.UUID(e.ID)
 	organizerID := openapi_types.UUID(e.OrganizerID)
+	startDateUTC := e.StartDate.UTC()
+	createdAtUTC := e.CreatedAt.UTC()
+	updatedAtUTC := e.UpdatedAt.UTC()
 
 	genEvent := generated.Event{
 		Id:          &id,
 		OrganizerId: &organizerID,
 		Name:        e.Name,
-		StartDate:   e.StartDate,
+		StartDate:   startDateUTC,
 		Status:      generated.EventStatus(e.Status),
-		CreatedAt:   &e.CreatedAt,
-		UpdatedAt:   &e.UpdatedAt,
+		CreatedAt:   &createdAtUTC,
+		UpdatedAt:   &updatedAtUTC,
 	}
 
 	if e.Description != "" {
@@ -301,7 +318,8 @@ func (h *EventHandler) toGeneratedEvent(e *entity.Event) generated.Event {
 		genEvent.Description = &desc
 	}
 	if e.EndDate != nil {
-		genEvent.EndDate = e.EndDate
+		utcEnd := e.EndDate.UTC()
+		genEvent.EndDate = &utcEnd
 	}
 	if e.Location != "" {
 		loc := e.Location
