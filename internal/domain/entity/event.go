@@ -41,6 +41,7 @@ var (
 	ErrEventLocationTooLong    = errors.New("event location must not exceed 500 characters")
 	ErrEventStatusInvalid      = errors.New("invalid event status")
 	ErrEventInvalidTransition  = errors.New("invalid event status transition")
+	ErrEventTimezoneInvalid    = errors.New("invalid IANA timezone identifier")
 )
 
 // Event represents an event created by an organizer.
@@ -77,6 +78,9 @@ func (e *Event) Validate() error {
 	}
 	if len(e.Location) > EventLocationMaxLength {
 		return ErrEventLocationTooLong
+	}
+	if err := e.validateTimezone(); err != nil {
+		return err
 	}
 	if !e.IsValidStatus() {
 		return ErrEventStatusInvalid
@@ -148,4 +152,16 @@ func (e *Event) IsCompleted() bool {
 // IsCancelled returns true if the event has been cancelled.
 func (e *Event) IsCancelled() bool {
 	return e.Status == StatusCancelled
+}
+
+// validateTimezone checks that the timezone, if set, is a valid IANA timezone identifier.
+func (e *Event) validateTimezone() error {
+	if e.Timezone == "" {
+		return nil
+	}
+	_, err := time.LoadLocation(e.Timezone)
+	if err != nil {
+		return ErrEventTimezoneInvalid
+	}
+	return nil
 }

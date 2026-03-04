@@ -110,7 +110,7 @@ Event:
       type: string
       description: IANA timezone identifier
       example: "America/Los_Angeles"
-      default: "Asia/Tokyo"
+      default: "UTC"
     status:
       $ref: './enums.yaml#/EventStatus'
     participant_count:

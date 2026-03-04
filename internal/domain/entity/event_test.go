@@ -95,6 +95,41 @@ var _ = Describe("Event", func() {
 				Expect(validEvent.Validate()).To(MatchError(entity.ErrEventStatusInvalid))
 			})
 		})
+
+		Context("with valid IANA timezone", func() {
+			It("should succeed", func() {
+				validEvent.Timezone = "America/New_York"
+				Expect(validEvent.Validate()).To(Succeed())
+			})
+		})
+
+		Context("with UTC timezone", func() {
+			It("should succeed", func() {
+				validEvent.Timezone = "UTC"
+				Expect(validEvent.Validate()).To(Succeed())
+			})
+		})
+
+		Context("with empty timezone", func() {
+			It("should succeed", func() {
+				validEvent.Timezone = ""
+				Expect(validEvent.Validate()).To(Succeed())
+			})
+		})
+
+		Context("with invalid timezone", func() {
+			It("should fail", func() {
+				validEvent.Timezone = "Invalid/Timezone"
+				Expect(validEvent.Validate()).To(MatchError(entity.ErrEventTimezoneInvalid))
+			})
+		})
+
+		Context("with timezone as offset string", func() {
+			It("should fail", func() {
+				validEvent.Timezone = "+09:00"
+				Expect(validEvent.Validate()).To(MatchError(entity.ErrEventTimezoneInvalid))
+			})
+		})
 	})
 
 	When("transitioning event status", func() {
