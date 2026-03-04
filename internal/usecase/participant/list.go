@@ -63,6 +63,8 @@ func (u *participantUsecase) List(
 		totalCount = int64(len(filtered))
 	}
 
+	u.populateDistributionURLs(participants)
+
 	return ListParticipantsOutput{
 		Participants: participants,
 		TotalCount:   totalCount,
