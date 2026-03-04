@@ -180,38 +180,14 @@ func (h *EventHandler) PutEventsId(c *gin.Context, id generated.EventIDParam) {
 		return
 	}
 
+	input, err := h.buildUpdateInput(req)
+	if err != nil {
+		response.ProblemFromError(c, err)
+		return
+	}
+
 	role := h.getUserRole(c)
 	userID := h.getUserID(c)
-
-	input := event.UpdateEventInput{}
-	if req.Name != nil {
-		input.Name = req.Name
-	}
-	if req.Description != nil {
-		input.Description = req.Description
-	}
-	if req.StartDate != nil {
-		utcStart := req.StartDate.UTC()
-		input.StartDate = &utcStart
-	}
-	if req.EndDate != nil {
-		utcEnd := req.EndDate.UTC()
-		input.EndDate = &utcEnd
-	}
-	if req.Location != nil {
-		input.Location = req.Location
-	}
-	if req.Timezone != nil {
-		if _, err := time.LoadLocation(*req.Timezone); err != nil {
-			response.ProblemFromError(c, apperrors.BadRequest("invalid IANA timezone identifier"))
-			return
-		}
-		input.Timezone = req.Timezone
-	}
-	if req.Status != nil {
-		status := entity.EventStatus(*req.Status)
-		input.Status = &status
-	}
 
 	evt, err := h.usecase.Update(c.Request.Context(), eventID, userID, role == string(entity.RoleAdmin), input)
 	if err != nil {
@@ -294,6 +270,38 @@ func (h *EventHandler) getUserRole(c *gin.Context) string {
 		return ""
 	}
 	return role
+}
+
+func (h *EventHandler) buildUpdateInput(req generated.UpdateEventRequest) (event.UpdateEventInput, error) {
+	input := event.UpdateEventInput{}
+	if req.Name != nil {
+		input.Name = req.Name
+	}
+	if req.Description != nil {
+		input.Description = req.Description
+	}
+	if req.StartDate != nil {
+		utcStart := req.StartDate.UTC()
+		input.StartDate = &utcStart
+	}
+	if req.EndDate != nil {
+		utcEnd := req.EndDate.UTC()
+		input.EndDate = &utcEnd
+	}
+	if req.Location != nil {
+		input.Location = req.Location
+	}
+	if req.Timezone != nil {
+		if _, err := time.LoadLocation(*req.Timezone); err != nil {
+			return event.UpdateEventInput{}, apperrors.BadRequest("invalid IANA timezone identifier")
+		}
+		input.Timezone = req.Timezone
+	}
+	if req.Status != nil {
+		status := entity.EventStatus(*req.Status)
+		input.Status = &status
+	}
+	return input, nil
 }
 
 func (h *EventHandler) toGeneratedEvent(e *entity.Event) generated.Event {
