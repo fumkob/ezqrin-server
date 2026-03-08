@@ -57,6 +57,10 @@ type Event struct {
 	Status      EventStatus
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+
+	// Read-only aggregated fields populated by repository queries.
+	ParticipantCount int64
+	CheckedInCount   int64
 }
 
 // Validate validates the Event entity fields.

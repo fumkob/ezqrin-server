@@ -73,8 +73,11 @@ func (r *EventRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.E
 	query := `
 		SELECT
 			id, organizer_id, name, description, start_date, end_date,
-			location, timezone, status, created_at, updated_at
-		FROM events
+			location, timezone, status, created_at, updated_at,
+			(SELECT COUNT(*) FROM participants
+			 WHERE event_id = e.id AND status NOT IN ('cancelled', 'declined')) AS participant_count,
+			(SELECT COUNT(*) FROM checkins WHERE event_id = e.id) AS checked_in_count
+		FROM events e
 		WHERE id = $1
 	`
 
@@ -92,6 +95,8 @@ func (r *EventRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.E
 		&event.Status,
 		&event.CreatedAt,
 		&event.UpdatedAt,
+		&event.ParticipantCount,
+		&event.CheckedInCount,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -123,11 +128,14 @@ func (r *EventRepository) List(
 	// Get paginated results
 	query := fmt.Sprintf(`
 		SELECT
-			id, organizer_id, name, description, start_date, end_date,
-			location, timezone, status, created_at, updated_at
-		FROM events
+			e.id, e.organizer_id, e.name, e.description, e.start_date, e.end_date,
+			e.location, e.timezone, e.status, e.created_at, e.updated_at,
+			(SELECT COUNT(*) FROM participants
+			 WHERE event_id = e.id AND status NOT IN ('cancelled', 'declined')) AS participant_count,
+			(SELECT COUNT(*) FROM checkins WHERE event_id = e.id) AS checked_in_count
+		FROM events e
 		WHERE %s
-		ORDER BY created_at DESC
+		ORDER BY e.created_at DESC
 		LIMIT $%d OFFSET $%d
 	`, whereSQL, argIdx, argIdx+1)
 
@@ -138,30 +146,9 @@ func (r *EventRepository) List(
 	}
 	defer rows.Close()
 
-	events := make([]*entity.Event, 0, limit)
-	for rows.Next() {
-		var event entity.Event
-		err := rows.Scan(
-			&event.ID,
-			&event.OrganizerID,
-			&event.Name,
-			&event.Description,
-			&event.StartDate,
-			&event.EndDate,
-			&event.Location,
-			&event.Timezone,
-			&event.Status,
-			&event.CreatedAt,
-			&event.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, apperrors.Wrapf(err, "failed to scan event row")
-		}
-		events = append(events, &event)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, 0, apperrors.Wrapf(err, "error iterating event rows")
+	events, err := r.scanEventRows(rows, limit)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	return events, total, nil
@@ -296,6 +283,37 @@ func (r *EventRepository) GetStats(ctx context.Context, id uuid.UUID) (*reposito
 // HealthCheck verifies the repository's database connection
 func (r *EventRepository) HealthCheck(ctx context.Context) error {
 	return r.pool.Ping(ctx)
+}
+
+// scanEventRows scans query rows into a slice of Event entities.
+func (r *EventRepository) scanEventRows(rows pgx.Rows, capacity int) ([]*entity.Event, error) {
+	events := make([]*entity.Event, 0, capacity)
+	for rows.Next() {
+		var event entity.Event
+		err := rows.Scan(
+			&event.ID,
+			&event.OrganizerID,
+			&event.Name,
+			&event.Description,
+			&event.StartDate,
+			&event.EndDate,
+			&event.Location,
+			&event.Timezone,
+			&event.Status,
+			&event.CreatedAt,
+			&event.UpdatedAt,
+			&event.ParticipantCount,
+			&event.CheckedInCount,
+		)
+		if err != nil {
+			return nil, apperrors.Wrapf(err, "failed to scan event row")
+		}
+		events = append(events, &event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, apperrors.Wrapf(err, "error iterating event rows")
+	}
+	return events, nil
 }
 
 func (r *EventRepository) buildListWhereClause(filter repository.EventListFilter) (string, []interface{}, int) {

@@ -338,5 +338,10 @@ func (h *EventHandler) toGeneratedEvent(e *entity.Event) generated.Event {
 		genEvent.Timezone = &tz
 	}
 
+	participantCount := int(e.ParticipantCount)
+	genEvent.ParticipantCount = &participantCount
+	checkedInCount := int(e.CheckedInCount)
+	genEvent.CheckedInCount = &checkedInCount
+
 	return genEvent
 }
