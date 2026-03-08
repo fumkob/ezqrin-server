@@ -22,12 +22,16 @@ import (
 
 // mockEventUsecase is a hand-rolled mock for event.Usecase used in handler unit tests.
 type mockEventUsecase struct {
-	createFunc   func(ctx context.Context, input event.CreateEventInput) (*entity.Event, error)
-	getByIDFunc  func(ctx context.Context, id uuid.UUID) (*entity.Event, error)
-	listFunc     func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error)
-	updateFunc   func(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput) (*entity.Event, error)
+	createFunc  func(ctx context.Context, input event.CreateEventInput) (*entity.Event, error)
+	getByIDFunc func(ctx context.Context, id uuid.UUID) (*entity.Event, error)
+	listFunc    func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error)
+	updateFunc  func(
+		ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
+	) (*entity.Event, error)
 	deleteFunc   func(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool) error
-	getStatsFunc func(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool) (event.EventStatsOutput, error)
+	getStatsFunc func(
+		ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool,
+	) (event.EventStatsOutput, error)
 }
 
 func (m *mockEventUsecase) Create(ctx context.Context, input event.CreateEventInput) (*entity.Event, error) {
@@ -51,7 +55,9 @@ func (m *mockEventUsecase) List(ctx context.Context, input event.ListEventsInput
 	return event.ListEventsOutput{}, nil
 }
 
-func (m *mockEventUsecase) Update(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput) (*entity.Event, error) {
+func (m *mockEventUsecase) Update(
+	ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
+) (*entity.Event, error) {
 	if m.updateFunc != nil {
 		return m.updateFunc(ctx, id, organizerID, isAdmin, input)
 	}
@@ -65,7 +71,9 @@ func (m *mockEventUsecase) Delete(ctx context.Context, id uuid.UUID, organizerID
 	return nil
 }
 
-func (m *mockEventUsecase) GetStats(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool) (event.EventStatsOutput, error) {
+func (m *mockEventUsecase) GetStats(
+	ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool,
+) (event.EventStatsOutput, error) {
 	if m.getStatsFunc != nil {
 		return m.getStatsFunc(ctx, id, organizerID, isAdmin)
 	}
@@ -319,7 +327,9 @@ var _ = Describe("EventHandler", func() {
 					evt := newTestEntityEvent(organizerID, 30, 12)
 
 					mockUC := &mockEventUsecase{
-						updateFunc: func(ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput) (*entity.Event, error) {
+						updateFunc: func(
+							ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
+						) (*entity.Event, error) {
 							return evt, nil
 						},
 					}
@@ -351,7 +361,9 @@ var _ = Describe("EventHandler", func() {
 					evt := newTestEntityEvent(organizerID, 8, 4)
 
 					mockUC := &mockEventUsecase{
-						updateFunc: func(ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput) (*entity.Event, error) {
+						updateFunc: func(
+							ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
+						) (*entity.Event, error) {
 							return evt, nil
 						},
 					}
