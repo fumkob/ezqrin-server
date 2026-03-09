@@ -2,6 +2,7 @@ package csvparser
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -123,6 +124,85 @@ func ptrStr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// csvExportHeaders defines the column order for CSV export.
+var csvExportHeaders = []string{
+	"id", "name", "email", "employee_id", "phone", "qr_email",
+	"status", "qr_code", "qr_code_generated_at", "qr_distribution_url",
+	"payment_status", "payment_amount", "payment_date",
+	"checked_in", "checked_in_at", "metadata", "created_at", "updated_at",
+}
+
+// ExportParticipantCSV writes participants as CSV to w.
+// Optional fields are written as empty strings when nil.
+// Timestamps are formatted as RFC3339 UTC.
+func ExportParticipantCSV(w io.Writer, participants []*entity.Participant) error {
+	writer := csv.NewWriter(w)
+
+	if err := writer.Write(csvExportHeaders); err != nil {
+		return fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	for _, p := range participants {
+		if err := writer.Write(participantToCSVRow(p)); err != nil {
+			return fmt.Errorf("failed to write CSV row: %w", err)
+		}
+	}
+
+	writer.Flush()
+	return writer.Error()
+}
+
+func participantToCSVRow(p *entity.Participant) []string {
+	return []string{
+		p.ID.String(),
+		p.Name,
+		p.Email,
+		derefStr(p.EmployeeID),
+		derefStr(p.Phone),
+		derefStr(p.QREmail),
+		string(p.Status),
+		p.QRCode,
+		p.QRCodeGeneratedAt.UTC().Format(time.RFC3339),
+		p.QRDistributionURL,
+		string(p.PaymentStatus),
+		formatExportFloat(p.PaymentAmount),
+		formatExportTime(p.PaymentDate),
+		strconv.FormatBool(p.CheckedIn),
+		formatExportTime(p.CheckedInAt),
+		formatExportMetadata(p.Metadata),
+		p.CreatedAt.UTC().Format(time.RFC3339),
+		p.UpdatedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func formatExportFloat(f *float64) string {
+	if f == nil {
+		return ""
+	}
+	return strconv.FormatFloat(*f, 'f', -1, 64)
+}
+
+func formatExportTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
+func formatExportMetadata(m *json.RawMessage) string {
+	if m == nil {
+		return ""
+	}
+	return string(*m)
 }
 
 // parseRow converts a CSV row into a CreateParticipantInput.
