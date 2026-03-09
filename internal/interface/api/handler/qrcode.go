@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
@@ -14,30 +15,6 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"go.uber.org/zap"
 )
-
-func (h *QRCodeHandler) getUserID(c *gin.Context) uuid.UUID {
-	val, exists := c.Get(middleware.ContextKeyUserID)
-	if !exists {
-		return uuid.Nil
-	}
-	id, ok := val.(uuid.UUID)
-	if !ok {
-		return uuid.Nil
-	}
-	return id
-}
-
-func (h *QRCodeHandler) getUserRole(c *gin.Context) string {
-	val, exists := c.Get(middleware.ContextKeyUserRole)
-	if !exists {
-		return ""
-	}
-	role, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return role
-}
 
 // QRCodeHandler handles QR code distribution endpoints.
 type QRCodeHandler struct {
@@ -59,8 +36,8 @@ func (h *QRCodeHandler) SendEventQRCodes(c *gin.Context, id generated.EventIDPar
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == "admin"
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// participant_ids の変換
 	var participantIDs []uuid.UUID

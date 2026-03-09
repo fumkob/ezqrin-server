@@ -28,7 +28,6 @@ func NewSenderFromConfig(cfg config.EmailConfig) (domainemail.Sender, error) {
 			cfg.SMTPPassword,
 			cfg.FromAddress,
 			cfg.FromName,
-			cfg.SMTPTLS,
 		), nil
 	default:
 		return nil, fmt.Errorf("unknown email backend %q: must be \"smtp\" or \"gmail\"", cfg.Backend)

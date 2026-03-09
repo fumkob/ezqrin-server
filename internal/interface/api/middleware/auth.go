@@ -9,8 +9,33 @@ import (
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
+
+// GetUserID retrieves the authenticated user's ID from the gin context.
+// Returns uuid.Nil when the user is not authenticated.
+func GetUserID(c *gin.Context) (uuid.UUID, bool) {
+	val, exists := c.Get(ContextKeyUserID)
+	if !exists {
+		return uuid.Nil, false
+	}
+	id, ok := val.(uuid.UUID)
+	return id, ok
+}
+
+// GetUserRole retrieves the authenticated user's role from the gin context.
+func GetUserRole(c *gin.Context) string {
+	val, exists := c.Get(ContextKeyUserRole)
+	if !exists {
+		return ""
+	}
+	role, ok := val.(string)
+	if !ok {
+		return ""
+	}
+	return role
+}
 
 const (
 	// ContextKeyUserID is the key for storing user ID in gin context
