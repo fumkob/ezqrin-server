@@ -100,6 +100,21 @@ func (mr *MockParticipantRepositoryMockRecorder) ExistsByEmail(ctx, eventID, ema
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExistsByEmail", reflect.TypeOf((*MockParticipantRepository)(nil).ExistsByEmail), ctx, eventID, email)
 }
 
+// FindAllByEventID mocks base method.
+func (m *MockParticipantRepository) FindAllByEventID(ctx context.Context, eventID uuid.UUID) ([]*entity.Participant, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindAllByEventID", ctx, eventID)
+	ret0, _ := ret[0].([]*entity.Participant)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindAllByEventID indicates an expected call of FindAllByEventID.
+func (mr *MockParticipantRepositoryMockRecorder) FindAllByEventID(ctx, eventID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAllByEventID", reflect.TypeOf((*MockParticipantRepository)(nil).FindAllByEventID), ctx, eventID)
+}
+
 // FindByEmployeeID mocks base method.
 func (m *MockParticipantRepository) FindByEmployeeID(ctx context.Context, eventID uuid.UUID, employeeID string) (*entity.Participant, error) {
 	m.ctrl.T.Helper()

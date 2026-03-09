@@ -197,6 +197,21 @@ func (r *participantRepository) FindByEventID(
 	return participants, total, nil
 }
 
+// FindAllByEventID retrieves all participants for an event without pagination.
+func (r *participantRepository) FindAllByEventID(ctx context.Context, eventID uuid.UUID) ([]*entity.Participant, error) {
+	query := `
+		SELECT
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.event_id = $1
+		ORDER BY p.created_at ASC
+	`
+	return r.queryParticipantsWithCheckin(ctx, query, eventID)
+}
+
 // FindByQRCode retrieves a participant by their QR code with check-in status.
 func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error) {
 	query := `

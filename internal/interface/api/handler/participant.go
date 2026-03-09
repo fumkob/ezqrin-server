@@ -606,3 +606,9 @@ func (h *ParticipantHandler) convertImportCSVResponse(
 		SkippedRows:   &skippedRows,
 	}
 }
+
+// ExportParticipantsCSV handles CSV export (GET /events/{id}/participants/export).
+// TODO: implement in Task 5
+func (h *ParticipantHandler) ExportParticipantsCSV(c *gin.Context, id generated.EventIDParam) {
+	response.ProblemFromError(c, apperrors.Internal("not yet implemented"))
+}

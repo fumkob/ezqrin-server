@@ -34,6 +34,10 @@ type ParticipantRepository interface {
 	// Returns the participants and the total count of participants for the event.
 	FindByEventID(ctx context.Context, eventID uuid.UUID, offset, limit int) ([]*entity.Participant, int64, error)
 
+	// FindAllByEventID retrieves all participants for an event without pagination.
+	// Used for CSV export. Returns participants ordered by created_at ASC.
+	FindAllByEventID(ctx context.Context, eventID uuid.UUID) ([]*entity.Participant, error)
+
 	// FindByQRCode retrieves a participant by their QR code.
 	// Returns ErrNotFound if no participant has the given QR code.
 	FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error)
