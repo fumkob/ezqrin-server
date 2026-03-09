@@ -112,11 +112,17 @@ func initializeHandlers(deps *RouterDependencies) *handler.Handler {
 		deps.Logger,
 	)
 
+	qrcodeHandler := handler.NewQRCodeHandler(
+		deps.Container.UseCases.Participant,
+		deps.Logger,
+	)
+
 	return handler.NewHandler(
 		healthHandler,
 		authHandler,
 		eventHandler,
 		participantHandler,
 		checkinHandler,
+		qrcodeHandler,
 	)
 }

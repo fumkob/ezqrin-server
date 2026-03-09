@@ -11,6 +11,7 @@ type Handler struct {
 	*EventHandler
 	*ParticipantHandler
 	*CheckinHandler
+	*QRCodeHandler
 }
 
 // Compile-time check to ensure Handler implements ServerInterface
@@ -23,6 +24,7 @@ func NewHandler(
 	event *EventHandler,
 	participant *ParticipantHandler,
 	checkin *CheckinHandler,
+	qrcode *QRCodeHandler,
 ) *Handler {
 	return &Handler{
 		HealthHandler:      health,
@@ -30,6 +32,7 @@ func NewHandler(
 		EventHandler:       event,
 		ParticipantHandler: participant,
 		CheckinHandler:     checkin,
+		QRCodeHandler:      qrcode,
 	}
 }
 
