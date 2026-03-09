@@ -278,10 +278,11 @@ gen-api:
 	@echo "Generating API code from OpenAPI specification..."
 	@bash scripts/gen-api.sh
 
-# Generate test mocks (placeholder for Task 1.3)
+# Generate mocks from //go:generate directives in internal/domain/repository/
 gen-mock:
-	@echo "Mock generation will be implemented in Task 1.3"
-	@echo "This will use go.uber.org/mock to generate mocks for interfaces"
+	@echo "Generating mocks..."
+	@go generate ./internal/domain/repository/...
+	@echo "✓ Mock generation complete"
 
 # Generate all code (API + mocks)
 gen-all: gen-api gen-mock
