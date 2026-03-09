@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
-	"github.com/fumkob/ezqrin-server/internal/domain/repository"
+	"github.com/fumkob/ezqrin-server/internal/domain/repository/mocks"
 	"github.com/fumkob/ezqrin-server/internal/usecase/checkin"
 	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
 
 // testQRHMACSecret is the HMAC secret used for tests.
@@ -21,25 +22,27 @@ const testQRHMACSecret = "test-hmac-secret-for-testing-only-32chars"
 
 var _ = Describe("CheckIn UseCase", func() {
 	var (
+		ctrl            *gomock.Controller
 		ctx             context.Context
 		usecase         checkin.Usecase
-		mockCheckinRepo *mockCheckinRepository
-		mockParticipant *mockParticipantRepository
-		mockEventRepo   *mockEventRepository
+		mockCheckinRepo *mocks.MockCheckinRepository
+		mockParticipant *mocks.MockParticipantRepository
+		mockEventRepo   *mocks.MockEventRepository
 		testEventID     uuid.UUID
 		testUserID      uuid.UUID
 		testOrganizerID uuid.UUID
 	)
 
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
 		ctx = context.Background()
 		testEventID = uuid.New()
 		testUserID = uuid.New()
 		testOrganizerID = uuid.New()
 
-		mockCheckinRepo = newMockCheckinRepository()
-		mockParticipant = newMockParticipantRepository()
-		mockEventRepo = newMockEventRepository()
+		mockCheckinRepo = mocks.NewMockCheckinRepository(ctrl)
+		mockParticipant = mocks.NewMockParticipantRepository(ctrl)
+		mockEventRepo = mocks.NewMockEventRepository(ctrl)
 
 		usecase = checkin.NewUsecase(mockCheckinRepo, mockParticipant, mockEventRepo, testQRHMACSecret)
 	})
@@ -65,9 +68,10 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockParticipant.participants[qrCode] = participant
-					mockCheckinRepo.existsMap[participant.ID] = false
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByQRCode(gomock.Any(), qrCode).Return(participant, nil)
+					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participant.ID).Return(false, nil)
+					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -83,7 +87,6 @@ var _ = Describe("CheckIn UseCase", func() {
 					Expect(result.ParticipantID).To(Equal(participant.ID))
 					Expect(result.ParticipantName).To(Equal("John Doe"))
 					Expect(result.Method).To(Equal(entity.CheckinMethodQRCode))
-					Expect(mockCheckinRepo.created).To(HaveLen(1))
 				})
 			})
 
@@ -97,7 +100,7 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -120,9 +123,9 @@ var _ = Describe("CheckIn UseCase", func() {
 				It("should return bad request error", func() {
 					event := &entity.Event{
 						ID:          testEventID,
-						OrganizerID: testOrganizerID,
+						OrganizerID: testUserID,
 					}
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -152,14 +155,15 @@ var _ = Describe("CheckIn UseCase", func() {
 						Status:  entity.ParticipantStatusCancelled,
 						QRCode:  cancelledQR,
 					}
-					mockParticipant.participants[cancelledQR] = cancelledParticipant
 
 					event := &entity.Event{
 						ID:          testEventID,
 						OrganizerID: testOrganizerID,
 						Name:        "Test Event",
 					}
-					mockEventRepo.events[testEventID] = event
+
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByQRCode(gomock.Any(), cancelledQR).Return(cancelledParticipant, nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -189,14 +193,15 @@ var _ = Describe("CheckIn UseCase", func() {
 						Status:  entity.ParticipantStatusDeclined,
 						QRCode:  declinedQR,
 					}
-					mockParticipant.participants[declinedQR] = declinedParticipant
 
 					event := &entity.Event{
 						ID:          testEventID,
 						OrganizerID: testOrganizerID,
 						Name:        "Test Event",
 					}
-					mockEventRepo.events[testEventID] = event
+
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByQRCode(gomock.Any(), declinedQR).Return(declinedParticipant, nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -233,9 +238,10 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockParticipant.participantsByID[participantID] = participant
-					mockCheckinRepo.existsMap[participantID] = false
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(false, nil)
+					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
 						EventID:       testEventID,
@@ -271,9 +277,10 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockParticipant.participantsByID[participantID] = participant
-					mockCheckinRepo.existsMap[participantID] = false
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(false, nil)
+					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
 						EventID:       testEventID,
@@ -298,7 +305,7 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 					input := checkin.CheckInInput{
 						EventID:       testEventID,
@@ -323,7 +330,7 @@ var _ = Describe("CheckIn UseCase", func() {
 						ID:          testEventID,
 						OrganizerID: testUserID,
 					}
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 					input := checkin.CheckInInput{
 						EventID:       testEventID,
@@ -359,10 +366,10 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					key := testEventID.String() + ":" + employeeID
-					mockParticipant.participantsByEmployeeID[key] = participant
-					mockCheckinRepo.existsMap[participant.ID] = false
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByEmployeeID(gomock.Any(), testEventID, employeeID).Return(participant, nil)
+					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participant.ID).Return(false, nil)
+					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -388,7 +395,8 @@ var _ = Describe("CheckIn UseCase", func() {
 						OrganizerID: testUserID,
 						Name:        "Test Event",
 					}
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockParticipant.EXPECT().FindByEmployeeID(gomock.Any(), testEventID, employeeID).Return(nil, apperrors.NotFound("participant not found"))
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -424,9 +432,9 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockParticipant.participantsByID[participantID] = participant
-				mockCheckinRepo.existsMap[participantID] = true // Already checked in
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+				mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(true, nil) // Already checked in
 
 				input := checkin.CheckInInput{
 					EventID:       testEventID,
@@ -462,9 +470,8 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockParticipant.participantsByID[participantID] = participant
-				mockCheckinRepo.existsMap[participantID] = false
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
 
 				input := checkin.CheckInInput{
 					EventID:       testEventID,
@@ -486,6 +493,9 @@ var _ = Describe("CheckIn UseCase", func() {
 		When("event does not exist", func() {
 			It("should return not found error", func() {
 				participantID := uuid.New()
+
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(nil, apperrors.NotFound("event not found"))
+
 				input := checkin.CheckInInput{
 					EventID:       testEventID,
 					Method:        entity.CheckinMethodManual,
@@ -506,7 +516,7 @@ var _ = Describe("CheckIn UseCase", func() {
 					ID:          testEventID,
 					OrganizerID: testUserID,
 				}
-				mockEventRepo.events[testEventID] = event
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 				input := checkin.CheckInInput{
 					EventID:     testEventID,
@@ -552,9 +562,9 @@ var _ = Describe("CheckIn UseCase", func() {
 					Method:        entity.CheckinMethodQRCode,
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockParticipant.participantsByID[participantID] = participant
-				mockCheckinRepo.checkinsByParticipant[participantID] = checkinRecord
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+				mockCheckinRepo.EXPECT().FindByParticipant(gomock.Any(), participantID).Return(checkinRecord, nil)
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -583,8 +593,9 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockParticipant.participantsByID[participantID] = participant
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+				mockCheckinRepo.EXPECT().FindByParticipant(gomock.Any(), participantID).Return(nil, apperrors.NotFound("check-in not found"))
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -598,6 +609,8 @@ var _ = Describe("CheckIn UseCase", func() {
 		When("participant does not exist", func() {
 			It("should return not found error", func() {
 				participantID := uuid.New()
+
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(nil, apperrors.NotFound("participant not found"))
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -623,8 +636,8 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockParticipant.participantsByID[participantID] = participant
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -669,10 +682,10 @@ var _ = Describe("CheckIn UseCase", func() {
 						},
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockParticipant.participantsByID[participants[0].ID] = participants[0]
-					mockParticipant.participantsByID[participants[1].ID] = participants[1]
-					mockCheckinRepo.checkinsByEvent[testEventID] = checkins
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).Return(checkins, int64(2), nil)
+					mockParticipant.EXPECT().FindByID(gomock.Any(), participants[0].ID).Return(participants[0], nil)
+					mockParticipant.EXPECT().FindByID(gomock.Any(), participants[1].ID).Return(participants[1], nil)
 
 					input := checkin.ListCheckInsInput{
 						EventID: testEventID,
@@ -697,8 +710,8 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockCheckinRepo.checkinsByEvent[testEventID] = []*entity.Checkin{}
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).Return([]*entity.Checkin{}, int64(0), nil)
 
 					input := checkin.ListCheckInsInput{
 						EventID: testEventID,
@@ -723,7 +736,9 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					// page=2, perPage=5 -> offset=(2-1)*5=5, limit=5
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 5, 5).Return([]*entity.Checkin{}, int64(0), nil)
 
 					input := checkin.ListCheckInsInput{
 						EventID: testEventID,
@@ -734,9 +749,6 @@ var _ = Describe("CheckIn UseCase", func() {
 					_, err := usecase.List(ctx, testUserID, false, input)
 
 					Expect(err).NotTo(HaveOccurred())
-					// Verify offset calculation (page-1)*perPage = (2-1)*5 = 5
-					Expect(mockCheckinRepo.lastOffset).To(Equal(5))
-					Expect(mockCheckinRepo.lastLimit).To(Equal(5))
 				})
 			})
 		})
@@ -749,7 +761,7 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 				input := checkin.ListCheckInsInput{
 					EventID: testEventID,
@@ -769,6 +781,8 @@ var _ = Describe("CheckIn UseCase", func() {
 
 		When("event does not exist", func() {
 			It("should return not found error", func() {
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(nil, apperrors.NotFound("event not found"))
+
 				input := checkin.ListCheckInsInput{
 					EventID: testEventID,
 					Page:    1,
@@ -801,13 +815,13 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockCheckinRepo.checkinsByID[checkinID] = checkinRecord
+					mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).Return(checkinRecord, nil)
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockCheckinRepo.EXPECT().Delete(gomock.Any(), checkinID).Return(nil)
 
 					err := usecase.Cancel(ctx, testUserID, false, checkinID)
 
 					Expect(err).NotTo(HaveOccurred())
-					Expect(mockCheckinRepo.deleted).To(ContainElement(checkinID))
 				})
 			})
 
@@ -827,13 +841,13 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 
-					mockEventRepo.events[testEventID] = event
-					mockCheckinRepo.checkinsByID[checkinID] = checkinRecord
+					mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).Return(checkinRecord, nil)
+					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
+					mockCheckinRepo.EXPECT().Delete(gomock.Any(), checkinID).Return(nil)
 
 					err := usecase.Cancel(ctx, testUserID, true, checkinID) // isAdmin = true
 
 					Expect(err).NotTo(HaveOccurred())
-					Expect(mockCheckinRepo.deleted).To(ContainElement(checkinID))
 				})
 			})
 		})
@@ -841,6 +855,8 @@ var _ = Describe("CheckIn UseCase", func() {
 		When("check-in does not exist", func() {
 			It("should return not found error", func() {
 				checkinID := uuid.New()
+
+				mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).Return(nil, apperrors.NotFound("check-in not found"))
 
 				err := usecase.Cancel(ctx, testUserID, false, checkinID)
 
@@ -864,8 +880,8 @@ var _ = Describe("CheckIn UseCase", func() {
 					Name:        "Test Event",
 				}
 
-				mockEventRepo.events[testEventID] = event
-				mockCheckinRepo.checkinsByID[checkinID] = checkinRecord
+				mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).Return(checkinRecord, nil)
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 
 				err := usecase.Cancel(ctx, testUserID, false, checkinID) // Not admin, not organizer
 
@@ -877,229 +893,3 @@ var _ = Describe("CheckIn UseCase", func() {
 		})
 	})
 })
-
-// Mock implementations
-
-type mockCheckinRepository struct {
-	checkinsByID          map[uuid.UUID]*entity.Checkin
-	checkinsByParticipant map[uuid.UUID]*entity.Checkin
-	checkinsByEvent       map[uuid.UUID][]*entity.Checkin
-	existsMap             map[uuid.UUID]bool
-	created               []*entity.Checkin
-	deleted               []uuid.UUID
-	lastLimit             int
-	lastOffset            int
-}
-
-func newMockCheckinRepository() *mockCheckinRepository {
-	return &mockCheckinRepository{
-		checkinsByID:          make(map[uuid.UUID]*entity.Checkin),
-		checkinsByParticipant: make(map[uuid.UUID]*entity.Checkin),
-		checkinsByEvent:       make(map[uuid.UUID][]*entity.Checkin),
-		existsMap:             make(map[uuid.UUID]bool),
-		created:               []*entity.Checkin{},
-		deleted:               []uuid.UUID{},
-	}
-}
-
-func (m *mockCheckinRepository) Create(ctx context.Context, checkin *entity.Checkin) error {
-	m.created = append(m.created, checkin)
-	m.checkinsByID[checkin.ID] = checkin
-	m.checkinsByParticipant[checkin.ParticipantID] = checkin
-	return nil
-}
-
-func (m *mockCheckinRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Checkin, error) {
-	if checkin, ok := m.checkinsByID[id]; ok {
-		return checkin, nil
-	}
-	return nil, apperrors.NotFound("check-in not found")
-}
-
-func (m *mockCheckinRepository) FindByParticipant(
-	ctx context.Context,
-	participantID uuid.UUID,
-) (*entity.Checkin, error) {
-	if checkin, ok := m.checkinsByParticipant[participantID]; ok {
-		return checkin, nil
-	}
-	return nil, apperrors.NotFound("check-in not found")
-}
-
-func (m *mockCheckinRepository) FindByEvent(
-	ctx context.Context,
-	eventID uuid.UUID,
-	limit, offset int,
-) ([]*entity.Checkin, int64, error) {
-	m.lastLimit = limit
-	m.lastOffset = offset
-	checkins := m.checkinsByEvent[eventID]
-	if checkins == nil {
-		checkins = []*entity.Checkin{}
-	}
-	return checkins, int64(len(checkins)), nil
-}
-
-func (m *mockCheckinRepository) GetEventStats(
-	ctx context.Context,
-	eventID uuid.UUID,
-) (*repository.CheckinStats, error) {
-	return &repository.CheckinStats{}, nil
-}
-
-func (m *mockCheckinRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	if _, ok := m.checkinsByID[id]; !ok {
-		return apperrors.NotFound("check-in not found")
-	}
-	m.deleted = append(m.deleted, id)
-	delete(m.checkinsByID, id)
-	return nil
-}
-
-func (m *mockCheckinRepository) ExistsByParticipant(
-	ctx context.Context,
-	eventID, participantID uuid.UUID,
-) (bool, error) {
-	exists, ok := m.existsMap[participantID]
-	if !ok {
-		return false, nil
-	}
-	return exists, nil
-}
-
-func (m *mockCheckinRepository) HealthCheck(ctx context.Context) error {
-	return nil
-}
-
-type mockParticipantRepository struct {
-	participants             map[string]*entity.Participant // key is QR code
-	participantsByID         map[uuid.UUID]*entity.Participant
-	participantsByEmployeeID map[string]*entity.Participant // key is "eventID:employeeID"
-}
-
-func newMockParticipantRepository() *mockParticipantRepository {
-	return &mockParticipantRepository{
-		participants:             make(map[string]*entity.Participant),
-		participantsByID:         make(map[uuid.UUID]*entity.Participant),
-		participantsByEmployeeID: make(map[string]*entity.Participant),
-	}
-}
-
-func (m *mockParticipantRepository) FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error) {
-	if p, ok := m.participants[qrCode]; ok {
-		return p, nil
-	}
-	return nil, apperrors.NotFound("participant not found")
-}
-
-func (m *mockParticipantRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Participant, error) {
-	if p, ok := m.participantsByID[id]; ok {
-		return p, nil
-	}
-	return nil, apperrors.NotFound("participant not found")
-}
-
-func (m *mockParticipantRepository) FindByEmployeeID(
-	ctx context.Context,
-	eventID uuid.UUID,
-	employeeID string,
-) (*entity.Participant, error) {
-	key := eventID.String() + ":" + employeeID
-	if p, ok := m.participantsByEmployeeID[key]; ok {
-		return p, nil
-	}
-	return nil, apperrors.NotFound("participant not found")
-}
-
-func (m *mockParticipantRepository) Create(ctx context.Context, participant *entity.Participant) error {
-	return nil
-}
-
-func (m *mockParticipantRepository) Update(ctx context.Context, participant *entity.Participant) error {
-	return nil
-}
-
-func (m *mockParticipantRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return nil
-}
-
-func (m *mockParticipantRepository) ExistsByEmail(ctx context.Context, eventID uuid.UUID, email string) (bool, error) {
-	return false, nil
-}
-
-func (m *mockParticipantRepository) BulkCreate(ctx context.Context, participants []*entity.Participant) error {
-	return nil
-}
-
-func (m *mockParticipantRepository) FindByEventID(
-	ctx context.Context,
-	eventID uuid.UUID,
-	offset, limit int,
-) ([]*entity.Participant, int64, error) {
-	return nil, 0, nil
-}
-
-func (m *mockParticipantRepository) Search(
-	ctx context.Context,
-	eventID uuid.UUID,
-	query string,
-	offset, limit int,
-) ([]*entity.Participant, int64, error) {
-	return nil, 0, nil
-}
-
-func (m *mockParticipantRepository) GetPaymentStats(
-	ctx context.Context,
-	eventID uuid.UUID,
-) (*repository.ParticipantPaymentStats, error) {
-	return &repository.ParticipantPaymentStats{}, nil
-}
-
-func (m *mockParticipantRepository) HealthCheck(ctx context.Context) error {
-	return nil
-}
-
-type mockEventRepository struct {
-	events map[uuid.UUID]*entity.Event
-}
-
-func newMockEventRepository() *mockEventRepository {
-	return &mockEventRepository{
-		events: make(map[uuid.UUID]*entity.Event),
-	}
-}
-
-func (m *mockEventRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
-	if event, ok := m.events[id]; ok {
-		return event, nil
-	}
-	return nil, apperrors.NotFound("event not found")
-}
-
-func (m *mockEventRepository) Create(ctx context.Context, event *entity.Event) error {
-	return nil
-}
-
-func (m *mockEventRepository) Update(ctx context.Context, event *entity.Event) error {
-	return nil
-}
-
-func (m *mockEventRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return nil
-}
-
-func (m *mockEventRepository) List(
-	ctx context.Context,
-	filter repository.EventListFilter,
-	offset, limit int,
-) ([]*entity.Event, int64, error) {
-	return nil, 0, nil
-}
-
-func (m *mockEventRepository) GetStats(ctx context.Context, id uuid.UUID) (*repository.EventStats, error) {
-	return &repository.EventStats{}, nil
-}
-
-func (m *mockEventRepository) HealthCheck(ctx context.Context) error {
-	return nil
-}
