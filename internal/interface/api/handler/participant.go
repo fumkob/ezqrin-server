@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
@@ -608,7 +609,25 @@ func (h *ParticipantHandler) convertImportCSVResponse(
 }
 
 // ExportParticipantsCSV handles CSV export (GET /events/{id}/participants/export).
-// TODO: implement in Task 5
 func (h *ParticipantHandler) ExportParticipantsCSV(c *gin.Context, id generated.EventIDParam) {
-	response.ProblemFromError(c, apperrors.Internal("not yet implemented"))
+	userID := h.getUserID(c)
+	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	eventID := uuid.UUID(id)
+
+	participants, err := h.usecase.ExportCSV(c.Request.Context(), userID, isAdmin, eventID)
+	if err != nil {
+		response.ProblemFromError(c, err)
+		return
+	}
+
+	var buf bytes.Buffer
+	if err := csvparser.ExportParticipantCSV(&buf, participants); err != nil {
+		h.logger.WithContext(c.Request.Context()).Error("failed to generate CSV", zap.Error(err))
+		response.ProblemFromError(c, apperrors.Internal("failed to generate CSV"))
+		return
+	}
+
+	filename := fmt.Sprintf("participants_%s.csv", eventID.String())
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", buf.Bytes())
 }
