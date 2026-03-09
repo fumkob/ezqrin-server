@@ -226,6 +226,36 @@
       '500':
         $ref: '../components/responses.yaml#/InternalError'
 
+/events/{id}/participants/export:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  get:
+    tags:
+      - participants
+    summary: Export participants to CSV
+    description: |
+      Export all participants for the event as a CSV file.
+      Requires event owner or admin permissions.
+    operationId: exportParticipantsCSV
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: CSV file download
+        content:
+          text/csv:
+            schema:
+              type: string
+              format: binary
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
 /participants/{id}:
   parameters:
     - $ref: '../components/parameters.yaml#/ParticipantIDParam'

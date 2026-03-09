@@ -102,6 +102,8 @@ paths:
     $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1bulk'
   /events/{id}/participants/import:
     $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1import'
+  /events/{id}/participants/export:
+    $ref: './paths/participants.yaml#/~1events~1{id}~1participants~1export'
   /participants/{id}:
     $ref: './paths/participants.yaml#/~1participants~1{id}'
   /participants/{id}/qrcode:
