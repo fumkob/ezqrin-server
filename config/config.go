@@ -102,11 +102,19 @@ type QRCodeConfig struct {
 	HostingBaseURL string
 }
 
+// EmailBackend identifies which email sending implementation to use.
+type EmailBackend string
+
+const (
+	EmailBackendSMTP  EmailBackend = "smtp"
+	EmailBackendGmail EmailBackend = "gmail"
+)
+
 // EmailConfig contains email sending configuration.
 // Backend selects the sending method: "smtp" or "gmail".
 type EmailConfig struct {
 	// Backend selects the email sending backend: "smtp" (default) or "gmail".
-	Backend string
+	Backend EmailBackend
 
 	// FromAddress is the sender email address used in all backends.
 	FromAddress string
@@ -305,6 +313,21 @@ func unmarshalRedisConfig(v *viper.Viper, cfg *Config) {
 	cfg.Redis.WriteTimeout = v.GetDuration("redis.write_timeout")
 }
 
+// unmarshalEmailConfig maps email configuration from viper to Config.
+func unmarshalEmailConfig(v *viper.Viper, cfg *Config) {
+	cfg.Email.Backend = EmailBackend(v.GetString("email.backend"))
+	cfg.Email.FromAddress = v.GetString("email.from_address")
+	cfg.Email.FromName = v.GetString("email.from_name")
+	cfg.Email.SMTPHost = v.GetString("email.smtp_host")
+	cfg.Email.SMTPPort = v.GetInt("email.smtp_port")
+	cfg.Email.SMTPUser = v.GetString("email.smtp_user")
+	cfg.Email.SMTPPassword = v.GetString("email.smtp_password")
+	cfg.Email.SMTPTLS = v.GetBool("email.smtp_tls")
+	cfg.Email.GmailClientID = v.GetString("email.gmail_client_id")
+	cfg.Email.GmailClientSecret = v.GetString("email.gmail_client_secret")
+	cfg.Email.GmailRefreshToken = v.GetString("email.gmail_refresh_token")
+}
+
 // unmarshalConfig maps viper configuration to Config struct
 func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.Port = v.GetInt("server.port")
@@ -351,17 +374,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.QRCode.HMACSecret = v.GetString("qrcode.hmac_secret")
 	cfg.QRCode.HostingBaseURL = v.GetString("qrcode.hosting_base_url")
 
-	cfg.Email.Backend = v.GetString("email.backend")
-	cfg.Email.FromAddress = v.GetString("email.from_address")
-	cfg.Email.FromName = v.GetString("email.from_name")
-	cfg.Email.SMTPHost = v.GetString("email.smtp_host")
-	cfg.Email.SMTPPort = v.GetInt("email.smtp_port")
-	cfg.Email.SMTPUser = v.GetString("email.smtp_user")
-	cfg.Email.SMTPPassword = v.GetString("email.smtp_password")
-	cfg.Email.SMTPTLS = v.GetBool("email.smtp_tls")
-	cfg.Email.GmailClientID = v.GetString("email.gmail_client_id")
-	cfg.Email.GmailClientSecret = v.GetString("email.gmail_client_secret")
-	cfg.Email.GmailRefreshToken = v.GetString("email.gmail_refresh_token")
+	unmarshalEmailConfig(v, cfg)
 
 	// Validate required fields
 	if cfg.Database.User == "" {
@@ -418,6 +431,9 @@ func (c *Config) Validate() error {
 	if err := c.validateQRCode(); err != nil {
 		return err
 	}
+	if err := c.validateEmail(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -455,6 +471,27 @@ func (c *Config) validateQRCode() error {
 			qrHMACSecretMinLength,
 			len(c.QRCode.HMACSecret),
 		)
+	}
+	return nil
+}
+
+// validateEmail validates email configuration.
+func (c *Config) validateEmail() error {
+	switch c.Email.Backend {
+	case EmailBackendSMTP, "":
+		// smtp is the default; no backend-specific required fields enforced at startup
+	case EmailBackendGmail:
+		if c.Email.GmailClientID == "" {
+			return fmt.Errorf("gmail client ID is required when email backend is gmail (set EMAIL_GMAIL_CLIENT_ID)")
+		}
+		if c.Email.GmailClientSecret == "" {
+			return fmt.Errorf("gmail client secret is required when email backend is gmail (set EMAIL_GMAIL_CLIENT_SECRET)")
+		}
+		if c.Email.GmailRefreshToken == "" {
+			return fmt.Errorf("gmail refresh token is required when email backend is gmail (set EMAIL_GMAIL_REFRESH_TOKEN)")
+		}
+	default:
+		return fmt.Errorf("unknown email backend %q: must be %q or %q", c.Email.Backend, EmailBackendSMTP, EmailBackendGmail)
 	}
 	return nil
 }

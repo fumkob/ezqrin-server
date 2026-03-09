@@ -2,17 +2,21 @@
 
 SendQRCodesRequest:
   type: object
+  description: |
+    Either provide participant_ids or set send_to_all=true.
+    If both are provided, send_to_all takes precedence.
+    If neither is provided, the request returns 400 Bad Request.
   properties:
     participant_ids:
       type: array
       items:
         type: string
         format: uuid
-      description: List of participant IDs to send QR codes to
+      description: List of participant IDs to send QR codes to. Ignored when send_to_all=true.
     send_to_all:
       type: boolean
       default: false
-      description: Send to all participants of the event
+      description: Send to all participants of the event. Takes precedence over participant_ids.
     email_template:
       type: string
       enum: [default, minimal, detailed]
@@ -25,6 +29,7 @@ SendQRCodesResponse:
     - sent_count
     - failed_count
     - total
+    - failures
   properties:
     sent_count:
       type: integer
@@ -39,6 +44,7 @@ SendQRCodesResponse:
       type: array
       items:
         $ref: '#/SendQRCodeFailure'
+      description: List of failed email sends. Empty array when all succeeded.
 
 SendQRCodeFailure:
   type: object
