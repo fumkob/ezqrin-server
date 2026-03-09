@@ -1,0 +1,57 @@
+# QR Code Schemas
+
+SendQRCodesRequest:
+  type: object
+  properties:
+    participant_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of participant IDs to send QR codes to
+    send_to_all:
+      type: boolean
+      default: false
+      description: Send to all participants of the event
+    email_template:
+      type: string
+      enum: [default, minimal, detailed]
+      default: default
+      description: Email template to use
+
+SendQRCodesResponse:
+  type: object
+  required:
+    - sent_count
+    - failed_count
+    - total
+  properties:
+    sent_count:
+      type: integer
+      example: 48
+    failed_count:
+      type: integer
+      example: 2
+    total:
+      type: integer
+      example: 50
+    failures:
+      type: array
+      items:
+        $ref: '#/SendQRCodeFailure'
+
+SendQRCodeFailure:
+  type: object
+  required:
+    - participant_id
+    - email
+    - reason
+  properties:
+    participant_id:
+      type: string
+      format: uuid
+    email:
+      type: string
+      format: email
+    reason:
+      type: string
