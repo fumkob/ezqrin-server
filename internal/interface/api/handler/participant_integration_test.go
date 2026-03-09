@@ -851,6 +851,71 @@ var _ = Describe("Participant API Integration", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/events/:id/participants/export", func() {
+		BeforeEach(func() {
+			createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Export Alice", "export-alice@example.com")
+			createTestParticipant(router, testEventID, organizerAuth.AccessToken, "Export Bob", "export-bob@example.com")
+		})
+
+		When("exporting participants as event organizer", func() {
+			It("should return CSV with header and participant rows", func() {
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/events/"+testEventID+"/participants/export",
+					nil,
+				)
+				req.Header.Set("Authorization", "Bearer "+organizerAuth.AccessToken)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusOK))
+				Expect(w.Header().Get("Content-Type")).To(ContainSubstring("text/csv"))
+				Expect(w.Header().Get("Content-Disposition")).To(ContainSubstring("attachment"))
+				Expect(w.Header().Get("Content-Disposition")).To(ContainSubstring(".csv"))
+
+				body := w.Body.String()
+				Expect(body).To(ContainSubstring("id,name,email"))
+				Expect(body).To(ContainSubstring("export-alice@example.com"))
+				Expect(body).To(ContainSubstring("export-bob@example.com"))
+			})
+		})
+
+		When("authentication is missing", func() {
+			It("should return 401 Unauthorized", func() {
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/events/"+testEventID+"/participants/export",
+					nil,
+				)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		When("user does not own the event", func() {
+			It("should return 403 Forbidden", func() {
+				createTestUserV1(router, "exporter@example.com", "Password123!", "Other User", "organizer")
+				otherAuth := loginTestUserV1(router, "exporter@example.com", "Password123!")
+
+				req := httptest.NewRequest(
+					http.MethodGet,
+					"/api/v1/events/"+testEventID+"/participants/export",
+					nil,
+				)
+				req.Header.Set("Authorization", "Bearer "+otherAuth.AccessToken)
+
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+	})
 })
 
 // Helper function to create a test participant

@@ -1,9 +1,13 @@
 package csvparser_test
 
 import (
+	"encoding/json"
 	"strings"
+	"time"
 
+	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/pkg/csvparser"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -118,6 +122,94 @@ jane@example.com,+1-555-0123`
 Jane Smith,+1-555-0123`
 				_, _, err := csvparser.ParseParticipantCSV(strings.NewReader(csv))
 				Expect(err).To(MatchError(ContainSubstring("'email'")))
+			})
+		})
+	})
+})
+
+var _ = Describe("ExportParticipantCSV", func() {
+	When("exporting a list of participants", func() {
+		Context("with full data", func() {
+			It("should write CSV with header and one row per participant", func() {
+				now := time.Now().UTC().Truncate(time.Second)
+				empID := "EMP001"
+				phone := "+81-90-1234-5678"
+				meta := json.RawMessage(`{"foo":"bar"}`)
+				amount := 1000.0
+				checkedInAt := now
+
+				p := &entity.Participant{
+					ID:                uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+					EventID:           uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+					Name:              "Alice",
+					Email:             "alice@example.com",
+					EmployeeID:        &empID,
+					Phone:             &phone,
+					Status:            entity.ParticipantStatusConfirmed,
+					QRCode:            "qr123",
+					QRCodeGeneratedAt: now,
+					QRDistributionURL: "https://example.com/qr",
+					PaymentStatus:     entity.PaymentPaid,
+					PaymentAmount:     &amount,
+					PaymentDate:       &now,
+					Metadata:          &meta,
+					CreatedAt:         now,
+					UpdatedAt:         now,
+					CheckedIn:         true,
+					CheckedInAt:       &checkedInAt,
+				}
+
+				var buf strings.Builder
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p})
+				Expect(err).NotTo(HaveOccurred())
+
+				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+				Expect(lines).To(HaveLen(2))
+				Expect(lines[0]).To(Equal(
+					"id,name,email,employee_id,phone,qr_email,status,qr_code," +
+						"qr_code_generated_at,qr_distribution_url,payment_status," +
+						"payment_amount,payment_date,checked_in,checked_in_at,metadata," +
+						"created_at,updated_at",
+				))
+				Expect(lines[1]).To(ContainSubstring("alice@example.com"))
+				Expect(lines[1]).To(ContainSubstring("confirmed"))
+				Expect(lines[1]).To(ContainSubstring("true"))
+			})
+		})
+
+		Context("with nil optional fields", func() {
+			It("should write empty strings for nil fields", func() {
+				p := &entity.Participant{
+					ID:            uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+					Name:          "Bob",
+					Email:         "bob@example.com",
+					Status:        entity.ParticipantStatusTentative,
+					QRCode:        "qr456",
+					PaymentStatus: entity.PaymentUnpaid,
+					CreatedAt:     time.Now(),
+					UpdatedAt:     time.Now(),
+				}
+
+				var buf strings.Builder
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p})
+				Expect(err).NotTo(HaveOccurred())
+
+				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+				Expect(lines).To(HaveLen(2))
+				fields := strings.Split(lines[1], ",")
+				Expect(fields).To(HaveLen(18)) // 18 columns
+			})
+		})
+
+		Context("with empty participant list", func() {
+			It("should write only the header row", func() {
+				var buf strings.Builder
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{})
+				Expect(err).NotTo(HaveOccurred())
+
+				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+				Expect(lines).To(HaveLen(1))
+				Expect(lines[0]).To(ContainSubstring("id,name,email"))
 			})
 		})
 	})

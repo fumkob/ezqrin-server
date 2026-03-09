@@ -52,6 +52,12 @@ type Usecase interface {
 		format string,
 		size int,
 	) (QRCodeOutput, error)
+	ExportCSV(
+		ctx context.Context,
+		userID uuid.UUID,
+		isAdmin bool,
+		eventID uuid.UUID,
+	) ([]*entity.Participant, error)
 }
 
 var _ Usecase = (*participantUsecase)(nil)
