@@ -198,7 +198,10 @@ func (r *participantRepository) FindByEventID(
 }
 
 // FindAllByEventID retrieves all participants for an event without pagination.
-func (r *participantRepository) FindAllByEventID(ctx context.Context, eventID uuid.UUID) ([]*entity.Participant, error) {
+func (r *participantRepository) FindAllByEventID(
+	ctx context.Context,
+	eventID uuid.UUID,
+) ([]*entity.Participant, error) {
 	query := `
 		SELECT
 			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
