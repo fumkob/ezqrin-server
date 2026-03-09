@@ -70,7 +70,9 @@ var _ = Describe("CheckIn UseCase", func() {
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 					mockParticipant.EXPECT().FindByQRCode(gomock.Any(), qrCode).Return(participant, nil)
-					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participant.ID).Return(false, nil)
+					mockCheckinRepo.EXPECT().
+						ExistsByParticipant(gomock.Any(), testEventID, participant.ID).
+						Return(false, nil)
 					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
@@ -240,7 +242,9 @@ var _ = Describe("CheckIn UseCase", func() {
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 					mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
-					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(false, nil)
+					mockCheckinRepo.EXPECT().
+						ExistsByParticipant(gomock.Any(), testEventID, participantID).
+						Return(false, nil)
 					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
@@ -279,7 +283,9 @@ var _ = Describe("CheckIn UseCase", func() {
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 					mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
-					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(false, nil)
+					mockCheckinRepo.EXPECT().
+						ExistsByParticipant(gomock.Any(), testEventID, participantID).
+						Return(false, nil)
 					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
@@ -367,8 +373,12 @@ var _ = Describe("CheckIn UseCase", func() {
 					}
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
-					mockParticipant.EXPECT().FindByEmployeeID(gomock.Any(), testEventID, employeeID).Return(participant, nil)
-					mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participant.ID).Return(false, nil)
+					mockParticipant.EXPECT().
+						FindByEmployeeID(gomock.Any(), testEventID, employeeID).
+						Return(participant, nil)
+					mockCheckinRepo.EXPECT().
+						ExistsByParticipant(gomock.Any(), testEventID, participant.ID).
+						Return(false, nil)
 					mockCheckinRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 					input := checkin.CheckInInput{
@@ -396,7 +406,9 @@ var _ = Describe("CheckIn UseCase", func() {
 						Name:        "Test Event",
 					}
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
-					mockParticipant.EXPECT().FindByEmployeeID(gomock.Any(), testEventID, employeeID).Return(nil, apperrors.NotFound("participant not found"))
+					mockParticipant.EXPECT().
+						FindByEmployeeID(gomock.Any(), testEventID, employeeID).
+						Return(nil, apperrors.NotFound("participant not found"))
 
 					input := checkin.CheckInInput{
 						EventID:     testEventID,
@@ -434,7 +446,10 @@ var _ = Describe("CheckIn UseCase", func() {
 
 				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
-				mockCheckinRepo.EXPECT().ExistsByParticipant(gomock.Any(), testEventID, participantID).Return(true, nil) // Already checked in
+				// Already checked in
+				mockCheckinRepo.EXPECT().
+					ExistsByParticipant(gomock.Any(), testEventID, participantID).
+					Return(true, nil)
 
 				input := checkin.CheckInInput{
 					EventID:       testEventID,
@@ -494,7 +509,8 @@ var _ = Describe("CheckIn UseCase", func() {
 			It("should return not found error", func() {
 				participantID := uuid.New()
 
-				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(nil, apperrors.NotFound("event not found"))
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).
+					Return(nil, apperrors.NotFound("event not found"))
 
 				input := checkin.CheckInInput{
 					EventID:       testEventID,
@@ -595,7 +611,8 @@ var _ = Describe("CheckIn UseCase", func() {
 
 				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(participant, nil)
 				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
-				mockCheckinRepo.EXPECT().FindByParticipant(gomock.Any(), participantID).Return(nil, apperrors.NotFound("check-in not found"))
+				mockCheckinRepo.EXPECT().FindByParticipant(gomock.Any(), participantID).
+					Return(nil, apperrors.NotFound("check-in not found"))
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -610,7 +627,8 @@ var _ = Describe("CheckIn UseCase", func() {
 			It("should return not found error", func() {
 				participantID := uuid.New()
 
-				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).Return(nil, apperrors.NotFound("participant not found"))
+				mockParticipant.EXPECT().FindByID(gomock.Any(), participantID).
+					Return(nil, apperrors.NotFound("participant not found"))
 
 				result, err := usecase.GetStatus(ctx, testUserID, false, participantID)
 
@@ -683,7 +701,8 @@ var _ = Describe("CheckIn UseCase", func() {
 					}
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
-					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).Return(checkins, int64(2), nil)
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).
+						Return(checkins, int64(2), nil)
 					mockParticipant.EXPECT().FindByID(gomock.Any(), participants[0].ID).Return(participants[0], nil)
 					mockParticipant.EXPECT().FindByID(gomock.Any(), participants[1].ID).Return(participants[1], nil)
 
@@ -711,7 +730,8 @@ var _ = Describe("CheckIn UseCase", func() {
 					}
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
-					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).Return([]*entity.Checkin{}, int64(0), nil)
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 10, 0).
+						Return([]*entity.Checkin{}, int64(0), nil)
 
 					input := checkin.ListCheckInsInput{
 						EventID: testEventID,
@@ -738,7 +758,8 @@ var _ = Describe("CheckIn UseCase", func() {
 
 					mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(event, nil)
 					// page=2, perPage=5 -> offset=(2-1)*5=5, limit=5
-					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 5, 5).Return([]*entity.Checkin{}, int64(0), nil)
+					mockCheckinRepo.EXPECT().FindByEvent(gomock.Any(), testEventID, 5, 5).
+						Return([]*entity.Checkin{}, int64(0), nil)
 
 					input := checkin.ListCheckInsInput{
 						EventID: testEventID,
@@ -781,7 +802,8 @@ var _ = Describe("CheckIn UseCase", func() {
 
 		When("event does not exist", func() {
 			It("should return not found error", func() {
-				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).Return(nil, apperrors.NotFound("event not found"))
+				mockEventRepo.EXPECT().FindByID(gomock.Any(), testEventID).
+					Return(nil, apperrors.NotFound("event not found"))
 
 				input := checkin.ListCheckInsInput{
 					EventID: testEventID,
@@ -856,7 +878,8 @@ var _ = Describe("CheckIn UseCase", func() {
 			It("should return not found error", func() {
 				checkinID := uuid.New()
 
-				mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).Return(nil, apperrors.NotFound("check-in not found"))
+				mockCheckinRepo.EXPECT().FindByID(gomock.Any(), checkinID).
+					Return(nil, apperrors.NotFound("check-in not found"))
 
 				err := usecase.Cancel(ctx, testUserID, false, checkinID)
 
