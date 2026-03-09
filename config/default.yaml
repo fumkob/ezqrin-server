@@ -59,3 +59,17 @@ cors:
 qrcode:
   # HMAC secret for QR code signing (set via QR_HMAC_SECRET env var)
   hmac_secret: ""
+
+# Email Configuration
+email:
+  backend: "smtp"
+  from_address: "noreply@ezqrin.local"
+  from_name: "ezQRin"
+  smtp_host: "localhost"
+  smtp_port: 1025
+  smtp_user: ""
+  smtp_password: ""
+  smtp_tls: false
+  gmail_client_id: ""
+  gmail_client_secret: ""
+  gmail_refresh_token: ""

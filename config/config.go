@@ -30,6 +30,7 @@ type Config struct {
 	Logging  LoggingConfig
 	CORS     CORSConfig
 	QRCode   QRCodeConfig
+	Email    EmailConfig
 }
 
 // ServerConfig contains server-related configuration
@@ -99,6 +100,31 @@ type CORSConfig struct {
 type QRCodeConfig struct {
 	HMACSecret     string
 	HostingBaseURL string
+}
+
+// EmailConfig contains email sending configuration.
+// Backend selects the sending method: "smtp" or "gmail".
+type EmailConfig struct {
+	// Backend selects the email sending backend: "smtp" (default) or "gmail".
+	Backend string
+
+	// FromAddress is the sender email address used in all backends.
+	FromAddress string
+	// FromName is the sender display name.
+	FromName string
+
+	// SMTP settings (used when Backend = "smtp")
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+	// SMTPTLS enables STARTTLS when true.
+	SMTPTLS bool
+
+	// Gmail API settings (used when Backend = "gmail")
+	GmailClientID     string
+	GmailClientSecret string
+	GmailRefreshToken string
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -235,6 +261,19 @@ var envKeyMap = map[string]string{
 	// QR Code
 	"QR_HMAC_SECRET":      "qrcode.hmac_secret",
 	"QR_HOSTING_BASE_URL": "qrcode.hosting_base_url",
+
+	// Email
+	"EMAIL_BACKEND":             "email.backend",
+	"EMAIL_FROM_ADDRESS":        "email.from_address",
+	"EMAIL_FROM_NAME":           "email.from_name",
+	"EMAIL_SMTP_HOST":           "email.smtp_host",
+	"EMAIL_SMTP_PORT":           "email.smtp_port",
+	"EMAIL_SMTP_USER":           "email.smtp_user",
+	"EMAIL_SMTP_PASSWORD":       "email.smtp_password",
+	"EMAIL_SMTP_TLS":            "email.smtp_tls",
+	"EMAIL_GMAIL_CLIENT_ID":     "email.gmail_client_id",
+	"EMAIL_GMAIL_CLIENT_SECRET": "email.gmail_client_secret",
+	"EMAIL_GMAIL_REFRESH_TOKEN": "email.gmail_refresh_token",
 }
 
 // convertEnvKeyToViperKey converts environment variable key to viper key
@@ -311,6 +350,18 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 
 	cfg.QRCode.HMACSecret = v.GetString("qrcode.hmac_secret")
 	cfg.QRCode.HostingBaseURL = v.GetString("qrcode.hosting_base_url")
+
+	cfg.Email.Backend = v.GetString("email.backend")
+	cfg.Email.FromAddress = v.GetString("email.from_address")
+	cfg.Email.FromName = v.GetString("email.from_name")
+	cfg.Email.SMTPHost = v.GetString("email.smtp_host")
+	cfg.Email.SMTPPort = v.GetInt("email.smtp_port")
+	cfg.Email.SMTPUser = v.GetString("email.smtp_user")
+	cfg.Email.SMTPPassword = v.GetString("email.smtp_password")
+	cfg.Email.SMTPTLS = v.GetBool("email.smtp_tls")
+	cfg.Email.GmailClientID = v.GetString("email.gmail_client_id")
+	cfg.Email.GmailClientSecret = v.GetString("email.gmail_client_secret")
+	cfg.Email.GmailRefreshToken = v.GetString("email.gmail_refresh_token")
 
 	// Validate required fields
 	if cfg.Database.User == "" {
