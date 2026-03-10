@@ -146,13 +146,9 @@ func (u *RefreshTokenUseCase) generateTokens(
 	}
 
 	// Default to web for backward compatibility with existing tokens (no ClientType claim)
-	if clientType == "" {
-		clientType = "web"
-	}
-	refreshExpiry := u.refreshExpiryWeb
-	if clientType == "mobile" {
-		refreshExpiry = u.refreshExpiryMobile
-	}
+	clientType, refreshExpiry := resolveRefreshExpiry(
+		clientType, u.refreshExpiryWeb, u.refreshExpiryMobile,
+	)
 
 	refreshToken, err := crypto.GenerateRefreshToken(
 		user.ID.String(),
@@ -206,4 +202,17 @@ func ParseTokenForLogout(tokenString, secret string) (*uuid.UUID, time.Duration,
 	}
 
 	return &claims.UserID, ttl, nil
+}
+
+// resolveRefreshExpiry returns the normalized clientType and the matching
+// refresh token expiry. An empty clientType defaults to ClientTypeWeb for
+// backward compatibility with tokens issued before client type was tracked.
+func resolveRefreshExpiry(clientType string, web, mobile time.Duration) (string, time.Duration) {
+	if clientType == "" {
+		clientType = ClientTypeWeb
+	}
+	if clientType == ClientTypeMobile {
+		return clientType, mobile
+	}
+	return clientType, web
 }

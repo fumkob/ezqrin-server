@@ -27,6 +27,12 @@ const (
 
 	// RefreshTokenExpiryMobile is the default expiry for mobile clients (90 days)
 	RefreshTokenExpiryMobile = 90 * 24 * time.Hour
+
+	// ClientTypeWeb identifies web browser clients.
+	ClientTypeWeb = "web"
+
+	// ClientTypeMobile identifies mobile (iOS URLSession / CFNetwork) clients.
+	ClientTypeMobile = "mobile"
 )
 
 // RegisterUseCase handles user registration
@@ -149,7 +155,7 @@ func (u *RegisterUseCase) generateTokens(ctx context.Context, user *entity.User)
 		user.ID.String(),
 		string(user.Role),
 		u.jwtSecret,
-		"web",
+		ClientTypeWeb,
 		RefreshTokenExpiryWeb,
 	)
 	if err != nil {

@@ -73,14 +73,9 @@ func (u *LoginUseCase) Execute(ctx context.Context, req *LoginRequest) (*AuthRes
 	}
 
 	// Determine refresh token expiry based on client type
-	clientType := req.ClientType
-	if clientType == "" {
-		clientType = "web"
-	}
-	refreshExpiry := u.refreshExpiryWeb
-	if clientType == "mobile" {
-		refreshExpiry = u.refreshExpiryMobile
-	}
+	clientType, refreshExpiry := resolveRefreshExpiry(
+		req.ClientType, u.refreshExpiryWeb, u.refreshExpiryMobile,
+	)
 
 	// Generate access token
 	accessToken, err := crypto.GenerateAccessToken(user.ID.String(), string(user.Role), u.jwtSecret, AccessTokenExpiry)

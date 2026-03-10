@@ -178,9 +178,9 @@ func (h *AuthHandler) toAuthResponse(result *auth.AuthResponse) generated.AuthRe
 // Defaults to "web" when the UA is absent or unrecognized.
 func detectClientType(userAgent string) string {
 	if strings.Contains(userAgent, "CFNetwork") {
-		return "mobile"
+		return auth.ClientTypeMobile
 	}
-	return "web"
+	return auth.ClientTypeWeb
 }
 
 // extractBearerToken extracts the Bearer token from Authorization header
