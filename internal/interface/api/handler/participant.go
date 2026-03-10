@@ -329,7 +329,11 @@ func (h *ParticipantHandler) DownloadParticipantQRCode(
 }
 
 // ExportParticipantsCSV handles CSV export (GET /events/{id}/participants/export).
-func (h *ParticipantHandler) ExportParticipantsCSV(c *gin.Context, id generated.EventIDParam) {
+func (h *ParticipantHandler) ExportParticipantsCSV(
+	c *gin.Context,
+	id generated.EventIDParam,
+	params generated.ExportParticipantsCSVParams,
+) {
 	userID := h.getUserID(c)
 	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
 	eventID := uuid.UUID(id)
@@ -340,8 +344,13 @@ func (h *ParticipantHandler) ExportParticipantsCSV(c *gin.Context, id generated.
 		return
 	}
 
+	format := csvparser.StatusFormatEnglish
+	if params.StatusFormat != nil && *params.StatusFormat == generated.Japanese {
+		format = csvparser.StatusFormatJapanese
+	}
+
 	var buf bytes.Buffer
-	if err := csvparser.ExportParticipantCSV(&buf, participants); err != nil {
+	if err := csvparser.ExportParticipantCSV(&buf, participants, format); err != nil {
 		h.logger.WithContext(c.Request.Context()).Error("failed to generate CSV", zap.Error(err))
 		response.ProblemFromError(c, apperrors.Internal("failed to generate CSV"))
 		return

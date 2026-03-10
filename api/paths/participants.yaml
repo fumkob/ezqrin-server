@@ -239,6 +239,15 @@
     operationId: exportParticipantsCSV
     security:
       - bearerAuth: []
+    parameters:
+      - name: status_format
+        in: query
+        required: false
+        description: Format for the status column. "english" outputs English strings (default); "japanese" outputs ○/△/× symbols.
+        schema:
+          type: string
+          enum: [english, japanese]
+          default: english
     responses:
       '200':
         description: CSV file download

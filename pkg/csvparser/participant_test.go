@@ -129,8 +129,8 @@ Jane Smith,+1-555-0123`
 
 var _ = Describe("ExportParticipantCSV", func() {
 	When("exporting a list of participants", func() {
-		Context("with full data", func() {
-			It("should write CSV with header and one row per participant", func() {
+		Context("with full data and default (English) format", func() {
+			It("should write CSV with English status strings", func() {
 				now := time.Now().UTC().Truncate(time.Second)
 				empID := "EMP001"
 				phone := "+81-90-1234-5678"
@@ -160,7 +160,7 @@ var _ = Describe("ExportParticipantCSV", func() {
 				}
 
 				var buf strings.Builder
-				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p})
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p}, csvparser.StatusFormatEnglish)
 				Expect(err).NotTo(HaveOccurred())
 
 				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
@@ -174,6 +174,43 @@ var _ = Describe("ExportParticipantCSV", func() {
 				Expect(lines[1]).To(ContainSubstring("alice@example.com"))
 				Expect(lines[1]).To(ContainSubstring("confirmed"))
 				Expect(lines[1]).To(ContainSubstring("true"))
+			})
+		})
+
+		Context("with Japanese format", func() {
+			It("should write ○△× symbols for status", func() {
+				confirmed := &entity.Participant{
+					ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+					Name: "Alice", Email: "alice@example.com",
+					Status: entity.ParticipantStatusConfirmed, QRCode: "qr1",
+					PaymentStatus: entity.PaymentUnpaid, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+				}
+				tentative := &entity.Participant{
+					ID:   uuid.MustParse("00000000-0000-0000-0000-000000000002"),
+					Name: "Bob", Email: "bob@example.com",
+					Status: entity.ParticipantStatusTentative, QRCode: "qr2",
+					PaymentStatus: entity.PaymentUnpaid, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+				}
+				cancelled := &entity.Participant{
+					ID:   uuid.MustParse("00000000-0000-0000-0000-000000000003"),
+					Name: "Carol", Email: "carol@example.com",
+					Status: entity.ParticipantStatusCancelled, QRCode: "qr3",
+					PaymentStatus: entity.PaymentUnpaid, CreatedAt: time.Now(), UpdatedAt: time.Now(),
+				}
+
+				var buf strings.Builder
+				err := csvparser.ExportParticipantCSV(
+					&buf,
+					[]*entity.Participant{confirmed, tentative, cancelled},
+					csvparser.StatusFormatJapanese,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+				Expect(lines).To(HaveLen(4))
+				Expect(lines[1]).To(ContainSubstring("○"))
+				Expect(lines[2]).To(ContainSubstring("△"))
+				Expect(lines[3]).To(ContainSubstring("×"))
 			})
 		})
 
@@ -191,7 +228,7 @@ var _ = Describe("ExportParticipantCSV", func() {
 				}
 
 				var buf strings.Builder
-				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p})
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{p}, csvparser.StatusFormatEnglish)
 				Expect(err).NotTo(HaveOccurred())
 
 				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
@@ -204,7 +241,7 @@ var _ = Describe("ExportParticipantCSV", func() {
 		Context("with empty participant list", func() {
 			It("should write only the header row", func() {
 				var buf strings.Builder
-				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{})
+				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{}, csvparser.StatusFormatEnglish)
 				Expect(err).NotTo(HaveOccurred())
 
 				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
