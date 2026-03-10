@@ -50,7 +50,7 @@ var _ = Describe("SendQRCodes", func() {
 		emailSender = &mockEmailSender{errorsFor: map[string]error{}}
 		uc = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
-			"test-hmac-secret-for-testing-only-32chars", "", emailSender,
+			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", emailSender,
 		)
 		ctx = context.Background()
 		userID = uuid.New()
@@ -181,6 +181,37 @@ var _ = Describe("SendQRCodes", func() {
 				Expect(result.Failures[0].Email).To(Equal("bob@example.com"))
 				Expect(result.Failures[0].Reason).To(ContainSubstring("mailbox full"))
 			})
+		})
+	})
+
+	When("QRDistributionURL is empty (no hosting base URL configured)", func() {
+		It("should report failure for that participant", func() {
+			ucNoURL := participant.NewUsecase(
+				participantRepo, eventRepo, qrcode.NewGenerator(),
+				"test-hmac-secret-for-testing-only-32chars", "", emailSender,
+			)
+			event := &entity.Event{ID: eventID, OrganizerID: userID, Name: "Tech Conf"}
+			p := &entity.Participant{
+				ID: uuid.New(), EventID: eventID,
+				Name: "Alice", Email: "alice@example.com",
+				QRCode:            "qr-token-alice",
+				QRDistributionURL: "", // empty — should fail
+				Status:            entity.ParticipantStatusConfirmed,
+				PaymentStatus:     entity.PaymentUnpaid,
+			}
+
+			eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
+			participantRepo.EXPECT().FindByIDs(ctx, []uuid.UUID{p.ID}).Return([]*entity.Participant{p}, nil)
+
+			result, err := ucNoURL.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
+				EventID:        eventID,
+				ParticipantIDs: []uuid.UUID{p.ID},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.SentCount).To(Equal(0))
+			Expect(result.FailedCount).To(Equal(1))
+			Expect(result.Failures[0].Reason).To(ContainSubstring("QRDistributionURL"))
 		})
 	})
 

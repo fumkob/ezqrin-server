@@ -10,8 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const qrEmailImageSize = 256
-
 // SendQRCodes sends QR codes to event participants via email.
 func (u *participantUsecase) SendQRCodes(
 	ctx context.Context,
@@ -101,23 +99,15 @@ func destinationEmail(p *entity.Participant) string {
 // sendQRCodeEmail sends a single QR code email to a participant.
 // Returns an error if sending failed, or nil on success.
 func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, dest, eventName string) error {
-	qrData, err := u.qrGenerator.GeneratePNG(ctx, p.QRCode, qrEmailImageSize)
-	if err != nil {
-		return fmt.Errorf("QR code generation failed: %w", err)
+	u.populateDistributionURL(p)
+	if p.QRDistributionURL == "" {
+		return fmt.Errorf("QRDistributionURL is not configured for participant %s", p.ID)
 	}
 
 	return u.emailSender.Send(ctx, domainemail.Message{
 		To:      dest,
 		Subject: fmt.Sprintf("Your QR Code for %s", eventName),
 		Body:    buildDefaultEmailBody(p.Name, eventName, p.ID.String()),
-		Attachments: []domainemail.Attachment{
-			{
-				Filename:    "qrcode.png",
-				ContentType: "image/png",
-				Data:        qrData,
-				ContentID:   "qrcode",
-			},
-		},
 	})
 }
 
