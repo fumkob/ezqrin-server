@@ -81,9 +81,22 @@ func NewContainer(
 	useCases := &UseCaseContainer{
 		Auth: &AuthUseCases{
 			Register: auth.NewRegisterUseCase(repos.User, cfg.JWT.Secret, logger),
-			Login:    auth.NewLoginUseCase(repos.User, cfg.JWT.Secret, logger),
-			Refresh:  auth.NewRefreshTokenUseCase(repos.User, repos.Blacklist, cfg.JWT.Secret, logger),
-			Logout:   auth.NewLogoutUseCase(repos.Blacklist, cfg.JWT.Secret, logger),
+			Login: auth.NewLoginUseCase(
+				repos.User,
+				cfg.JWT.Secret,
+				cfg.JWT.RefreshTokenExpiryWeb,
+				cfg.JWT.RefreshTokenExpiryMobile,
+				logger,
+			),
+			Refresh: auth.NewRefreshTokenUseCase(
+				repos.User,
+				repos.Blacklist,
+				cfg.JWT.Secret,
+				cfg.JWT.RefreshTokenExpiryWeb,
+				cfg.JWT.RefreshTokenExpiryMobile,
+				logger,
+			),
+			Logout: auth.NewLogoutUseCase(repos.Blacklist, cfg.JWT.Secret, logger),
 		},
 		Event: event.NewUsecase(repos.Event),
 		Participant: participant.NewUsecase(
