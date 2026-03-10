@@ -38,6 +38,7 @@ var _ = Describe("SendQRCodes", func() {
 		eventRepo       *mocks.MockEventRepository
 		emailSender     *mockEmailSender
 		uc              participant.Usecase
+		ucNoURL         participant.Usecase
 		ctx             context.Context
 		userID          uuid.UUID
 		eventID         uuid.UUID
@@ -51,6 +52,10 @@ var _ = Describe("SendQRCodes", func() {
 		uc = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
 			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", emailSender,
+		)
+		ucNoURL = participant.NewUsecase(
+			participantRepo, eventRepo, qrcode.NewGenerator(),
+			"test-hmac-secret-for-testing-only-32chars", "", emailSender,
 		)
 		ctx = context.Background()
 		userID = uuid.New()
@@ -189,10 +194,6 @@ var _ = Describe("SendQRCodes", func() {
 
 	When("QRDistributionURL is empty (no hosting base URL configured)", func() {
 		It("should report failure for that participant", func() {
-			ucNoURL := participant.NewUsecase(
-				participantRepo, eventRepo, qrcode.NewGenerator(),
-				"test-hmac-secret-for-testing-only-32chars", "", emailSender,
-			)
 			event := &entity.Event{ID: eventID, OrganizerID: userID, Name: "Tech Conf"}
 			p := &entity.Participant{
 				ID: uuid.New(), EventID: eventID,

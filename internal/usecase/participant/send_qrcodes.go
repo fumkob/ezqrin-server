@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"html/template"
+	"sync"
 
 	domainemail "github.com/fumkob/ezqrin-server/internal/domain/email"
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
@@ -16,6 +17,13 @@ import (
 //go:embed templates/qrcode_default.html
 var qrCodeEmailTemplate string
 
+const qrEmailSubject = "Your QR Code for %s"
+
+var (
+	parsedQRCodeTemplate *template.Template
+	parseTemplateOnce    sync.Once
+)
+
 type qrCodeEmailData struct {
 	ParticipantName string
 	EventName       string
@@ -24,12 +32,16 @@ type qrCodeEmailData struct {
 }
 
 func renderQRCodeEmail(data qrCodeEmailData) (string, error) {
-	tmpl, err := template.New("qrcode").Parse(qrCodeEmailTemplate)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse email template: %w", err)
+	var parseErr error
+	parseTemplateOnce.Do(func() {
+		parsedQRCodeTemplate, parseErr = template.New("qrcode").Parse(qrCodeEmailTemplate)
+	})
+	if parseErr != nil {
+		return "", fmt.Errorf("failed to parse email template: %w", parseErr)
 	}
+
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
+	if err := parsedQRCodeTemplate.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to render email template: %w", err)
 	}
 	return buf.String(), nil
@@ -65,6 +77,9 @@ func (u *participantUsecase) SendQRCodes(
 	if err != nil {
 		return SendQRCodesOutput{}, err
 	}
+
+	// Populate QR distribution URLs for all participants before sending.
+	u.populateDistributionURLs(participants)
 
 	// Send QR code emails and collect failures.
 	var failures []SendQRCodeFailure
@@ -124,7 +139,6 @@ func destinationEmail(p *entity.Participant) string {
 // sendQRCodeEmail sends a single QR code email to a participant.
 // Returns an error if sending failed, or nil on success.
 func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, dest, eventName string) error {
-	u.populateDistributionURL(p)
 	if p.QRDistributionURL == "" {
 		return fmt.Errorf("QRDistributionURL is not configured for participant %s", p.ID)
 	}
@@ -141,7 +155,7 @@ func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Part
 
 	return u.emailSender.Send(ctx, domainemail.Message{
 		To:      dest,
-		Subject: fmt.Sprintf("Your QR Code for %s", eventName),
+		Subject: fmt.Sprintf(qrEmailSubject, eventName),
 		Body:    body,
 	})
 }
