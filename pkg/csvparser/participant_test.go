@@ -91,6 +91,40 @@ John Doe,john@example.com,2025-11-08T12:30:00Z`
 		})
 	})
 
+	When("input has UTF-8 BOM", func() {
+		Context("with valid CSV after BOM", func() {
+			It("parses successfully ignoring BOM", func() {
+				csv := "\xEF\xBB\xBFname,email\n山田太郎,yamada@example.com\n"
+
+				parsed, rowErrs, err := csvparser.ParseParticipantCSV(strings.NewReader(csv))
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rowErrs).To(BeEmpty())
+				Expect(parsed).To(HaveLen(1))
+				Expect(parsed[0].Input.Name).To(Equal("山田太郎"))
+				Expect(parsed[0].Input.Email).To(Equal("yamada@example.com"))
+			})
+		})
+
+		Context("with BOM prefix on the name column header", func() {
+			It("correctly recognizes the 'name' header and produces the same result as without BOM", func() {
+				withoutBOM := "name,email\nJane Smith,jane@example.com\n"
+				withBOM := "\xEF\xBB\xBF" + withoutBOM
+
+				parsedWithout, _, err := csvparser.ParseParticipantCSV(strings.NewReader(withoutBOM))
+				Expect(err).NotTo(HaveOccurred())
+
+				parsedWith, rowErrs, err := csvparser.ParseParticipantCSV(strings.NewReader(withBOM))
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rowErrs).To(BeEmpty())
+				Expect(parsedWith).To(HaveLen(len(parsedWithout)))
+				Expect(parsedWith[0].Input.Name).To(Equal(parsedWithout[0].Input.Name))
+				Expect(parsedWith[0].Input.Email).To(Equal(parsedWithout[0].Input.Email))
+			})
+		})
+	})
+
 	When("parsing an invalid CSV", func() {
 		Context("with empty file", func() {
 			It("should return a file-level error", func() {
