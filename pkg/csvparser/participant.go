@@ -26,10 +26,6 @@ type RowError struct {
 	Message string
 }
 
-// ParseParticipantCSV parses a CSV reader into participant inputs.
-// Returns (parsedInputs, rowErrors, fileError).
-// fileError is non-nil for structural issues (empty file, missing required columns).
-// rowErrors collects per-row parse issues; valid rows are still returned in parsedInputs.
 // stripBOM returns a reader with the UTF-8 BOM (0xEF 0xBB 0xBF) removed if present.
 func stripBOM(r io.Reader) io.Reader {
 	br := bufio.NewReader(r)
@@ -40,6 +36,10 @@ func stripBOM(r io.Reader) io.Reader {
 	return br
 }
 
+// ParseParticipantCSV parses a CSV reader into participant inputs.
+// Returns (parsedInputs, rowErrors, fileError).
+// fileError is non-nil for structural issues (empty file, missing required columns).
+// rowErrors collects per-row parse issues; valid rows are still returned in parsedInputs.
 func ParseParticipantCSV(r io.Reader) ([]ParsedInput, []RowError, error) {
 	reader := csv.NewReader(stripBOM(r))
 	reader.TrimLeadingSpace = true
