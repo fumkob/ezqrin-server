@@ -87,7 +87,7 @@ type QRCodeOutput struct {
 // SendQRCodesInput is the input for the SendQRCodes use case.
 type SendQRCodesInput struct {
 	EventID        uuid.UUID
-	ParticipantIDs []uuid.UUID // 空のとき SendToAll=true と組み合わせて使う
+	ParticipantIDs []uuid.UUID // when empty, used together with SendToAll=true
 	SendToAll      bool
 	EmailTemplate  string // "default", "minimal", "detailed"
 }
