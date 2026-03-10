@@ -199,7 +199,11 @@ var _ = Describe("ExportParticipantCSV", func() {
 				}
 
 				var buf strings.Builder
-				err := csvparser.ExportParticipantCSV(&buf, []*entity.Participant{confirmed, tentative, cancelled}, csvparser.StatusFormatJapanese)
+				err := csvparser.ExportParticipantCSV(
+					&buf,
+					[]*entity.Participant{confirmed, tentative, cancelled},
+					csvparser.StatusFormatJapanese,
+				)
 				Expect(err).NotTo(HaveOccurred())
 
 				lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")

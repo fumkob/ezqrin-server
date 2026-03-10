@@ -329,7 +329,11 @@ func (h *ParticipantHandler) DownloadParticipantQRCode(
 }
 
 // ExportParticipantsCSV handles CSV export (GET /events/{id}/participants/export).
-func (h *ParticipantHandler) ExportParticipantsCSV(c *gin.Context, id generated.EventIDParam, params generated.ExportParticipantsCSVParams) {
+func (h *ParticipantHandler) ExportParticipantsCSV(
+	c *gin.Context,
+	id generated.EventIDParam,
+	params generated.ExportParticipantsCSVParams,
+) {
 	userID := h.getUserID(c)
 	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
 	eventID := uuid.UUID(id)
