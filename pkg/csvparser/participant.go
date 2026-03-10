@@ -126,6 +126,16 @@ func ptrStr(s string) *string {
 	return &s
 }
 
+// StatusFormat controls how participant status is rendered in CSV export.
+type StatusFormat int
+
+const (
+	// StatusFormatEnglish outputs English strings ("confirmed", "tentative", etc.). Default.
+	StatusFormatEnglish StatusFormat = iota
+	// StatusFormatJapanese outputs Japanese symbols (○, △, ×).
+	StatusFormatJapanese
+)
+
 // csvExportHeaders defines the column order for CSV export.
 var csvExportHeaders = []string{
 	"id", "name", "email", "employee_id", "phone", "qr_email",
@@ -137,7 +147,8 @@ var csvExportHeaders = []string{
 // ExportParticipantCSV writes participants as CSV to w.
 // Optional fields are written as empty strings when nil.
 // Timestamps are formatted as RFC3339 UTC.
-func ExportParticipantCSV(w io.Writer, participants []*entity.Participant) error {
+// format controls whether status is written as English strings or Japanese ○△× symbols.
+func ExportParticipantCSV(w io.Writer, participants []*entity.Participant, format StatusFormat) error {
 	writer := csv.NewWriter(w)
 
 	if err := writer.Write(csvExportHeaders); err != nil {
@@ -145,7 +156,7 @@ func ExportParticipantCSV(w io.Writer, participants []*entity.Participant) error
 	}
 
 	for _, p := range participants {
-		if err := writer.Write(participantToCSVRow(p)); err != nil {
+		if err := writer.Write(participantToCSVRow(p, format)); err != nil {
 			return fmt.Errorf("failed to write CSV row: %w", err)
 		}
 	}
@@ -154,7 +165,11 @@ func ExportParticipantCSV(w io.Writer, participants []*entity.Participant) error
 	return writer.Error()
 }
 
-func participantToCSVRow(p *entity.Participant) []string {
+func participantToCSVRow(p *entity.Participant, format StatusFormat) []string {
+	statusStr := string(p.Status)
+	if format == StatusFormatJapanese {
+		statusStr = participantStatusToSymbol(p.Status)
+	}
 	return []string{
 		p.ID.String(),
 		p.Name,
@@ -162,7 +177,7 @@ func participantToCSVRow(p *entity.Participant) []string {
 		derefStr(p.EmployeeID),
 		derefStr(p.Phone),
 		derefStr(p.QREmail),
-		participantStatusToSymbol(p.Status),
+		statusStr,
 		p.QRCode,
 		p.QRCodeGeneratedAt.UTC().Format(time.RFC3339),
 		p.QRDistributionURL,
