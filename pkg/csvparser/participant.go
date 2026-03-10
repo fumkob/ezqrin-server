@@ -1,6 +1,7 @@
 package csvparser
 
 import (
+	"bufio"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -29,8 +30,18 @@ type RowError struct {
 // Returns (parsedInputs, rowErrors, fileError).
 // fileError is non-nil for structural issues (empty file, missing required columns).
 // rowErrors collects per-row parse issues; valid rows are still returned in parsedInputs.
+// stripBOM returns a reader with the UTF-8 BOM (0xEF 0xBB 0xBF) removed if present.
+func stripBOM(r io.Reader) io.Reader {
+	br := bufio.NewReader(r)
+	bs, err := br.Peek(3)
+	if err == nil && bs[0] == 0xEF && bs[1] == 0xBB && bs[2] == 0xBF {
+		_, _ = br.Discard(3)
+	}
+	return br
+}
+
 func ParseParticipantCSV(r io.Reader) ([]ParsedInput, []RowError, error) {
-	reader := csv.NewReader(r)
+	reader := csv.NewReader(stripBOM(r))
 	reader.TrimLeadingSpace = true
 
 	colIndex, err := readAndValidateHeader(reader)
