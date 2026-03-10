@@ -39,7 +39,7 @@ func (h *QRCodeHandler) SendEventQRCodes(c *gin.Context, id generated.EventIDPar
 	userID, _ := middleware.GetUserID(c)
 	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
-	// participant_ids の変換
+	// Convert participant_ids from OpenAPI UUIDs to domain UUIDs.
 	var participantIDs []uuid.UUID
 	if req.ParticipantIds != nil {
 		participantIDs = make([]uuid.UUID, 0, len(*req.ParticipantIds))
@@ -71,7 +71,7 @@ func (h *QRCodeHandler) SendEventQRCodes(c *gin.Context, id generated.EventIDPar
 		return
 	}
 
-	// 部分成功の場合は 207
+	// Return 207 Multi-Status when some sends succeeded and some failed.
 	statusCode := http.StatusOK
 	if result.FailedCount > 0 && result.SentCount > 0 {
 		statusCode = http.StatusMultiStatus

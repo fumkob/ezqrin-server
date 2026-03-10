@@ -19,14 +19,14 @@ func (u *participantUsecase) SendQRCodes(
 	isAdmin bool,
 	input SendQRCodesInput,
 ) (SendQRCodesOutput, error) {
-	// バリデーション
+	// Validate that at least one target is specified.
 	if !input.SendToAll && len(input.ParticipantIDs) == 0 {
 		return SendQRCodesOutput{}, apperrors.BadRequest(
 			"either participant_ids or send_to_all=true must be provided",
 		)
 	}
 
-	// イベント取得と認可チェック
+	// Fetch the event and verify the caller has permission.
 	event, err := u.eventRepo.FindByID(ctx, input.EventID)
 	if err != nil {
 		return SendQRCodesOutput{}, err
@@ -37,19 +37,19 @@ func (u *participantUsecase) SendQRCodes(
 		)
 	}
 
-	// 対象参加者を取得
+	// Resolve the target participants.
 	participants, err := u.resolveParticipants(ctx, input)
 	if err != nil {
 		return SendQRCodesOutput{}, err
 	}
 
-	// メール送信
+	// Send QR code emails and collect failures.
 	var failures []SendQRCodeFailure
 	sentCount := 0
 
 	for _, p := range participants {
 		dest := destinationEmail(p)
-		if err := u.sendQRCodeEmail(ctx, p, event.Name); err != nil {
+		if err := u.sendQRCodeEmail(ctx, p, dest, event.Name); err != nil {
 			failures = append(failures, SendQRCodeFailure{
 				ParticipantID: p.ID,
 				Email:         dest,
@@ -101,9 +101,7 @@ func destinationEmail(p *entity.Participant) string {
 
 // sendQRCodeEmail sends a single QR code email to a participant.
 // Returns an error if sending failed, or nil on success.
-func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, eventName string) error {
-	dest := destinationEmail(p)
-
+func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, dest, eventName string) error {
 	qrData, err := u.qrGenerator.GeneratePNG(ctx, p.QRCode, qrEmailImageSize)
 	if err != nil {
 		return fmt.Errorf("QR code generation failed: %w", err)

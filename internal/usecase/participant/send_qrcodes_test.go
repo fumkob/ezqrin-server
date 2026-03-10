@@ -15,15 +15,17 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// mockEmailSender はテスト専用のインメモリ EmailSender
+// mockEmailSender is an in-memory EmailSender for tests.
+// Set errorsFor[toAddress] to make Send return an error for that recipient;
+// any address not present in the map succeeds.
 type mockEmailSender struct {
 	sent      []domainemail.Message
-	returnErr error
+	errorsFor map[string]error // key: To address
 }
 
 func (m *mockEmailSender) Send(_ context.Context, msg domainemail.Message) error {
-	if m.returnErr != nil {
-		return m.returnErr
+	if err, ok := m.errorsFor[msg.To]; ok {
+		return err
 	}
 	m.sent = append(m.sent, msg)
 	return nil
@@ -45,7 +47,7 @@ var _ = Describe("SendQRCodes", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		participantRepo = mocks.NewMockParticipantRepository(ctrl)
 		eventRepo = mocks.NewMockEventRepository(ctrl)
-		emailSender = &mockEmailSender{}
+		emailSender = &mockEmailSender{errorsFor: map[string]error{}}
 		uc = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
 			"test-hmac-secret-for-testing-only-32chars", "", emailSender,
@@ -116,7 +118,6 @@ var _ = Describe("SendQRCodes", func() {
 
 		Context("when email send fails", func() {
 			It("should report failure and continue processing remaining participants", func() {
-				emailSender.returnErr = errors.New("connection refused")
 				event := &entity.Event{ID: eventID, OrganizerID: userID, Name: "Tech Conf"}
 				p := &entity.Participant{
 					ID: uuid.New(), EventID: eventID,
@@ -125,6 +126,7 @@ var _ = Describe("SendQRCodes", func() {
 					Status:        entity.ParticipantStatusConfirmed,
 					PaymentStatus: entity.PaymentUnpaid,
 				}
+				emailSender.errorsFor["alice@example.com"] = errors.New("connection refused")
 
 				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
 				participantRepo.EXPECT().FindByID(ctx, p.ID).Return(p, nil)
@@ -139,6 +141,45 @@ var _ = Describe("SendQRCodes", func() {
 				Expect(result.FailedCount).To(Equal(1))
 				Expect(result.Failures[0].Email).To(Equal("alice@example.com"))
 				Expect(result.Failures[0].Reason).To(ContainSubstring("connection refused"))
+			})
+		})
+
+		Context("when one of multiple participants fails (partial success)", func() {
+			It("should record the failure and succeed for the rest", func() {
+				event := &entity.Event{ID: eventID, OrganizerID: userID, Name: "Tech Conf"}
+				alice := &entity.Participant{
+					ID: uuid.New(), EventID: eventID,
+					Name: "Alice", Email: "alice@example.com",
+					QRCode:        "qr-alice",
+					Status:        entity.ParticipantStatusConfirmed,
+					PaymentStatus: entity.PaymentUnpaid,
+				}
+				bob := &entity.Participant{
+					ID: uuid.New(), EventID: eventID,
+					Name: "Bob", Email: "bob@example.com",
+					QRCode:        "qr-bob",
+					Status:        entity.ParticipantStatusConfirmed,
+					PaymentStatus: entity.PaymentUnpaid,
+				}
+				emailSender.errorsFor["bob@example.com"] = errors.New("mailbox full")
+
+				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
+				participantRepo.EXPECT().FindByID(ctx, alice.ID).Return(alice, nil)
+				participantRepo.EXPECT().FindByID(ctx, bob.ID).Return(bob, nil)
+
+				result, err := uc.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
+					EventID:        eventID,
+					ParticipantIDs: []uuid.UUID{alice.ID, bob.ID},
+				})
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.SentCount).To(Equal(1))
+				Expect(result.FailedCount).To(Equal(1))
+				Expect(result.Total).To(Equal(2))
+				Expect(emailSender.sent).To(HaveLen(1))
+				Expect(emailSender.sent[0].To).To(Equal("alice@example.com"))
+				Expect(result.Failures[0].Email).To(Equal("bob@example.com"))
+				Expect(result.Failures[0].Reason).To(ContainSubstring("mailbox full"))
 			})
 		})
 	})
