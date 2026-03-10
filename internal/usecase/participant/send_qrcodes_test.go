@@ -72,7 +72,7 @@ var _ = Describe("SendQRCodes", func() {
 				}
 
 				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
-				participantRepo.EXPECT().FindByID(ctx, p.ID).Return(p, nil)
+				participantRepo.EXPECT().FindByIDs(ctx, []uuid.UUID{p.ID}).Return([]*entity.Participant{p}, nil)
 
 				result, err := uc.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
 					EventID:        eventID,
@@ -103,7 +103,7 @@ var _ = Describe("SendQRCodes", func() {
 				}
 
 				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
-				participantRepo.EXPECT().FindByID(ctx, p.ID).Return(p, nil)
+				participantRepo.EXPECT().FindByIDs(ctx, []uuid.UUID{p.ID}).Return([]*entity.Participant{p}, nil)
 
 				result, err := uc.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
 					EventID:        eventID,
@@ -129,7 +129,7 @@ var _ = Describe("SendQRCodes", func() {
 				emailSender.errorsFor["alice@example.com"] = errors.New("connection refused")
 
 				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
-				participantRepo.EXPECT().FindByID(ctx, p.ID).Return(p, nil)
+				participantRepo.EXPECT().FindByIDs(ctx, []uuid.UUID{p.ID}).Return([]*entity.Participant{p}, nil)
 
 				result, err := uc.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
 					EventID:        eventID,
@@ -164,8 +164,8 @@ var _ = Describe("SendQRCodes", func() {
 				emailSender.errorsFor["bob@example.com"] = errors.New("mailbox full")
 
 				eventRepo.EXPECT().FindByID(ctx, eventID).Return(event, nil)
-				participantRepo.EXPECT().FindByID(ctx, alice.ID).Return(alice, nil)
-				participantRepo.EXPECT().FindByID(ctx, bob.ID).Return(bob, nil)
+				participantRepo.EXPECT().FindByIDs(ctx, []uuid.UUID{alice.ID, bob.ID}).
+					Return([]*entity.Participant{alice, bob}, nil)
 
 				result, err := uc.SendQRCodes(ctx, userID, false, participant.SendQRCodesInput{
 					EventID:        eventID,

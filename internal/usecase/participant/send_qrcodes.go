@@ -77,16 +77,15 @@ func (u *participantUsecase) resolveParticipants(
 		return u.participantRepo.FindAllByEventID(ctx, input.EventID)
 	}
 
-	participants := make([]*entity.Participant, 0, len(input.ParticipantIDs))
-	for _, id := range input.ParticipantIDs {
-		p, err := u.participantRepo.FindByID(ctx, id)
-		if err != nil {
-			return nil, err
-		}
+	participants, err := u.participantRepo.FindByIDs(ctx, input.ParticipantIDs)
+	if err != nil {
+		return nil, err
+	}
+	// Verify all returned participants belong to the requested event.
+	for _, p := range participants {
 		if p.EventID != input.EventID {
 			return nil, apperrors.NotFound("participant not found in this event")
 		}
-		participants = append(participants, p)
 	}
 	return participants, nil
 }
