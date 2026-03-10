@@ -86,6 +86,9 @@ var _ = Describe("SendQRCodes", func() {
 				Expect(emailSender.sent).To(HaveLen(1))
 				Expect(emailSender.sent[0].To).To(Equal("alice@example.com"))
 				Expect(emailSender.sent[0].Subject).To(ContainSubstring("Tech Conf"))
+				Expect(emailSender.sent[0].Body).To(ContainSubstring("https://qr.example.com/"))
+				Expect(emailSender.sent[0].Body).To(ContainSubstring("View QR Code"))
+				Expect(emailSender.sent[0].Attachments).To(BeEmpty())
 			})
 		})
 

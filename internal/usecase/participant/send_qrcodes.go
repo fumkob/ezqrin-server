@@ -1,14 +1,39 @@
 package participant
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
+	"html/template"
 
 	domainemail "github.com/fumkob/ezqrin-server/internal/domain/email"
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 )
+
+//go:embed templates/qrcode_default.html
+var qrCodeEmailTemplate string
+
+type qrCodeEmailData struct {
+	ParticipantName string
+	EventName       string
+	QRCodeURL       string
+	ParticipantID   string
+}
+
+func renderQRCodeEmail(data qrCodeEmailData) (string, error) {
+	tmpl, err := template.New("qrcode").Parse(qrCodeEmailTemplate)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse email template: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to render email template: %w", err)
+	}
+	return buf.String(), nil
+}
 
 // SendQRCodes sends QR codes to event participants via email.
 func (u *participantUsecase) SendQRCodes(
@@ -104,28 +129,19 @@ func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Part
 		return fmt.Errorf("QRDistributionURL is not configured for participant %s", p.ID)
 	}
 
+	body, err := renderQRCodeEmail(qrCodeEmailData{
+		ParticipantName: p.Name,
+		EventName:       eventName,
+		QRCodeURL:       p.QRDistributionURL,
+		ParticipantID:   p.ID.String(),
+	})
+	if err != nil {
+		return err
+	}
+
 	return u.emailSender.Send(ctx, domainemail.Message{
 		To:      dest,
 		Subject: fmt.Sprintf("Your QR Code for %s", eventName),
-		Body:    buildDefaultEmailBody(p.Name, eventName, p.ID.String()),
+		Body:    body,
 	})
-}
-
-// buildDefaultEmailBody generates a simple HTML email with an embedded QR code image.
-func buildDefaultEmailBody(participantName, eventName, participantID string) string {
-	return fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"/></head>
-<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-  <h2>Your QR Code for %s</h2>
-  <p>Hello %s,</p>
-  <p>Please show the QR code below at the check-in desk on the day of the event.</p>
-  <div style="text-align:center;margin:30px 0;">
-    <img src="cid:qrcode" alt="QR Code" width="256" height="256"/>
-  </div>
-  <p style="color:#666;font-size:12px;">Participant ID: %s</p>
-  <hr/>
-  <p style="color:#999;font-size:11px;">This email was sent by ezQRin. Please do not reply.</p>
-</body>
-</html>`, eventName, participantName, participantID)
 }
