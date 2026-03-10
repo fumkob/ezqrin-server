@@ -1,0 +1,13 @@
+{{.EventName}} - QR コードのご案内 / Your QR Code
+
+{{.ParticipantName}} 様 / Dear {{.ParticipantName}},
+
+イベント当日、受付にて以下のURLにアクセスしてQRコードをご提示ください。
+Please visit the URL below and present your QR code at the check-in desk on the day of the event.
+
+  {{.QRCodeURL}}
+
+参加者ID / Participant ID: {{.ParticipantID}}
+
+---
+このメールは自動送信されています。 / This email was sent automatically.

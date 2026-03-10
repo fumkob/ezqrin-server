@@ -8,6 +8,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	"github.com/fumkob/ezqrin-server/pkg/crypto"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/google/uuid"
 )
 
@@ -70,12 +71,14 @@ type Usecase interface {
 var _ Usecase = (*participantUsecase)(nil)
 
 type participantUsecase struct {
-	participantRepo  repository.ParticipantRepository
-	eventRepo        repository.EventRepository
-	qrGenerator      *qrcode.Generator
-	qrHMACSecret     string
-	qrHostingBaseURL string
-	emailSender      domainemail.Sender
+	participantRepo    repository.ParticipantRepository
+	eventRepo          repository.EventRepository
+	qrGenerator        *qrcode.Generator
+	qrHMACSecret       string
+	qrHostingBaseURL   string
+	emailSender        domainemail.Sender
+	emailPlainTextOnly bool
+	logger             *logger.Logger
 }
 
 // NewUsecase creates a new participant usecase instance
@@ -86,14 +89,18 @@ func NewUsecase(
 	qrHMACSecret string,
 	qrHostingBaseURL string,
 	emailSender domainemail.Sender,
+	emailPlainTextOnly bool,
+	logger *logger.Logger,
 ) Usecase {
 	return &participantUsecase{
-		participantRepo:  participantRepo,
-		eventRepo:        eventRepo,
-		qrGenerator:      qrGenerator,
-		qrHMACSecret:     qrHMACSecret,
-		qrHostingBaseURL: qrHostingBaseURL,
-		emailSender:      emailSender,
+		participantRepo:    participantRepo,
+		eventRepo:          eventRepo,
+		qrGenerator:        qrGenerator,
+		qrHMACSecret:       qrHMACSecret,
+		qrHostingBaseURL:   qrHostingBaseURL,
+		emailSender:        emailSender,
+		emailPlainTextOnly: emailPlainTextOnly,
+		logger:             logger,
 	}
 }
 

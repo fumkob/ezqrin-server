@@ -9,10 +9,12 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/domain/repository/mocks"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	"github.com/fumkob/ezqrin-server/internal/usecase/participant"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
 
 // mockEmailSender is an in-memory EmailSender for tests.
@@ -49,13 +51,14 @@ var _ = Describe("SendQRCodes", func() {
 		participantRepo = mocks.NewMockParticipantRepository(ctrl)
 		eventRepo = mocks.NewMockEventRepository(ctrl)
 		emailSender = &mockEmailSender{errorsFor: map[string]error{}}
+		nopLogger := &logger.Logger{Logger: zap.NewNop()}
 		uc = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
-			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", emailSender,
+			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", emailSender, false, nopLogger,
 		)
 		ucNoURL = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
-			"test-hmac-secret-for-testing-only-32chars", "", emailSender,
+			"test-hmac-secret-for-testing-only-32chars", "", emailSender, false, nopLogger,
 		)
 		ctx = context.Background()
 		userID = uuid.New()

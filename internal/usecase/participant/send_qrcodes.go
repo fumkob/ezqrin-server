@@ -5,24 +5,34 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"html/template"
+	htmltemplate "html/template"
 	"sync"
+	texttemplate "text/template"
 
 	domainemail "github.com/fumkob/ezqrin-server/internal/domain/email"
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
+
+// getHTMLTemplate returns the parsed HTML email template, parsing it once on first call.
+var getHTMLTemplate = sync.OnceValues(func() (*htmltemplate.Template, error) {
+	return htmltemplate.New("qrcode").Parse(qrCodeEmailTemplate)
+})
+
+// getTextTemplate returns the parsed plain-text email template, parsing it once on first call.
+var getTextTemplate = sync.OnceValues(func() (*texttemplate.Template, error) {
+	return texttemplate.New("qrcode_text").Parse(qrCodeTextTemplate)
+})
 
 //go:embed templates/qrcode_default.html
 var qrCodeEmailTemplate string
 
-const qrEmailSubject = "Your QR Code for %s"
+//go:embed templates/qrcode_default.txt
+var qrCodeTextTemplate string
 
-var (
-	parsedQRCodeTemplate *template.Template
-	parseTemplateOnce    sync.Once
-)
+const qrEmailSubject = "Your QR Code for %s"
 
 type qrCodeEmailData struct {
 	ParticipantName string
@@ -32,17 +42,25 @@ type qrCodeEmailData struct {
 }
 
 func renderQRCodeEmail(data qrCodeEmailData) (string, error) {
-	var parseErr error
-	parseTemplateOnce.Do(func() {
-		parsedQRCodeTemplate, parseErr = template.New("qrcode").Parse(qrCodeEmailTemplate)
-	})
-	if parseErr != nil {
-		return "", fmt.Errorf("failed to parse email template: %w", parseErr)
+	tmpl, err := getHTMLTemplate()
+	if err != nil {
+		return "", fmt.Errorf("failed to parse email template: %w", err)
 	}
-
 	var buf bytes.Buffer
-	if err := parsedQRCodeTemplate.Execute(&buf, data); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to render email template: %w", err)
+	}
+	return buf.String(), nil
+}
+
+func renderQRCodeTextEmail(data qrCodeEmailData) (string, error) {
+	tmpl, err := getTextTemplate()
+	if err != nil {
+		return "", fmt.Errorf("failed to parse text email template: %w", err)
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to render text email template: %w", err)
 	}
 	return buf.String(), nil
 }
@@ -88,6 +106,11 @@ func (u *participantUsecase) SendQRCodes(
 	for _, p := range participants {
 		dest := destinationEmail(p)
 		if err := u.sendQRCodeEmail(ctx, p, dest, event.Name); err != nil {
+			u.logger.WithContext(ctx).Error("failed to send qr code email",
+				zap.String("participant_id", p.ID.String()),
+				zap.String("email", dest),
+				zap.Error(err),
+			)
 			failures = append(failures, SendQRCodeFailure{
 				ParticipantID: p.ID,
 				Email:         dest,
@@ -137,25 +160,44 @@ func destinationEmail(p *entity.Participant) string {
 }
 
 // sendQRCodeEmail sends a single QR code email to a participant.
+// When emailPlainTextOnly is true, only the plain-text part is sent (no HTML).
 // Returns an error if sending failed, or nil on success.
 func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, dest, eventName string) error {
 	if p.QRDistributionURL == "" {
 		return fmt.Errorf("QRDistributionURL is not configured for participant %s", p.ID)
 	}
 
-	body, err := renderQRCodeEmail(qrCodeEmailData{
+	data := qrCodeEmailData{
 		ParticipantName: p.Name,
 		EventName:       eventName,
 		QRCodeURL:       p.QRDistributionURL,
 		ParticipantID:   p.ID.String(),
-	})
+	}
+
+	if u.emailPlainTextOnly {
+		textBody, err := renderQRCodeTextEmail(data)
+		if err != nil {
+			return err
+		}
+		return u.emailSender.Send(ctx, domainemail.Message{
+			To:       dest,
+			Subject:  fmt.Sprintf(qrEmailSubject, eventName),
+			TextBody: textBody,
+		})
+	}
+
+	body, err := renderQRCodeEmail(data)
 	if err != nil {
 		return err
 	}
-
+	textBody, err := renderQRCodeTextEmail(data)
+	if err != nil {
+		return err
+	}
 	return u.emailSender.Send(ctx, domainemail.Message{
-		To:      dest,
-		Subject: fmt.Sprintf(qrEmailSubject, eventName),
-		Body:    body,
+		To:       dest,
+		Subject:  fmt.Sprintf(qrEmailSubject, eventName),
+		Body:     body,
+		TextBody: textBody,
 	})
 }

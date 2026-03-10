@@ -133,6 +133,11 @@ type EmailConfig struct {
 	GmailClientID     string
 	GmailClientSecret string
 	GmailRefreshToken string
+
+	// PlainTextOnly sends email as plain text only when true.
+	// Use this when the recipient's mail server blocks HTML emails.
+	// Set via EMAIL_PLAIN_TEXT_ONLY=true.
+	PlainTextOnly bool
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -282,6 +287,7 @@ var envKeyMap = map[string]string{
 	"EMAIL_GMAIL_CLIENT_ID":     "email.gmail_client_id",
 	"EMAIL_GMAIL_CLIENT_SECRET": "email.gmail_client_secret",
 	"EMAIL_GMAIL_REFRESH_TOKEN": "email.gmail_refresh_token",
+	"EMAIL_PLAIN_TEXT_ONLY":     "email.plain_text_only",
 }
 
 // convertEnvKeyToViperKey converts environment variable key to viper key
@@ -326,6 +332,7 @@ func unmarshalEmailConfig(v *viper.Viper, cfg *Config) {
 	cfg.Email.GmailClientID = v.GetString("email.gmail_client_id")
 	cfg.Email.GmailClientSecret = v.GetString("email.gmail_client_secret")
 	cfg.Email.GmailRefreshToken = v.GetString("email.gmail_refresh_token")
+	cfg.Email.PlainTextOnly = v.GetBool("email.plain_text_only")
 }
 
 // unmarshalConfig maps viper configuration to Config struct

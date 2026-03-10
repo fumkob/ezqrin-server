@@ -108,6 +108,18 @@ Key values to configure in `.env`:
 | `REDIS_PASSWORD` | No | Leave empty to disable Redis auth |
 | `CORS_ALLOWED_ORIGINS` | Recommended | Comma-separated frontend origins (e.g. `https://app.example.com`) |
 | `QR_HOSTING_BASE_URL` | No | Base URL of the QR hosting server |
+| `EMAIL_BACKEND` | Yes | Email backend: `smtp` (default) or `gmail` |
+| `EMAIL_FROM_ADDRESS` | Yes | Sender email address (e.g. `noreply@example.com`) |
+| `EMAIL_FROM_NAME` | No | Sender display name (default: `ezQRin`) |
+| `EMAIL_SMTP_HOST` | If SMTP | SMTP server hostname |
+| `EMAIL_SMTP_PORT` | If SMTP | SMTP server port (e.g. `587`) |
+| `EMAIL_SMTP_USER` | If SMTP | SMTP authentication username |
+| `EMAIL_SMTP_PASSWORD` | If SMTP | SMTP authentication password |
+| `EMAIL_SMTP_TLS` | If SMTP | Set `true` for TLS-required servers (port 587/465) |
+| `EMAIL_PLAIN_TEXT_ONLY` | No | Set `true` to send plain-text only (bypasses corporate HTML blocking) |
+| `EMAIL_GMAIL_CLIENT_ID` | If Gmail | OAuth2 client ID from Google Cloud Console |
+| `EMAIL_GMAIL_CLIENT_SECRET` | If Gmail | OAuth2 client secret |
+| `EMAIL_GMAIL_REFRESH_TOKEN` | If Gmail | OAuth2 refresh token with `gmail.send` scope |
 
 **CRITICAL:** Never commit `.env` to version control. Verify it is listed in `.gitignore`.
 
@@ -534,10 +546,12 @@ Before going live, verify the following:
 - All secrets use strong random values (`openssl rand`)
 - `DB_SSL_MODE=require` is set for PostgreSQL connections
 - Redis has a strong password configured
-- The API is not directly exposed to the internet without a reverse proxy (nginx, Caddy, etc.)
-- TLS termination is handled at the load balancer or reverse proxy level
+- The API port (8080) is the only port exposed on the host; PostgreSQL and Redis are on an isolated internal Docker network and are not reachable from outside the host
+- TLS termination is handled at the load balancer or reverse proxy level (the API itself does not terminate TLS)
 - Log output does not contain secrets or PII
 - Regular database backups are scheduled and tested
+
+> **Note:** The production image and Compose configuration include additional hardening by default: the API container runs as the `nobody` user (non-root), the filesystem is mounted read-only (`read_only: true`) with `/tmp` as a writable `tmpfs`, and privilege escalation is disabled (`no-new-privileges:true`).
 
 ---
 
