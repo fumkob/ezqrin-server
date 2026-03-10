@@ -119,4 +119,3 @@ volumes:
 networks:
   ezqrin-internal:
     driver: bridge
-    internal: true
