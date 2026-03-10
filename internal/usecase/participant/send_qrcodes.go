@@ -48,37 +48,8 @@ func (u *participantUsecase) SendQRCodes(
 	sentCount := 0
 
 	for _, p := range participants {
-		dest := p.Email
-		if p.QREmail != nil && *p.QREmail != "" {
-			dest = *p.QREmail
-		}
-
-		// QRコード画像を生成
-		qrData, err := u.qrGenerator.GeneratePNG(ctx, p.QRCode, qrEmailImageSize)
-		if err != nil {
-			failures = append(failures, SendQRCodeFailure{
-				ParticipantID: p.ID,
-				Email:         dest,
-				Reason:        "QR code generation failed: " + err.Error(),
-			})
-			continue
-		}
-
-		msg := domainemail.Message{
-			To:      dest,
-			Subject: fmt.Sprintf("Your QR Code for %s", event.Name),
-			Body:    buildDefaultEmailBody(p.Name, event.Name, p.ID.String()),
-			Attachments: []domainemail.Attachment{
-				{
-					Filename:    "qrcode.png",
-					ContentType: "image/png",
-					Data:        qrData,
-					ContentID:   "qrcode",
-				},
-			},
-		}
-
-		if err := u.emailSender.Send(ctx, msg); err != nil {
+		dest := destinationEmail(p)
+		if err := u.sendQRCodeEmail(ctx, p, event.Name); err != nil {
 			failures = append(failures, SendQRCodeFailure{
 				ParticipantID: p.ID,
 				Email:         dest,
@@ -86,7 +57,6 @@ func (u *participantUsecase) SendQRCodes(
 			})
 			continue
 		}
-
 		sentCount++
 	}
 
@@ -119,6 +89,39 @@ func (u *participantUsecase) resolveParticipants(
 		participants = append(participants, p)
 	}
 	return participants, nil
+}
+
+// destinationEmail returns the email address to send to for a participant.
+func destinationEmail(p *entity.Participant) string {
+	if p.QREmail != nil && *p.QREmail != "" {
+		return *p.QREmail
+	}
+	return p.Email
+}
+
+// sendQRCodeEmail sends a single QR code email to a participant.
+// Returns an error if sending failed, or nil on success.
+func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Participant, eventName string) error {
+	dest := destinationEmail(p)
+
+	qrData, err := u.qrGenerator.GeneratePNG(ctx, p.QRCode, qrEmailImageSize)
+	if err != nil {
+		return fmt.Errorf("QR code generation failed: %w", err)
+	}
+
+	return u.emailSender.Send(ctx, domainemail.Message{
+		To:      dest,
+		Subject: fmt.Sprintf("Your QR Code for %s", eventName),
+		Body:    buildDefaultEmailBody(p.Name, eventName, p.ID.String()),
+		Attachments: []domainemail.Attachment{
+			{
+				Filename:    "qrcode.png",
+				ContentType: "image/png",
+				Data:        qrData,
+				ContentID:   "qrcode",
+			},
+		},
+	})
 }
 
 // buildDefaultEmailBody generates a simple HTML email with an embedded QR code image.

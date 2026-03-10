@@ -482,16 +482,28 @@ func (c *Config) validateEmail() error {
 		// smtp is the default; no backend-specific required fields enforced at startup
 	case EmailBackendGmail:
 		if c.Email.GmailClientID == "" {
-			return fmt.Errorf("gmail client ID is required when email backend is gmail (set EMAIL_GMAIL_CLIENT_ID)")
+			return fmt.Errorf(
+				"gmail client ID is required when email backend is gmail" +
+					" (set EMAIL_GMAIL_CLIENT_ID)",
+			)
 		}
 		if c.Email.GmailClientSecret == "" {
-			return fmt.Errorf("gmail client secret is required when email backend is gmail (set EMAIL_GMAIL_CLIENT_SECRET)")
+			return fmt.Errorf(
+				"gmail client secret is required when email backend is gmail" +
+					" (set EMAIL_GMAIL_CLIENT_SECRET)",
+			)
 		}
 		if c.Email.GmailRefreshToken == "" {
-			return fmt.Errorf("gmail refresh token is required when email backend is gmail (set EMAIL_GMAIL_REFRESH_TOKEN)")
+			return fmt.Errorf(
+				"gmail refresh token is required when email backend is gmail" +
+					" (set EMAIL_GMAIL_REFRESH_TOKEN)",
+			)
 		}
 	default:
-		return fmt.Errorf("unknown email backend %q: must be %q or %q", c.Email.Backend, EmailBackendSMTP, EmailBackendGmail)
+		return fmt.Errorf(
+			"unknown email backend %q: must be %q or %q",
+			c.Email.Backend, EmailBackendSMTP, EmailBackendGmail,
+		)
 	}
 	return nil
 }

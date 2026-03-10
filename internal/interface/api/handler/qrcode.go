@@ -77,21 +77,25 @@ func (h *QRCodeHandler) SendEventQRCodes(c *gin.Context, id generated.EventIDPar
 		statusCode = http.StatusMultiStatus
 	}
 
-	failures := make([]generated.SendQRCodeFailure, 0, len(result.Failures))
-	for _, f := range result.Failures {
+	response.Data(c, statusCode, generated.SendQRCodesResponse{
+		SentCount:   result.SentCount,
+		FailedCount: result.FailedCount,
+		Total:       result.Total,
+		Failures:    toGeneratedFailures(result.Failures),
+	})
+}
+
+// toGeneratedFailures converts usecase failures to generated API failures.
+func toGeneratedFailures(fs []participant.SendQRCodeFailure) []generated.SendQRCodeFailure {
+	out := make([]generated.SendQRCodeFailure, 0, len(fs))
+	for _, f := range fs {
 		pid := openapi_types.UUID(f.ParticipantID)
 		email := openapi_types.Email(f.Email)
-		failures = append(failures, generated.SendQRCodeFailure{
+		out = append(out, generated.SendQRCodeFailure{
 			ParticipantId: pid,
 			Email:         email,
 			Reason:        f.Reason,
 		})
 	}
-
-	response.Data(c, statusCode, generated.SendQRCodesResponse{
-		SentCount:   result.SentCount,
-		FailedCount: result.FailedCount,
-		Total:       result.Total,
-		Failures:    failures,
-	})
+	return out
 }

@@ -250,49 +250,93 @@ LOG_LEVEL=debug
 
 ### Email Configuration
 
-#### SMTP_HOST
+ezQRin supports two email backends selected via `EMAIL_BACKEND`.
 
-**Description:** SMTP server hostname **Type:** String **Example:** `smtp.mailtrap.io`
-(development), `smtp.gmail.com`, `smtp.sendgrid.net`
+#### EMAIL_BACKEND
+
+**Description:** Email sending backend
+**Type:** Enum
+**Options:** `smtp`, `gmail`
+**Default:** `smtp`
 
 ```bash
-SMTP_HOST=smtp.mailtrap.io
+EMAIL_BACKEND=smtp
 ```
 
-#### SMTP_PORT
+#### EMAIL_FROM_ADDRESS
 
-**Description:** SMTP server port **Type:** Integer **Common Ports:**
-
-- `587`: TLS (recommended)
-- `465`: SSL
-- `25`: Unencrypted (not recommended)
+**Description:** Sender email address shown in the "From" header
+**Type:** String (email)
+**Default:** `noreply@ezqrin.local`
 
 ```bash
-SMTP_PORT=587
+EMAIL_FROM_ADDRESS=noreply@ezqrin.local
 ```
 
-#### SMTP_USERNAME
+#### EMAIL_FROM_NAME
 
-**Description:** SMTP authentication username **Type:** String
+**Description:** Display name shown alongside the from address
+**Type:** String
+**Default:** `ezQRin`
 
 ```bash
-SMTP_USERNAME=your_smtp_username
+EMAIL_FROM_NAME=ezQRin
 ```
 
-#### SMTP_PASSWORD
+---
 
-**Description:** SMTP authentication password **Type:** String (sensitive)
+#### SMTP Settings (`EMAIL_BACKEND=smtp`)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `EMAIL_SMTP_HOST` | SMTP server hostname | `localhost` |
+| `EMAIL_SMTP_PORT` | SMTP server port | `1025` |
+| `EMAIL_SMTP_USER` | SMTP authentication username | *(empty)* |
+| `EMAIL_SMTP_PASSWORD` | SMTP authentication password *(sensitive)* | *(empty)* |
+| `EMAIL_SMTP_TLS` | Enable STARTTLS (`true`/`false`) | `false` |
+
+**Development (MailHog):**
 
 ```bash
-SMTP_PASSWORD=your_smtp_password
+EMAIL_SMTP_HOST=localhost
+EMAIL_SMTP_PORT=1025
+EMAIL_SMTP_TLS=false
 ```
 
-#### SMTP_FROM_EMAIL
-
-**Description:** Default sender email address **Type:** String (email)
+**Production (e.g., SendGrid / Amazon SES):**
 
 ```bash
-SMTP_FROM_EMAIL=noreply@ezqrin.local
+EMAIL_SMTP_HOST=smtp.sendgrid.net
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_USER=apikey
+EMAIL_SMTP_PASSWORD=<your-api-key>
+EMAIL_SMTP_TLS=true
+```
+
+---
+
+#### Gmail API Settings (`EMAIL_BACKEND=gmail`)
+
+| Variable | Description |
+|----------|-------------|
+| `EMAIL_GMAIL_CLIENT_ID` | OAuth2 client ID *(sensitive)* |
+| `EMAIL_GMAIL_CLIENT_SECRET` | OAuth2 client secret *(sensitive)* |
+| `EMAIL_GMAIL_REFRESH_TOKEN` | OAuth2 refresh token *(sensitive)* |
+
+**Setup Guide:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create or select a project.
+2. Enable the **Gmail API** (`APIs & Services → Library → Gmail API → Enable`).
+3. Create an OAuth2 credential (`APIs & Services → Credentials → Create Credentials → OAuth client ID`).
+   - Application type: **Desktop app**
+4. Download the client secret JSON and note `client_id` and `client_secret`.
+5. Grant the `https://www.googleapis.com/auth/gmail.send` scope and obtain a refresh token using the OAuth2 authorization flow (e.g., with `oauth2l` or a small helper script).
+6. Set the environment variables:
+
+```bash
+EMAIL_GMAIL_CLIENT_ID=123456789-xxxx.apps.googleusercontent.com
+EMAIL_GMAIL_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxx
+EMAIL_GMAIL_REFRESH_TOKEN=1//xxxxxxxxxxxxxxxxx
 ```
 
 ---
