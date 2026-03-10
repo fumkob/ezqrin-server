@@ -1,0 +1,12 @@
+{{.EventName}} - QR コードのご案内
+
+{{.ParticipantName}} 様
+
+イベント当日、受付にて以下のURLにアクセスしてQRコードをご提示ください。
+
+  {{.QRCodeURL}}
+
+参加者ID: {{.ParticipantID}}
+
+---
+このメールはezQRinから自動送信されています。返信はご遠慮ください。

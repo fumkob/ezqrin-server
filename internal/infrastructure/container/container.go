@@ -72,7 +72,7 @@ func NewContainer(
 	qrGenerator := qrcode.NewGenerator()
 
 	// Initialize email sender
-	emailSender, err := infraemail.NewSenderFromConfig(cfg.Email)
+	emailSender, err := infraemail.NewSenderFromConfig(cfg.Email, logger.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize email sender: %w", err)
 	}
@@ -101,7 +101,7 @@ func NewContainer(
 		Event: event.NewUsecase(repos.Event),
 		Participant: participant.NewUsecase(
 			repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret, cfg.QRCode.HostingBaseURL,
-			emailSender,
+			emailSender, cfg.Email.PlainTextOnly, logger,
 		),
 		Checkin: checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
 	}

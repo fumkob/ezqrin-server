@@ -8,10 +8,12 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	"github.com/fumkob/ezqrin-server/internal/usecase/participant"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("ExportCSV", func() {
@@ -40,6 +42,8 @@ var _ = Describe("ExportCSV", func() {
 			"test-hmac-secret-for-testing-only-32chars",
 			"",
 			nil,
+			false,
+			&logger.Logger{Logger: zap.NewNop()},
 		)
 	})
 

@@ -9,6 +9,9 @@ type Message struct {
 	Subject string
 	// Body is the HTML body of the email.
 	Body string
+	// TextBody is the plain-text fallback body.
+	// When non-empty, the email is sent as multipart/alternative with TextBody as the first (fallback) part.
+	TextBody string
 	// Attachments holds inline or attached files.
 	Attachments []Attachment
 }
