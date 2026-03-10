@@ -136,8 +136,21 @@ var _ = Describe("Authentication API Integration", func() {
 
 		// Initialize use cases
 		registerUC := auth.NewRegisterUseCase(userRepo, jwtSecret, log)
-		loginUC := auth.NewLoginUseCase(userRepo, jwtSecret, log)
-		refreshTokenUC := auth.NewRefreshTokenUseCase(userRepo, blacklistRepo, jwtSecret, log)
+		loginUC := auth.NewLoginUseCase(
+			userRepo,
+			jwtSecret,
+			auth.RefreshTokenExpiryWeb,
+			auth.RefreshTokenExpiryMobile,
+			log,
+		)
+		refreshTokenUC := auth.NewRefreshTokenUseCase(
+			userRepo,
+			blacklistRepo,
+			jwtSecret,
+			auth.RefreshTokenExpiryWeb,
+			auth.RefreshTokenExpiryMobile,
+			log,
+		)
 		logoutUC := auth.NewLogoutUseCase(blacklistRepo, jwtSecret, log)
 
 		// Create handlers
@@ -165,6 +178,7 @@ var _ = Describe("Authentication API Integration", func() {
 			eventHandler,
 			participantHandler,
 			checkinHandler,
+			nil, // QRCodeHandler not needed for auth tests
 		)
 		options := generated.GinServerOptions{
 			Middlewares: []generated.MiddlewareFunc{
@@ -509,6 +523,68 @@ var _ = Describe("Authentication API Integration", func() {
 				Expect(w.Body.String()).To(ContainSubstring("password"))
 			})
 		})
+
+		When("logging in from iOS (CFNetwork User-Agent)", func() {
+			Context("with valid credentials", func() {
+				It("should issue refresh token with mobile client_type and 90-day expiry", func() {
+					reqBody := generated.LoginRequest{
+						Email:    openapi_types.Email(testUserEmail),
+						Password: testUserPass,
+					}
+
+					body, _ := json.Marshal(reqBody)
+					req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(body))
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("User-Agent", "MyApp/1.0 CFNetwork/1410.0.3 Darwin/22.6.0")
+					w := httptest.NewRecorder()
+
+					router.ServeHTTP(w, req)
+
+					Expect(w.Code).To(Equal(http.StatusOK))
+
+					var response generated.AuthResponse
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+					Expect(err).NotTo(HaveOccurred())
+
+					refreshClaims, err := crypto.ParseToken(response.RefreshToken, jwtSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(refreshClaims.ClientType).To(Equal("mobile"))
+					expected := time.Now().Add(90 * 24 * time.Hour)
+					Expect(refreshClaims.ExpiresAt.Time).To(BeTemporally("~", expected, 5*time.Second))
+				})
+			})
+		})
+
+		When("logging in from web browser (no CFNetwork UA)", func() {
+			Context("with valid credentials", func() {
+				It("should issue refresh token with web client_type and 7-day expiry", func() {
+					reqBody := generated.LoginRequest{
+						Email:    openapi_types.Email(testUserEmail),
+						Password: testUserPass,
+					}
+
+					body, _ := json.Marshal(reqBody)
+					req := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(body))
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")
+					w := httptest.NewRecorder()
+
+					router.ServeHTTP(w, req)
+
+					Expect(w.Code).To(Equal(http.StatusOK))
+
+					var response generated.AuthResponse
+					err := json.Unmarshal(w.Body.Bytes(), &response)
+					Expect(err).NotTo(HaveOccurred())
+
+					refreshClaims, err := crypto.ParseToken(response.RefreshToken, jwtSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(refreshClaims.ClientType).To(Equal("web"))
+					expected := time.Now().Add(7 * 24 * time.Hour)
+					Expect(refreshClaims.ExpiresAt.Time).To(BeTemporally("~", expected, 5*time.Second))
+				})
+			})
+		})
 	})
 
 	When("refreshing token", func() {
@@ -610,6 +686,7 @@ var _ = Describe("Authentication API Integration", func() {
 					userID.String(),
 					testUserRole,
 					jwtSecret,
+					"web",
 					-1*time.Hour, // Expired 1 hour ago
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -669,6 +746,49 @@ var _ = Describe("Authentication API Integration", func() {
 
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
 				Expect(w.Body.String()).To(ContainSubstring("refresh_token"))
+			})
+		})
+
+		When("rotating a mobile refresh token", func() {
+			It("should issue new refresh token with mobile expiry", func() {
+				// 1. Login with iOS UA to get mobile refresh token
+				loginBody := generated.LoginRequest{
+					Email:    openapi_types.Email(testUserEmail),
+					Password: testUserPass,
+				}
+				lbBytes, _ := json.Marshal(loginBody)
+				loginReq := httptest.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(lbBytes))
+				loginReq.Header.Set("Content-Type", "application/json")
+				loginReq.Header.Set("User-Agent", "MyApp/1.0 CFNetwork/1410.0.3 Darwin/22.6.0")
+				lw := httptest.NewRecorder()
+				router.ServeHTTP(lw, loginReq)
+				Expect(lw.Code).To(Equal(http.StatusOK))
+
+				var loginResponse generated.AuthResponse
+				err := json.Unmarshal(lw.Body.Bytes(), &loginResponse)
+				Expect(err).NotTo(HaveOccurred())
+				mobileRefreshToken := loginResponse.RefreshToken
+
+				// 2. Rotate the mobile refresh token
+				time.Sleep(1 * time.Second)
+				refreshBody := generated.RefreshTokenRequest{RefreshToken: mobileRefreshToken}
+				rbBytes, _ := json.Marshal(refreshBody)
+				refreshReq := httptest.NewRequest(http.MethodPost, "/auth/refresh", bytes.NewReader(rbBytes))
+				refreshReq.Header.Set("Content-Type", "application/json")
+				rw := httptest.NewRecorder()
+				router.ServeHTTP(rw, refreshReq)
+				Expect(rw.Code).To(Equal(http.StatusOK))
+
+				var refreshResponse generated.AuthResponse
+				err = json.Unmarshal(rw.Body.Bytes(), &refreshResponse)
+				Expect(err).NotTo(HaveOccurred())
+
+				// 3. Verify new refresh token has mobile expiry
+				newClaims, err := crypto.ParseToken(refreshResponse.RefreshToken, jwtSecret)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(newClaims.ClientType).To(Equal("mobile"))
+				expected := time.Now().Add(90 * 24 * time.Hour)
+				Expect(newClaims.ExpiresAt.Time).To(BeTemporally("~", expected, 5*time.Second))
 			})
 		})
 	})

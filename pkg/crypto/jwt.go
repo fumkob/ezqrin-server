@@ -65,9 +65,10 @@ var (
 type Claims struct {
 	jwt.RegisteredClaims // Standard JWT claims (iss, sub, exp, iat, etc.)
 
-	UserID    uuid.UUID `json:"user_id"`    // Unique identifier of the authenticated user
-	Role      string    `json:"role"`       // User role (e.g., "organizer", "attendee")
-	TokenType TokenType `json:"token_type"` // Type of token (access or refresh)
+	UserID     uuid.UUID `json:"user_id"`               // Unique identifier of the authenticated user
+	Role       string    `json:"role"`                  // User role (e.g., "organizer", "attendee")
+	TokenType  TokenType `json:"token_type"`            // Type of token (access or refresh)
+	ClientType string    `json:"client_type,omitempty"` // "web" or "mobile", refresh tokens only
 }
 
 // GenerateAccessToken creates a new access token with the given parameters.
@@ -81,27 +82,29 @@ type Claims struct {
 //
 // Returns the signed JWT token string or an error if generation fails.
 func GenerateAccessToken(userID, role, secret string, expiry time.Duration) (string, error) {
-	return generateToken(userID, role, secret, expiry, TokenTypeAccess)
+	return generateToken(userID, role, secret, "", expiry, TokenTypeAccess)
 }
 
 // GenerateRefreshToken creates a new refresh token with the given parameters.
 // Refresh tokens are long-lived and used to obtain new access tokens without re-authentication.
-// Different expiry durations are used for web (7 days) and mobile (90 days) platforms.
+// clientType ("web" or "mobile") is embedded in the claims so that token
+// rotation can issue the same-duration refresh token automatically.
 //
 // Parameters:
 //   - userID: UUID of the user as string
 //   - role: User role (e.g., "organizer", "attendee")
 //   - secret: Secret key for signing the token
+//   - clientType: Client type ("web" or "mobile") embedded in claims for rotation
 //   - expiry: Duration until token expires (e.g., 168*time.Hour for web, 2160*time.Hour for mobile)
 //
 // Returns the signed JWT token string or an error if generation fails.
-func GenerateRefreshToken(userID, role, secret string, expiry time.Duration) (string, error) {
-	return generateToken(userID, role, secret, expiry, TokenTypeRefresh)
+func GenerateRefreshToken(userID, role, secret, clientType string, expiry time.Duration) (string, error) {
+	return generateToken(userID, role, secret, clientType, expiry, TokenTypeRefresh)
 }
 
 // generateToken is a private helper function that creates and signs a JWT token.
 // It validates inputs and generates a token with custom claims.
-func generateToken(userID, role, secret string, expiry time.Duration, tokenType TokenType) (string, error) {
+func generateToken(userID, role, secret, clientType string, expiry time.Duration, tokenType TokenType) (string, error) {
 	// Validate inputs
 	if secret == "" {
 		return "", ErrEmptySecret
@@ -123,9 +126,10 @@ func generateToken(userID, role, secret string, expiry time.Duration, tokenType 
 
 	// Create custom claims
 	claims := &Claims{
-		UserID:    parsedUserID,
-		Role:      role,
-		TokenType: tokenType,
+		UserID:     parsedUserID,
+		Role:       role,
+		TokenType:  tokenType,
+		ClientType: clientType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(now),

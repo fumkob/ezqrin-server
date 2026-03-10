@@ -22,8 +22,11 @@ const (
 	// AccessTokenExpiry is the expiry duration for access tokens (15 minutes)
 	AccessTokenExpiry = 15 * time.Minute
 
-	// RefreshTokenExpiry is the expiry duration for refresh tokens (7 days)
-	RefreshTokenExpiry = 7 * 24 * time.Hour
+	// RefreshTokenExpiryWeb is the default expiry for web clients (7 days)
+	RefreshTokenExpiryWeb = 7 * 24 * time.Hour
+
+	// RefreshTokenExpiryMobile is the default expiry for mobile clients (90 days)
+	RefreshTokenExpiryMobile = 90 * 24 * time.Hour
 )
 
 // RegisterUseCase handles user registration
@@ -146,7 +149,8 @@ func (u *RegisterUseCase) generateTokens(ctx context.Context, user *entity.User)
 		user.ID.String(),
 		string(user.Role),
 		u.jwtSecret,
-		RefreshTokenExpiry,
+		"web",
+		RefreshTokenExpiryWeb,
 	)
 	if err != nil {
 		u.logger.WithContext(ctx).Error("failed to generate refresh token", zap.Error(err))

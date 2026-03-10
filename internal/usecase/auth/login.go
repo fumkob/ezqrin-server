@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/pkg/crypto"
@@ -14,24 +15,35 @@ import (
 
 // LoginUseCase handles user login
 type LoginUseCase struct {
-	userRepo  repository.UserRepository
-	jwtSecret string
-	logger    *logger.Logger
+	userRepo            repository.UserRepository
+	jwtSecret           string
+	refreshExpiryWeb    time.Duration
+	refreshExpiryMobile time.Duration
+	logger              *logger.Logger
 }
 
 // NewLoginUseCase creates a new LoginUseCase
-func NewLoginUseCase(userRepo repository.UserRepository, jwtSecret string, logger *logger.Logger) *LoginUseCase {
+func NewLoginUseCase(
+	userRepo repository.UserRepository,
+	jwtSecret string,
+	refreshExpiryWeb time.Duration,
+	refreshExpiryMobile time.Duration,
+	logger *logger.Logger,
+) *LoginUseCase {
 	return &LoginUseCase{
-		userRepo:  userRepo,
-		jwtSecret: jwtSecret,
-		logger:    logger,
+		userRepo:            userRepo,
+		jwtSecret:           jwtSecret,
+		refreshExpiryWeb:    refreshExpiryWeb,
+		refreshExpiryMobile: refreshExpiryMobile,
+		logger:              logger,
 	}
 }
 
 // LoginRequest represents the input for user login
 type LoginRequest struct {
-	Email    string
-	Password string
+	Email      string
+	Password   string
+	ClientType string // "web" or "mobile", resolved from User-Agent by handler
 }
 
 // Execute executes the user login use case
@@ -60,6 +72,16 @@ func (u *LoginUseCase) Execute(ctx context.Context, req *LoginRequest) (*AuthRes
 		return nil, apperrors.Unauthorized("invalid credentials")
 	}
 
+	// Determine refresh token expiry based on client type
+	clientType := req.ClientType
+	if clientType == "" {
+		clientType = "web"
+	}
+	refreshExpiry := u.refreshExpiryWeb
+	if clientType == "mobile" {
+		refreshExpiry = u.refreshExpiryMobile
+	}
+
 	// Generate access token
 	accessToken, err := crypto.GenerateAccessToken(user.ID.String(), string(user.Role), u.jwtSecret, AccessTokenExpiry)
 	if err != nil {
@@ -67,12 +89,13 @@ func (u *LoginUseCase) Execute(ctx context.Context, req *LoginRequest) (*AuthRes
 		return nil, apperrors.Internal("failed to generate access token")
 	}
 
-	// Generate refresh token
+	// Generate refresh token with client type embedded in claims
 	refreshToken, err := crypto.GenerateRefreshToken(
 		user.ID.String(),
 		string(user.Role),
 		u.jwtSecret,
-		RefreshTokenExpiry,
+		clientType,
+		refreshExpiry,
 	)
 	if err != nil {
 		u.logger.WithContext(ctx).Error("failed to generate refresh token", zap.Error(err))

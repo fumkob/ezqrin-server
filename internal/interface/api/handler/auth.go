@@ -84,8 +84,9 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 
 	// Execute use case
 	result, err := h.loginUC.Execute(c.Request.Context(), &auth.LoginRequest{
-		Email:    string(req.Email),
-		Password: req.Password,
+		Email:      string(req.Email),
+		Password:   req.Password,
+		ClientType: detectClientType(c.GetHeader("User-Agent")),
 	})
 	if err != nil {
 		response.ProblemFromError(c, err)
@@ -170,6 +171,16 @@ func (h *AuthHandler) toAuthResponse(result *auth.AuthResponse) generated.AuthRe
 			UpdatedAt: &result.User.UpdatedAt,
 		},
 	}
+}
+
+// detectClientType resolves the client type from the User-Agent header.
+// iOS URLSession sends "CFNetwork" in the UA string.
+// Defaults to "web" when the UA is absent or unrecognized.
+func detectClientType(userAgent string) string {
+	if strings.Contains(userAgent, "CFNetwork") {
+		return "mobile"
+	}
+	return "web"
 }
 
 // extractBearerToken extracts the Bearer token from Authorization header

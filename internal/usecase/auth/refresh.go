@@ -17,10 +17,12 @@ import (
 
 // RefreshTokenUseCase handles refresh token rotation
 type RefreshTokenUseCase struct {
-	userRepo      repository.UserRepository
-	blacklistRepo repository.TokenBlacklistRepository
-	jwtSecret     string
-	logger        *logger.Logger
+	userRepo            repository.UserRepository
+	blacklistRepo       repository.TokenBlacklistRepository
+	jwtSecret           string
+	refreshExpiryWeb    time.Duration
+	refreshExpiryMobile time.Duration
+	logger              *logger.Logger
 }
 
 // NewRefreshTokenUseCase creates a new RefreshTokenUseCase
@@ -28,13 +30,17 @@ func NewRefreshTokenUseCase(
 	userRepo repository.UserRepository,
 	blacklistRepo repository.TokenBlacklistRepository,
 	jwtSecret string,
+	refreshExpiryWeb time.Duration,
+	refreshExpiryMobile time.Duration,
 	logger *logger.Logger,
 ) *RefreshTokenUseCase {
 	return &RefreshTokenUseCase{
-		userRepo:      userRepo,
-		blacklistRepo: blacklistRepo,
-		jwtSecret:     jwtSecret,
-		logger:        logger,
+		userRepo:            userRepo,
+		blacklistRepo:       blacklistRepo,
+		jwtSecret:           jwtSecret,
+		refreshExpiryWeb:    refreshExpiryWeb,
+		refreshExpiryMobile: refreshExpiryMobile,
+		logger:              logger,
 	}
 }
 
@@ -62,8 +68,8 @@ func (u *RefreshTokenUseCase) Execute(ctx context.Context, req *RefreshRequest) 
 		return nil, err
 	}
 
-	// Generate new tokens
-	accessToken, newRefreshToken, err := u.generateTokens(ctx, user)
+	// Generate new tokens (inherit client type from original claims)
+	accessToken, newRefreshToken, err := u.generateTokens(ctx, user, claims.ClientType)
 	if err != nil {
 		return nil, err
 	}
@@ -130,18 +136,30 @@ func (u *RefreshTokenUseCase) validateUser(ctx context.Context, userID uuid.UUID
 }
 
 // generateTokens generates new access and refresh tokens
-func (u *RefreshTokenUseCase) generateTokens(ctx context.Context, user *entity.User) (string, string, error) {
+func (u *RefreshTokenUseCase) generateTokens(
+	ctx context.Context, user *entity.User, clientType string,
+) (string, string, error) {
 	accessToken, err := crypto.GenerateAccessToken(user.ID.String(), string(user.Role), u.jwtSecret, AccessTokenExpiry)
 	if err != nil {
 		u.logger.WithContext(ctx).Error("failed to generate access token", zap.Error(err))
 		return "", "", apperrors.Internal("failed to generate access token")
 	}
 
+	// Default to web for backward compatibility with existing tokens (no ClientType claim)
+	if clientType == "" {
+		clientType = "web"
+	}
+	refreshExpiry := u.refreshExpiryWeb
+	if clientType == "mobile" {
+		refreshExpiry = u.refreshExpiryMobile
+	}
+
 	refreshToken, err := crypto.GenerateRefreshToken(
 		user.ID.String(),
 		string(user.Role),
 		u.jwtSecret,
-		RefreshTokenExpiry,
+		clientType,
+		refreshExpiry,
 	)
 	if err != nil {
 		u.logger.WithContext(ctx).Error("failed to generate refresh token", zap.Error(err))

@@ -74,6 +74,15 @@ var _ = Describe("JWT Token Management", func() {
 					Expect(claims.IssuedAt.Time).To(BeTemporally("~", now, 1*time.Second))
 					Expect(claims.NotBefore.Time).To(BeTemporally("~", now, 1*time.Second))
 				})
+
+				It("should not embed client_type in access token claims", func() {
+					token, err := crypto.GenerateAccessToken(testUserID, testRole, testSecret, validExpiry)
+					Expect(err).NotTo(HaveOccurred())
+
+					claims, err := crypto.ParseToken(token, testSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(claims.ClientType).To(BeEmpty())
+				})
 			})
 
 			Context("with empty secret", func() {
@@ -150,7 +159,7 @@ var _ = Describe("JWT Token Management", func() {
 			Context("with valid parameters", func() {
 				It("should generate a valid token with correct claims", func() {
 					refreshExpiry := 168 * time.Hour // 7 days
-					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, refreshExpiry)
+					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, "web", refreshExpiry)
 
 					Expect(err).NotTo(HaveOccurred())
 					Expect(token).NotTo(BeEmpty())
@@ -165,7 +174,7 @@ var _ = Describe("JWT Token Management", func() {
 
 				It("should generate token with long expiry for web platform", func() {
 					webExpiry := 168 * time.Hour // 7 days
-					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, webExpiry)
+					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, "web", webExpiry)
 
 					Expect(err).NotTo(HaveOccurred())
 
@@ -178,7 +187,7 @@ var _ = Describe("JWT Token Management", func() {
 
 				It("should generate token with longer expiry for mobile platform", func() {
 					mobileExpiry := 2160 * time.Hour // 90 days
-					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, mobileExpiry)
+					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, "mobile", mobileExpiry)
 
 					Expect(err).NotTo(HaveOccurred())
 
@@ -192,7 +201,7 @@ var _ = Describe("JWT Token Management", func() {
 
 			Context("with invalid parameters", func() {
 				It("should return ErrEmptySecret for empty secret", func() {
-					token, err := crypto.GenerateRefreshToken(testUserID, testRole, "", 168*time.Hour)
+					token, err := crypto.GenerateRefreshToken(testUserID, testRole, "", "web", 168*time.Hour)
 
 					Expect(err).To(HaveOccurred())
 					Expect(errors.Is(err, crypto.ErrEmptySecret)).To(BeTrue())
@@ -200,11 +209,35 @@ var _ = Describe("JWT Token Management", func() {
 				})
 
 				It("should return ErrEmptyUserID for empty user ID", func() {
-					token, err := crypto.GenerateRefreshToken("", testRole, testSecret, 168*time.Hour)
+					token, err := crypto.GenerateRefreshToken("", testRole, testSecret, "web", 168*time.Hour)
 
 					Expect(err).To(HaveOccurred())
 					Expect(errors.Is(err, crypto.ErrEmptyUserID)).To(BeTrue())
 					Expect(token).To(BeEmpty())
+				})
+			})
+
+			Context("with client_type embedded in refresh token", func() {
+				It("should embed 'mobile' in claims", func() {
+					token, err := crypto.GenerateRefreshToken(
+						testUserID, testRole, testSecret, "mobile", 90*24*time.Hour,
+					)
+					Expect(err).NotTo(HaveOccurred())
+
+					claims, err := crypto.ParseToken(token, testSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(claims.ClientType).To(Equal("mobile"))
+					expected := time.Now().Add(90 * 24 * time.Hour)
+					Expect(claims.ExpiresAt.Time).To(BeTemporally("~", expected, 2*time.Second))
+				})
+
+				It("should embed 'web' in claims", func() {
+					token, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, "web", 7*24*time.Hour)
+					Expect(err).NotTo(HaveOccurred())
+
+					claims, err := crypto.ParseToken(token, testSecret)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(claims.ClientType).To(Equal("web"))
 				})
 			})
 		})
@@ -217,7 +250,9 @@ var _ = Describe("JWT Token Management", func() {
 					accessToken, err := crypto.GenerateAccessToken(testUserID, testRole, testSecret, 15*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 
-					refreshToken, err := crypto.GenerateRefreshToken(testUserID, testRole, testSecret, 168*time.Hour)
+					refreshToken, err := crypto.GenerateRefreshToken(
+						testUserID, testRole, testSecret, "web", 168*time.Hour,
+					)
 					Expect(err).NotTo(HaveOccurred())
 
 					accessClaims, err := crypto.ParseToken(accessToken, testSecret)
@@ -355,7 +390,7 @@ var _ = Describe("JWT Token Management", func() {
 				})
 
 				It("should parse token with all claim fields correctly", func() {
-					token, err := crypto.GenerateRefreshToken(testUserID, "attendee", testSecret, 168*time.Hour)
+					token, err := crypto.GenerateRefreshToken(testUserID, "attendee", testSecret, "web", 168*time.Hour)
 					Expect(err).NotTo(HaveOccurred())
 
 					claims, err := crypto.ParseToken(token, testSecret)
