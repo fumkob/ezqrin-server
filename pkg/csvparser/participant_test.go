@@ -172,7 +172,7 @@ var _ = Describe("ExportParticipantCSV", func() {
 						"created_at,updated_at",
 				))
 				Expect(lines[1]).To(ContainSubstring("alice@example.com"))
-				Expect(lines[1]).To(ContainSubstring("confirmed"))
+				Expect(lines[1]).To(ContainSubstring("○"))
 				Expect(lines[1]).To(ContainSubstring("true"))
 			})
 		})

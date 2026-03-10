@@ -162,7 +162,7 @@ func participantToCSVRow(p *entity.Participant) []string {
 		derefStr(p.EmployeeID),
 		derefStr(p.Phone),
 		derefStr(p.QREmail),
-		string(p.Status),
+		participantStatusToSymbol(p.Status),
 		p.QRCode,
 		p.QRCodeGeneratedAt.UTC().Format(time.RFC3339),
 		p.QRDistributionURL,
@@ -217,7 +217,7 @@ func parseRow(colIndex map[string]int, row []string) (participant.CreateParticip
 	}
 
 	if s := getField(colIndex, row, "status"); s != "" {
-		input.Status = entity.ParticipantStatus(s)
+		input.Status = normalizeParticipantStatus(s)
 	}
 	if s := getField(colIndex, row, "payment_status"); s != "" {
 		input.PaymentStatus = entity.PaymentStatus(s)
@@ -245,4 +245,34 @@ func parseRow(colIndex map[string]int, row []string) (participant.CreateParticip
 	}
 
 	return input, nil
+}
+
+// normalizeParticipantStatus maps Japanese symbols to ParticipantStatus values.
+// ○ → confirmed, △ → tentative, × → cancelled
+func normalizeParticipantStatus(s string) entity.ParticipantStatus {
+	switch s {
+	case "○":
+		return entity.ParticipantStatusConfirmed
+	case "△":
+		return entity.ParticipantStatusTentative
+	case "×":
+		return entity.ParticipantStatusCancelled
+	default:
+		return entity.ParticipantStatus(s)
+	}
+}
+
+// participantStatusToSymbol converts a ParticipantStatus to a Japanese symbol.
+// confirmed → ○, tentative → △, cancelled/declined → ×
+func participantStatusToSymbol(s entity.ParticipantStatus) string {
+	switch s {
+	case entity.ParticipantStatusConfirmed:
+		return "○"
+	case entity.ParticipantStatusTentative:
+		return "△"
+	case entity.ParticipantStatusCancelled, entity.ParticipantStatusDeclined:
+		return "×"
+	default:
+		return string(s)
+	}
 }
