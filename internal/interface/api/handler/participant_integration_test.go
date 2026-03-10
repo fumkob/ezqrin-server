@@ -125,7 +125,8 @@ var _ = Describe("Participant API Integration", func() {
 		cleanDatabaseForEvents(db, redis)
 
 		// Set up container
-		appContainer := container.NewContainer(cfg, log, db, cacheService)
+		appContainer, err := container.NewContainer(cfg, log, db, cacheService)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set up router
 		router = api.SetupRouter(&api.RouterDependencies{

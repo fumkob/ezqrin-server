@@ -156,6 +156,25 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 	return participant, nil
 }
 
+// FindByIDs retrieves multiple participants by their IDs in a single query.
+func (r *participantRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*entity.Participant, error) {
+	if len(ids) == 0 {
+		return []*entity.Participant{}, nil
+	}
+
+	query := `
+		SELECT
+			p.id, p.event_id, p.name, p.email, p.employee_id, p.phone, p.qr_email, p.status,
+			p.qr_code, p.qr_code_generated_at, p.metadata, p.payment_status, p.payment_amount,
+			p.payment_date, p.created_at, p.updated_at, c.checked_in_at
+		FROM participants p
+		LEFT JOIN checkins c ON c.participant_id = p.id AND c.event_id = p.event_id
+		WHERE p.id = ANY($1)
+	`
+
+	return r.queryParticipantsWithCheckin(ctx, query, ids)
+}
+
 // FindByEventID retrieves paginated participants for an event with check-in status.
 func (r *participantRepository) FindByEventID(
 	ctx context.Context,

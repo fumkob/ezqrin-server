@@ -39,6 +39,7 @@ var _ = Describe("ExportCSV", func() {
 			qrcode.NewGenerator(),
 			"test-hmac-secret-for-testing-only-32chars",
 			"",
+			nil,
 		)
 	})
 

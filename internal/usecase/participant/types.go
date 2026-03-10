@@ -83,3 +83,26 @@ type QRCodeOutput struct {
 	ContentType string
 	Filename    string
 }
+
+// SendQRCodesInput is the input for the SendQRCodes use case.
+type SendQRCodesInput struct {
+	EventID        uuid.UUID
+	ParticipantIDs []uuid.UUID // when empty, used together with SendToAll=true
+	SendToAll      bool
+	EmailTemplate  string // "default", "minimal", "detailed"
+}
+
+// SendQRCodesOutput is the result of the SendQRCodes use case.
+type SendQRCodesOutput struct {
+	SentCount   int
+	FailedCount int
+	Total       int
+	Failures    []SendQRCodeFailure
+}
+
+// SendQRCodeFailure describes a single failed email send.
+type SendQRCodeFailure struct {
+	ParticipantID uuid.UUID
+	Email         string
+	Reason        string
+}

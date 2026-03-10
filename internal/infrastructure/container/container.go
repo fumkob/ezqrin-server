@@ -1,11 +1,14 @@
 package container
 
 import (
+	"fmt"
+
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
 	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	infraemail "github.com/fumkob/ezqrin-server/internal/infrastructure/email"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
 	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	"github.com/fumkob/ezqrin-server/internal/usecase/checkin"
@@ -51,7 +54,7 @@ func NewContainer(
 	logger *logger.Logger,
 	db database.Service,
 	cache cache.Service,
-) *Container {
+) (*Container, error) {
 	// Initialize repositories
 	repos := &RepositoryContainer{
 		User:        database.NewUserRepository(db.GetPool(), logger),
@@ -68,6 +71,12 @@ func NewContainer(
 	// Initialize QR code generator
 	qrGenerator := qrcode.NewGenerator()
 
+	// Initialize email sender
+	emailSender, err := infraemail.NewSenderFromConfig(cfg.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize email sender: %w", err)
+	}
+
 	// Initialize use cases
 	useCases := &UseCaseContainer{
 		Auth: &AuthUseCases{
@@ -79,6 +88,7 @@ func NewContainer(
 		Event: event.NewUsecase(repos.Event),
 		Participant: participant.NewUsecase(
 			repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret, cfg.QRCode.HostingBaseURL,
+			emailSender,
 		),
 		Checkin: checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
 	}
@@ -86,5 +96,5 @@ func NewContainer(
 	return &Container{
 		Repositories: repos,
 		UseCases:     useCases,
-	}
+	}, nil
 }

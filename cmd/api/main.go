@@ -59,7 +59,10 @@ func main() {
 	defer cleanup()
 
 	// Initialize container with repositories and use cases
-	appContainer := container.NewContainer(cfg, appLogger, appDB, appCache)
+	appContainer, err := container.NewContainer(cfg, appLogger, appDB, appCache)
+	if err != nil {
+		appLogger.Fatal("failed to initialize container", zap.Error(err))
+	}
 
 	// Setup router with dependencies
 	router := api.SetupRouter(&api.RouterDependencies{

@@ -109,6 +109,10 @@ paths:
   /participants/{id}/qrcode:
     $ref: './paths/participants.yaml#/~1participants~1{id}~1qrcode'
 
+  # QR code endpoints
+  /events/{id}/qrcodes/send:
+    $ref: './paths/qrcode.yaml#/~1events~1{id}~1qrcodes~1send'
+
   # Check-in endpoints
   /events/{id}/checkin:
     $ref: './paths/checkin.yaml#/~1events~1{id}~1checkin'
@@ -173,6 +177,14 @@ components:
       $ref: './schemas/participants.yaml#/ParticipantListResponse'
     ImportParticipantsCSVResponse:
       $ref: './schemas/participants.yaml#/ImportParticipantsCSVResponse'
+
+    # QR Code schemas
+    SendQRCodesRequest:
+      $ref: './schemas/qrcode.yaml#/SendQRCodesRequest'
+    SendQRCodesResponse:
+      $ref: './schemas/qrcode.yaml#/SendQRCodesResponse'
+    SendQRCodeFailure:
+      $ref: './schemas/qrcode.yaml#/SendQRCodeFailure'
 
     # Check-in schemas
     CheckInRequest:

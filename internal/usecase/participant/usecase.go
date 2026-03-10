@@ -3,6 +3,7 @@ package participant
 import (
 	"context"
 
+	domainemail "github.com/fumkob/ezqrin-server/internal/domain/email"
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/qrcode"
@@ -58,6 +59,12 @@ type Usecase interface {
 		isAdmin bool,
 		eventID uuid.UUID,
 	) ([]*entity.Participant, error)
+	SendQRCodes(
+		ctx context.Context,
+		userID uuid.UUID,
+		isAdmin bool,
+		input SendQRCodesInput,
+	) (SendQRCodesOutput, error)
 }
 
 var _ Usecase = (*participantUsecase)(nil)
@@ -68,6 +75,7 @@ type participantUsecase struct {
 	qrGenerator      *qrcode.Generator
 	qrHMACSecret     string
 	qrHostingBaseURL string
+	emailSender      domainemail.Sender
 }
 
 // NewUsecase creates a new participant usecase instance
@@ -77,6 +85,7 @@ func NewUsecase(
 	qrGenerator *qrcode.Generator,
 	qrHMACSecret string,
 	qrHostingBaseURL string,
+	emailSender domainemail.Sender,
 ) Usecase {
 	return &participantUsecase{
 		participantRepo:  participantRepo,
@@ -84,6 +93,7 @@ func NewUsecase(
 		qrGenerator:      qrGenerator,
 		qrHMACSecret:     qrHMACSecret,
 		qrHostingBaseURL: qrHostingBaseURL,
+		emailSender:      emailSender,
 	}
 }
 

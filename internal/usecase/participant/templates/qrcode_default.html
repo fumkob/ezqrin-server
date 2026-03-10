@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+  <h2>Your QR Code for {{.EventName}}</h2>
+  <p>Hello {{.ParticipantName}},</p>
+  <p>Please use the link below to access your QR code at the check-in desk on the day of the event.</p>
+  <div style="text-align:center;margin:30px 0;">
+    <a href="{{.QRCodeURL}}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-size:16px;">
+      View QR Code
+    </a>
+  </div>
+  <p style="color:#666;font-size:12px;">Participant ID: {{.ParticipantID}}</p>
+  <hr/>
+  <p style="color:#999;font-size:11px;">This email was sent by ezQRin. Please do not reply.</p>
+</body>
+</html>

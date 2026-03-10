@@ -30,6 +30,11 @@ type ParticipantRepository interface {
 	// Returns ErrNotFound if the participant does not exist.
 	FindByID(ctx context.Context, id uuid.UUID) (*entity.Participant, error)
 
+	// FindByIDs retrieves multiple participants by their IDs in a single query.
+	// IDs not found in the database are silently omitted from the result.
+	// The order of returned participants is not guaranteed.
+	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*entity.Participant, error)
+
 	// FindByEventID retrieves paginated participants for an event.
 	// Returns the participants and the total count of participants for the event.
 	FindByEventID(ctx context.Context, eventID uuid.UUID, offset, limit int) ([]*entity.Participant, int64, error)

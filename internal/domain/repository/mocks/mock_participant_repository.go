@@ -161,6 +161,21 @@ func (mr *MockParticipantRepositoryMockRecorder) FindByID(ctx, id any) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockParticipantRepository)(nil).FindByID), ctx, id)
 }
 
+// FindByIDs mocks base method.
+func (m *MockParticipantRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*entity.Participant, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByIDs", ctx, ids)
+	ret0, _ := ret[0].([]*entity.Participant)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByIDs indicates an expected call of FindByIDs.
+func (mr *MockParticipantRepositoryMockRecorder) FindByIDs(ctx, ids any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByIDs", reflect.TypeOf((*MockParticipantRepository)(nil).FindByIDs), ctx, ids)
+}
+
 // FindByQRCode mocks base method.
 func (m *MockParticipantRepository) FindByQRCode(ctx context.Context, qrCode string) (*entity.Participant, error) {
 	m.ctrl.T.Helper()

@@ -1,0 +1,45 @@
+# QR Code Endpoints
+
+/events/{id}/qrcodes/send:
+  parameters:
+    - $ref: '../components/parameters.yaml#/EventIDParam'
+  post:
+    tags:
+      - qrcode
+    summary: Send QR codes to participants via email
+    description: |
+      Send QR codes to specified participants or all participants of an event via email.
+      Either participant_ids or send_to_all=true must be provided.
+      Requires event owner or admin permissions.
+    operationId: sendEventQRCodes
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/qrcode.yaml#/SendQRCodesRequest'
+    responses:
+      '200':
+        description: All QR codes sent successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/qrcode.yaml#/SendQRCodesResponse'
+      '207':
+        description: Partial success - some emails sent, some failed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/qrcode.yaml#/SendQRCodesResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+      '403':
+        $ref: '../components/responses.yaml#/Forbidden'
+      '404':
+        $ref: '../components/responses.yaml#/NotFound'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

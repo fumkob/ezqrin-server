@@ -132,7 +132,10 @@ func NewTestEnv() (*TestEnv, error) {
 		return nil, err
 	}
 
-	appContainer := container.NewContainer(cfg, log, db, redisClient)
+	appContainer, err := container.NewContainer(cfg, log, db, redisClient)
+	if err != nil {
+		return nil, err
+	}
 	router := api.SetupRouter(&api.RouterDependencies{
 		Config:    cfg,
 		Logger:    log,
