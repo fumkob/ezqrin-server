@@ -28,7 +28,7 @@ services:
       - LOG_FORMAT=json
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_SSL_MODE=require
+      - DB_SSL_MODE=${DB_SSL_MODE:-require}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
