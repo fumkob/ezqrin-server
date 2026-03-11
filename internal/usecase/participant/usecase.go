@@ -76,6 +76,7 @@ type participantUsecase struct {
 	qrGenerator        *qrcode.Generator
 	qrHMACSecret       string
 	qrHostingBaseURL   string
+	walletPassBaseURL  string
 	emailSender        domainemail.Sender
 	emailPlainTextOnly bool
 	logger             *logger.Logger
@@ -88,6 +89,7 @@ func NewUsecase(
 	qrGenerator *qrcode.Generator,
 	qrHMACSecret string,
 	qrHostingBaseURL string,
+	walletPassBaseURL string,
 	emailSender domainemail.Sender,
 	emailPlainTextOnly bool,
 	logger *logger.Logger,
@@ -98,6 +100,7 @@ func NewUsecase(
 		qrGenerator:        qrGenerator,
 		qrHMACSecret:       qrHMACSecret,
 		qrHostingBaseURL:   qrHostingBaseURL,
+		walletPassBaseURL:  walletPassBaseURL,
 		emailSender:        emailSender,
 		emailPlainTextOnly: emailPlainTextOnly,
 		logger:             logger,

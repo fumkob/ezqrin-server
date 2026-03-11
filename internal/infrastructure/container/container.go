@@ -101,7 +101,7 @@ func NewContainer(
 		Event: event.NewUsecase(repos.Event),
 		Participant: participant.NewUsecase(
 			repos.Participant, repos.Event, qrGenerator, cfg.QRCode.HMACSecret, cfg.QRCode.HostingBaseURL,
-			emailSender, cfg.Email.PlainTextOnly, logger,
+			cfg.QRCode.WalletPassBaseURL, emailSender, cfg.Email.PlainTextOnly, logger,
 		),
 		Checkin: checkin.NewUsecase(repos.Checkin, repos.Participant, repos.Event, cfg.QRCode.HMACSecret),
 	}

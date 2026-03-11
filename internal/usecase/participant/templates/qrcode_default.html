@@ -10,6 +10,14 @@
       View QR Code
     </a>
   </div>
+  {{if .WalletPassURL}}
+  <p style="color:#444;font-size:14px;">iPhoneをお使いの方は、以下のボタンからQRコードをApple Walletに追加できます。<br/>iPhone users can add the QR code to Apple Wallet using the button below.</p>
+  <div style="text-align:center;margin:20px 0;">
+    <a href="{{.WalletPassURL}}" style="display:inline-block;padding:12px 24px;background:#000;color:#fff;text-decoration:none;border-radius:6px;font-size:16px;">
+      Add to Apple Wallet
+    </a>
+  </div>
+  {{end}}
   <p style="color:#666;font-size:12px;">Participant ID: {{.ParticipantID}}</p>
   <hr/>
   <p style="color:#999;font-size:11px;">This email was sent by ezQRin. Please do not reply.</p>

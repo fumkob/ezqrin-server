@@ -54,11 +54,11 @@ var _ = Describe("SendQRCodes", func() {
 		nopLogger := &logger.Logger{Logger: zap.NewNop()}
 		uc = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
-			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", emailSender, false, nopLogger,
+			"test-hmac-secret-for-testing-only-32chars", "https://qr.example.com", "", emailSender, false, nopLogger,
 		)
 		ucNoURL = participant.NewUsecase(
 			participantRepo, eventRepo, qrcode.NewGenerator(),
-			"test-hmac-secret-for-testing-only-32chars", "", emailSender, false, nopLogger,
+			"test-hmac-secret-for-testing-only-32chars", "", "", emailSender, false, nopLogger,
 		)
 		ctx = context.Background()
 		userID = uuid.New()
