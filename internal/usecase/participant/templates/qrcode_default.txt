@@ -7,6 +7,13 @@ Please visit the URL below and present your QR code at the check-in desk on the 
 
   {{.QRCodeURL}}
 
+{{if .WalletPassURL}}
+iPhoneをお使いの方は、以下のリンクからQRコードをApple Walletに追加できます。
+iPhone users can add the QR code to Apple Wallet using the link below.
+
+  {{.WalletPassURL}}
+
+{{end}}
 参加者ID / Participant ID: {{.ParticipantID}}
 
 ---

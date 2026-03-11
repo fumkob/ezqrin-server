@@ -98,8 +98,9 @@ type CORSConfig struct {
 
 // QRCodeConfig contains QR code generation configuration
 type QRCodeConfig struct {
-	HMACSecret     string
-	HostingBaseURL string
+	HMACSecret        string
+	HostingBaseURL    string
+	WalletPassBaseURL string
 }
 
 // EmailBackend identifies which email sending implementation to use.
@@ -272,8 +273,9 @@ var envKeyMap = map[string]string{
 	"CORS_ALLOW_CREDENTIALS": "cors.allow_credentials",
 
 	// QR Code
-	"QR_HMAC_SECRET":      "qrcode.hmac_secret",
-	"QR_HOSTING_BASE_URL": "qrcode.hosting_base_url",
+	"QR_HMAC_SECRET":       "qrcode.hmac_secret",
+	"QR_HOSTING_BASE_URL":  "qrcode.hosting_base_url",
+	"WALLET_PASS_BASE_URL": "qrcode.wallet_pass_base_url",
 
 	// Email
 	"EMAIL_BACKEND":             "email.backend",
@@ -380,6 +382,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 
 	cfg.QRCode.HMACSecret = v.GetString("qrcode.hmac_secret")
 	cfg.QRCode.HostingBaseURL = v.GetString("qrcode.hosting_base_url")
+	cfg.QRCode.WalletPassBaseURL = v.GetString("qrcode.wallet_pass_base_url")
 
 	unmarshalEmailConfig(v, cfg)
 

@@ -11,6 +11,7 @@ import (
 
 	domainemail "github.com/fumkob/ezqrin-server/internal/domain/email"
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -38,6 +39,7 @@ type qrCodeEmailData struct {
 	ParticipantName string
 	EventName       string
 	QRCodeURL       string
+	WalletPassURL   string
 	ParticipantID   string
 }
 
@@ -171,6 +173,7 @@ func (u *participantUsecase) sendQRCodeEmail(ctx context.Context, p *entity.Part
 		ParticipantName: p.Name,
 		EventName:       eventName,
 		QRCodeURL:       p.QRDistributionURL,
+		WalletPassURL:   crypto.GenerateWalletPassURL(u.walletPassBaseURL, p.QRCode),
 		ParticipantID:   p.ID.String(),
 	}
 
