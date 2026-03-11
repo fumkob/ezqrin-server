@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
