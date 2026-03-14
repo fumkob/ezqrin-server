@@ -216,8 +216,8 @@ PORT=8080
 
 #### ENV
 
-**Description:** Application environment **Type:** Enum **Options:** `development`, `staging`,
-`production` **Default:** `development`
+**Description:** Application environment **Type:** Enum **Options:** `development`, `production`,
+`test` **Default:** `development`
 
 ```bash
 ENV=development
@@ -226,8 +226,8 @@ ENV=development
 **Environment Behaviors:**
 
 - `development`: Verbose logging, debug endpoints, relaxed security
-- `staging`: Production-like testing environment
 - `production`: Minimal logging, strict security, optimizations
+- `test`: Test environment for automated testing
 
 #### LOG_LEVEL
 
@@ -281,6 +281,16 @@ EMAIL_FROM_ADDRESS=noreply@ezqrin.local
 
 ```bash
 EMAIL_FROM_NAME=ezQRin
+```
+
+#### EMAIL_PLAIN_TEXT_ONLY
+
+**Description:** Send plain-text emails only (no HTML)
+**Type:** Boolean
+**Default:** `false`
+
+```bash
+EMAIL_PLAIN_TEXT_ONLY=false
 ```
 
 ---
