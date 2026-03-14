@@ -94,11 +94,11 @@ Register a single participant for an event.
 
 ---
 
-### Import Participants (CSV)
+### Bulk Import Participants
 
 Bulk import participants from a CSV file.
 
-**Endpoint:** `POST /api/v1/events/:id/participants/import`
+**Endpoint:** `POST /api/v1/events/:id/participants/bulk`
 
 **Authentication:** Required (Event owner or Admin)
 

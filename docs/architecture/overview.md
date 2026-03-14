@@ -54,7 +54,9 @@ patterns, and technology stack.
 
 **Testing:**
 
-- `stretchr/testify` - Test assertions and mocking
+- `onsi/ginkgo/v2` - BDD-style test framework
+- `onsi/gomega` - Assertion library for Ginkgo
+- `go.uber.org/mock` - Interface mock generation
 - `httptest` - HTTP handler testing
 
 ---
@@ -176,20 +178,21 @@ To manage the complexity of wiring multiple dependencies as the application grow
 ezqrin-server/
 ├── cmd/                        # Application entry points
 │   ├── api/                    # API server
-│   └── cli/                    # CLI tools
+│   └── migrate/                # Database migration tool
 │
 ├── internal/                   # Private application code
 │   ├── domain/                 # Domain layer
 │   │   ├── entity/             # Business entities
-│   │   ├── repository/         # Repository interfaces
-│   │   └── service/            # Domain services
+│   │   ├── email/              # Email sender interface
+│   │   └── repository/         # Repository interfaces
 │   │
 │   ├── usecase/                # Application layer
+│   │   ├── auth/               # Authentication use cases
 │   │   ├── event/              # Event use cases
 │   │   ├── participant/        # Participant use cases
 │   │   ├── checkin/            # Check-in use cases
-│   │   ├── staff/              # Staff assignment use cases
-│   │   └── stats/              # Statistics use cases
+│   │   ├── staff/              # Staff assignment use cases (planned)
+│   │   └── stats/              # Statistics use cases (planned)
 │   │
 │   ├── interface/              # Presentation layer
 │   │   ├── api/                # REST API
@@ -201,15 +204,16 @@ ezqrin-server/
 │   │   │   ├── middleware/     # HTTP middleware
 │   │   │   ├── request/        # Custom request DTOs (if needed)
 │   │   │   └── response/       # Custom response DTOs (if needed)
-│   │   └── graphql/            # GraphQL (future)
+│   │   └── graphql/            # GraphQL (planned)
 │   │
 │   └── infrastructure/         # Infrastructure layer
+│       ├── container/          # Dependency injection container
 │       ├── database/           # Database implementations
 │       ├── cache/              # Cache implementations
-│       ├── qrcode/             # QR code generator
-│       ├── wallet/             # Wallet integration
 │       ├── email/              # Email service
-│       └── storage/            # File storage
+│       ├── qrcode/             # QR code generator
+│       ├── wallet/             # Wallet integration (planned)
+│       └── storage/            # File storage (planned)
 │
 ├── pkg/                        # Public libraries
 │   ├── crypto/                 # Cryptography utilities
@@ -221,17 +225,15 @@ ezqrin-server/
 │   ├── oapi-codegen.yaml       # OpenAPI code generation config
 │   └── ...                     # Other configs
 │
+├── api/                        # OpenAPI specification
+│   └── openapi.yaml            # OpenAPI 3.0+ specification (SSOT)
+│
 ├── scripts/                    # Build and deployment scripts
 │
 ├── docs/                       # Documentation
-│   ├── api/                    # API documentation
-│   │   ├── openapi.yaml        # OpenAPI 3.0+ specification (SSOT)
-│   │   ├── README.md           # API overview
-│   │   └── ...                 # Endpoint documentation
+│   ├── api/                    # API endpoint documentation
 │   ├── architecture/           # Architecture docs
 │   └── deployment/             # Deployment guides
-│
-└── deployments/                # Deployment configurations
 ```
 
 ---
@@ -374,7 +376,8 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 - Authentication (JWT validation)
 - Logging (request/response)
 - CORS (cross-origin requests)
-- Rate limiting (abuse prevention)
+- Request ID generation
+- Rate limiting (planned)
 - Error recovery (panic handling)
 
 ---
@@ -389,7 +392,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 - `events` - Event information
 - `participants` - Event participants
 - `checkins` - Check-in records
-- `event_staff_assignments` - Staff-to-event assignments for access control
+- `event_staff_assignments` - Staff-to-event assignments for access control (planned)
 
 **Key Features:**
 
@@ -430,8 +433,8 @@ See [Database Design](./database.md) for detailed schema.
 /api/v1/events                     # Event collection
 /api/v1/events/:id                 # Event resource
 /api/v1/events/:id/participants    # Nested participants
-/api/v1/events/:id/staff           # Staff assignments
-/api/v1/events/:id/staff/:staff_id # Specific staff assignment
+/api/v1/events/:id/staff           # Staff assignments (planned)
+/api/v1/events/:id/staff/:staff_id # Specific staff assignment (planned)
 ```
 
 **HTTP Methods:**
@@ -495,7 +498,7 @@ We use [`oapi-codegen`](https://github.com/deepmap/oapi-codegen) to automaticall
 **OpenAPI Specification Location:**
 
 ```
-docs/api/openapi.yaml          # Main OpenAPI 3.0+ specification
+api/openapi.yaml               # Main OpenAPI 3.0+ specification
 ```
 
 **Code Generation Configuration:**
@@ -516,9 +519,7 @@ output: internal/interface/api/generated
 ```
 internal/interface/api/
 ├── generated/              # Auto-generated (DO NOT EDIT manually)
-│   ├── models.gen.go       # Request/Response DTOs
-│   ├── server.gen.go       # Gin server interfaces
-│   └── client.gen.go       # API client
+│   └── api.gen.go          # Combined server interfaces, models, and DTOs
 │
 └── handler/                # Business logic implementation
     ├── event.go            # Implements generated EventHandler interface
@@ -556,15 +557,15 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 
 **Maintenance Workflow:**
 
-1. Update `docs/api/openapi.yaml` when API changes
-2. Run `make generate` or `npm run gen:api` to regenerate code
+1. Update `api/openapi.yaml` when API changes
+2. Run `make gen-api` to regenerate code
 3. Implement new interfaces or update existing implementations
 4. Run tests to verify compatibility
 5. Commit both spec and generated code together
 
 **Version Control:**
 
-- ✅ **Commit OpenAPI spec** (`docs/api/openapi.yaml`)
+- ✅ **Commit OpenAPI spec** (`api/openapi.yaml`)
 - ✅ **Commit generated code** (`internal/interface/api/generated/*`)
 - ℹ️ Generated code is tracked to ensure consistency across environments
 

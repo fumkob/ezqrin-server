@@ -213,7 +213,11 @@ RUN apk add --no-cache \
     curl \
     bash \
     postgresql-client \
-    redis
+    redis \
+    github-cli \
+    nodejs \
+    npm \
+    --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
 
 # Install Delve debugger
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
@@ -221,8 +225,14 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 # Install Air for hot reload
 RUN go install github.com/air-verse/air@latest
 
-# Install golangci-lint
-RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
+# Install golangci-lint (supports Go 1.25+)
+RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+
+# Install oapi-codegen for API code generation
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
+
+# Install swagger-cli for OpenAPI bundling
+RUN npm install -g @apidevtools/swagger-cli@4.0.4
 
 # Create non-root user for VS Code
 ARG USERNAME=vscode
@@ -232,7 +242,8 @@ ARG USER_GID=$USER_UID
 RUN addgroup -g $USER_GID $USERNAME \
     && adduser -D -u $USER_UID -G $USERNAME $USERNAME \
     && mkdir -p /home/$USERNAME/.cache \
-    && chown -R $USERNAME:$USERNAME /home/$USERNAME
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME \
+    && chown -R $USERNAME:$USERNAME /go
 
 # Set working directory
 WORKDIR /workspace
@@ -253,7 +264,11 @@ CMD ["sleep", "infinity"]
 
 - **Delve**: Go debugger for breakpoints and step-through debugging
 - **Air**: Hot reload for rapid development
-- **golangci-lint**: Comprehensive Go linter
+- **golangci-lint v2.7.2**: Comprehensive Go linter
+- **oapi-codegen v2.5.1**: OpenAPI code generation for Go
+- **swagger-cli v4.0.4**: OpenAPI specification bundling
+- **GitHub CLI**: GitHub operations from the terminal
+- **Node.js & npm**: Required for swagger-cli
 - **PostgreSQL client**: Database CLI access
 - **Redis CLI**: Redis debugging and testing
 
@@ -264,8 +279,11 @@ CMD ["sleep", "infinity"]
 Multi-service development environment:
 
 ```yaml
+name: ezqrin
+
 services:
   api:
+    container_name: ezqrin-api
     build:
       context: .
       dockerfile: Dockerfile
@@ -290,22 +308,26 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=dev-secret-key-minimum-32-chars-long-for-development-only
+      - QR_HMAC_SECRET=dev-qr-hmac-secret-key-minimum-32-chars-long-for-development-only
+      # - QR_HOSTING_BASE_URL=  # Optional: QR code hosting server base URL
       - SERVER_PORT=8080
       - SERVER_ENV=development
       - LOG_LEVEL=debug
-      - LOG_FORMAT=json
+      - LOG_FORMAT=text  # Console format for DevContainer
     networks:
       - devcontainer-network
 
   postgres:
+    container_name: ezqrin-postgres
     image: postgres:18-alpine
     restart: unless-stopped
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     environment:
       POSTGRES_USER: ezqrin
       POSTGRES_PASSWORD: ezqrin_dev
       POSTGRES_DB: ezqrin_db
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     healthcheck:
@@ -318,6 +340,7 @@ services:
       - devcontainer-network
 
   redis:
+    container_name: ezqrin-redis
     image: redis:8-alpine
     restart: unless-stopped
     volumes:
@@ -336,7 +359,9 @@ services:
 
 volumes:
   postgres-data:
+    name: ezqrin_postgres-data
   redis-data:
+    name: ezqrin_redis-data
 
 networks:
   devcontainer-network:
