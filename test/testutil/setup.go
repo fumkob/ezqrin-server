@@ -20,17 +20,20 @@ const (
 	TestJWTSecret = "test-secret-key-minimum-32-characters-long-for-testing"
 	TestDBName    = "ezqrin_test"
 
-	testDBPort          = 5432
-	testDBMaxConns      = 10
-	testDBMinConns      = 2
-	testDBMaxConnLife   = 30
-	testDBMaxConnIdle   = 5
-	testRedisPort       = 6379
-	testRedisPoolSize   = 10
-	testRedisMinIdle    = 2
-	testRedisMaxRetries = 3
-	testRedisDialSec    = 5
-	testRedisRWSec      = 3
+	testDBPort                   = 5432
+	testDBMaxConns               = 10
+	testDBMinConns               = 2
+	testDBMaxConnLife            = 30
+	testDBMaxConnIdle            = 5
+	testRedisPort                = 6379
+	testRedisPoolSize            = 10
+	testRedisMinIdle             = 2
+	testRedisMaxRetries          = 3
+	testRedisDialSec             = 5
+	testRedisRWSec               = 3
+	testAccessTokenExpiryMin     = 15
+	testRefreshTokenExpiryDays   = 7
+	testRefreshTokenMobileExpiry = 90
 )
 
 // NewTestConfig creates a standard test configuration from environment variables with sensible defaults.
@@ -77,9 +80,9 @@ func NewTestConfig() *config.Config {
 		},
 		JWT: config.JWTConfig{
 			Secret:                   TestJWTSecret,
-			AccessTokenExpiry:        15 * time.Minute,
-			RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
-			RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
+			AccessTokenExpiry:        testAccessTokenExpiryMin * time.Minute,
+			RefreshTokenExpiryWeb:    testRefreshTokenExpiryDays * 24 * time.Hour,
+			RefreshTokenExpiryMobile: testRefreshTokenMobileExpiry * 24 * time.Hour,
 		},
 		QRCode: config.QRCodeConfig{
 			HMACSecret: "test-hmac-secret-minimum-32-characters-long-for-testing",
