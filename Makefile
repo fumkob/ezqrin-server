@@ -282,6 +282,7 @@ gen-api:
 gen-mock:
 	@echo "Generating mocks..."
 	@go generate ./internal/domain/repository/...
+	@go generate ./internal/domain/email/...
 	@echo "✓ Mock generation complete"
 
 # Generate all code (API + mocks)
