@@ -88,7 +88,13 @@ var _ = Describe("Check-in API Integration", func() {
 				WriteTimeout: 3 * time.Second,
 			},
 			JWT: config.JWTConfig{
-				Secret: jwtSecret,
+				Secret:                   jwtSecret,
+				AccessTokenExpiry:        15 * time.Minute,
+				RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
+				RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
+			},
+			QRCode: config.QRCodeConfig{
+				HMACSecret: "test-hmac-secret-minimum-32-characters-long-for-testing",
 			},
 			CORS: config.CORSConfig{
 				AllowedOrigins: []string{"*"},

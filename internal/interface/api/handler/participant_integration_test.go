@@ -89,7 +89,13 @@ var _ = Describe("Participant API Integration", func() {
 				WriteTimeout: 3 * time.Second,
 			},
 			JWT: config.JWTConfig{
-				Secret: jwtSecret,
+				Secret:                   jwtSecret,
+				AccessTokenExpiry:        15 * time.Minute,
+				RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
+				RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
+			},
+			QRCode: config.QRCodeConfig{
+				HMACSecret: "test-hmac-secret-minimum-32-characters-long-for-testing",
 			},
 			CORS: config.CORSConfig{
 				AllowedOrigins: []string{"*"},
@@ -720,9 +726,8 @@ var _ = Describe("Participant API Integration", func() {
 				Expect(w.Code).To(Equal(http.StatusOK))
 				var resp map[string]interface{}
 				Expect(json.Unmarshal(w.Body.Bytes(), &resp)).To(Succeed())
-				data := resp["data"].(map[string]interface{})
-				Expect(data["imported_count"]).To(BeNumerically("==", 2))
-				Expect(data["failed_count"]).To(BeNumerically("==", 0))
+				Expect(resp["imported_count"]).To(BeNumerically("==", 2))
+				Expect(resp["failed_count"]).To(BeNumerically("==", 0))
 			})
 		})
 
@@ -763,9 +768,8 @@ var _ = Describe("Participant API Integration", func() {
 				Expect(rec.Code).To(Equal(http.StatusOK))
 				var resp map[string]interface{}
 				Expect(json.Unmarshal(rec.Body.Bytes(), &resp)).To(Succeed())
-				data := resp["data"].(map[string]interface{})
-				Expect(data["imported_count"]).To(BeNumerically("==", 0))
-				Expect(data["skipped_count"]).To(BeNumerically("==", 1))
+				Expect(resp["imported_count"]).To(BeNumerically("==", 0))
+				Expect(resp["skipped_count"]).To(BeNumerically("==", 1))
 			})
 		})
 
@@ -806,9 +810,8 @@ var _ = Describe("Participant API Integration", func() {
 				Expect(rec.Code).To(Equal(http.StatusOK))
 				var resp map[string]interface{}
 				Expect(json.Unmarshal(rec.Body.Bytes(), &resp)).To(Succeed())
-				data := resp["data"].(map[string]interface{})
-				Expect(data["failed_count"]).To(BeNumerically("==", 1))
-				Expect(data["skipped_count"]).To(BeNumerically("==", 0))
+				Expect(resp["failed_count"]).To(BeNumerically("==", 1))
+				Expect(resp["skipped_count"]).To(BeNumerically("==", 0))
 			})
 		})
 

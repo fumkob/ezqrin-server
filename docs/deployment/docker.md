@@ -72,7 +72,7 @@ Once the container is running, open a terminal inside the container:
 ```bash
 # Check Go version
 go version
-# Expected: go version go1.25.5 linux/amd64
+# Expected: go version go1.26.1 linux/amd64
 
 # Check database connection
 psql -h postgres -U ezqrin -d ezqrin_db -c "SELECT version();"
@@ -204,7 +204,7 @@ Development container image with Go, Delve, and development tools:
 
 ```dockerfile
 # Development container for ezQRin Server
-FROM golang:1.25.5-alpine
+FROM golang:1.26.1-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -939,7 +939,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.25.5-alpine
+      image: golang:1.26.1-alpine
     services:
       postgres:
         image: postgres:18-alpine

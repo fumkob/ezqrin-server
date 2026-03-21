@@ -76,7 +76,13 @@ func NewTestConfig() *config.Config {
 			WriteTimeout: testRedisRWSec * time.Second,
 		},
 		JWT: config.JWTConfig{
-			Secret: TestJWTSecret,
+			Secret:                   TestJWTSecret,
+			AccessTokenExpiry:        15 * time.Minute,
+			RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
+			RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
+		},
+		QRCode: config.QRCodeConfig{
+			HMACSecret: "test-hmac-secret-minimum-32-characters-long-for-testing",
 		},
 		CORS: config.CORSConfig{
 			AllowedOrigins: []string{"*"},

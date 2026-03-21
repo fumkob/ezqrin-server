@@ -68,7 +68,7 @@ cd ezqrin-server
 ### 2. Build the Production Image
 
 The production image is built from the `Dockerfile` at the repository root using a
-multi-stage build (builder: `golang:1.25.5-alpine`, runtime: `alpine:3.21`).
+multi-stage build (builder: `golang:1.26.1-alpine`, runtime: `alpine:3.21`).
 
 ```bash
 # Docker
