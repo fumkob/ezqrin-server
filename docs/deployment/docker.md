@@ -72,7 +72,7 @@ Once the container is running, open a terminal inside the container:
 ```bash
 # Check Go version
 go version
-# Expected: go version go1.25.5 linux/amd64
+# Expected: go version go1.26.1 linux/amd64
 
 # Check database connection
 psql -h postgres -U ezqrin -d ezqrin_db -c "SELECT version();"
@@ -204,7 +204,7 @@ Development container image with Go, Delve, and development tools:
 
 ```dockerfile
 # Development container for ezQRin Server
-FROM golang:1.25.5-alpine
+FROM golang:1.26.1-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -225,8 +225,8 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 # Install Air for hot reload
 RUN go install github.com/air-verse/air@latest
 
-# Install golangci-lint (supports Go 1.25+)
-RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+# Install golangci-lint (supports Go 1.26+)
+RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.11.3
 
 # Install oapi-codegen for API code generation
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1
@@ -264,7 +264,7 @@ CMD ["sleep", "infinity"]
 
 - **Delve**: Go debugger for breakpoints and step-through debugging
 - **Air**: Hot reload for rapid development
-- **golangci-lint v2.7.2**: Comprehensive Go linter
+- **golangci-lint v2.11.3**: Comprehensive Go linter
 - **oapi-codegen v2.5.1**: OpenAPI code generation for Go
 - **swagger-cli v4.0.4**: OpenAPI specification bundling
 - **GitHub CLI**: GitHub operations from the terminal
@@ -939,7 +939,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.25.5-alpine
+      image: golang:1.26.1-alpine
     services:
       postgres:
         image: postgres:18-alpine

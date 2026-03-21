@@ -15,7 +15,7 @@ for real-time check-in operations.
 
 | Component     | Technology      | Version |
 | ------------- | --------------- | ------- |
-| Language      | Go              | 1.25.5  |
+| Language      | Go              | 1.26.1  |
 | Web Framework | Gin             | -       |
 | Database      | PostgreSQL      | 18+     |
 | Cache         | Redis           | 8+      |
