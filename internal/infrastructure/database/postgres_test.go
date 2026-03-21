@@ -5,6 +5,7 @@ package database_test
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/fumkob/ezqrin-server/config"
@@ -29,8 +30,12 @@ var _ = Describe("PostgresDB", func() {
 			Format:      "console",
 			Environment: "development",
 		})
+		dbHost := os.Getenv("DB_HOST")
+		if dbHost == "" {
+			dbHost = "localhost"
+		}
 		cfg = &config.DatabaseConfig{
-			Host:            "postgres",
+			Host:            dbHost,
 			Port:            5432,
 			User:            "ezqrin",
 			Password:        "ezqrin_dev",
@@ -66,9 +71,7 @@ var _ = Describe("PostgresDB", func() {
 
 		// Integration test - requires actual PostgreSQL
 		Context("with valid config and running database", func() {
-			// This test is skipped by default as it requires a real database
-			// To run: PG_INTEGRATION_TESTS=1 go test
-			PIt("should create connection pool successfully", func() {
+			It("should create connection pool successfully", func() {
 				db, err := database.NewPostgresDB(ctx, cfg, log)
 
 				Expect(err).To(BeNil())
@@ -97,7 +100,7 @@ var _ = Describe("PostgresDB", func() {
 
 	When("accessing connection pool", func() {
 		// Integration test
-		PDescribe("with established connection", func() {
+		Describe("with established connection", func() {
 			var db *database.PostgresDB
 
 			BeforeEach(func() {
@@ -138,7 +141,7 @@ var _ = Describe("PostgresDB", func() {
 		})
 
 		// Integration test
-		PContext("with active connection", func() {
+		Context("with active connection", func() {
 			It("should close gracefully", func() {
 				db, err := database.NewPostgresDB(ctx, cfg, log)
 				Expect(err).To(BeNil())
@@ -165,8 +168,12 @@ var _ = Describe("HealthChecker", func() {
 			Format:      "console",
 			Environment: "development",
 		})
+		dbHost := os.Getenv("DB_HOST")
+		if dbHost == "" {
+			dbHost = "localhost"
+		}
 		cfg = &config.DatabaseConfig{
-			Host:            "postgres",
+			Host:            dbHost,
 			Port:            5432,
 			User:            "ezqrin",
 			Password:        "ezqrin_dev",
@@ -180,7 +187,7 @@ var _ = Describe("HealthChecker", func() {
 	})
 
 	// Integration tests
-	PDescribe("health check operations", func() {
+	Describe("health check operations", func() {
 		var db *database.PostgresDB
 
 		BeforeEach(func() {
@@ -275,14 +282,12 @@ var _ = Describe("HealthChecker", func() {
 			})
 
 			Context("with timeout", func() {
-				It("should respect context deadline", func() {
-					// Create a new DB with invalid config that won't connect
-					invalidCfg := *cfg
-					invalidCfg.Host = "invalid-host-that-does-not-exist"
+				It("should return error when context expires", func() {
+					timeoutCtx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+					defer cancel()
 
-					// This will fail to create, so we skip this specific test
-					// In real integration tests, you would stop the database to test this
-					Skip("Requires database to be down to test timeout properly")
+					err := db.WaitForHealthy(timeoutCtx, 500*time.Millisecond)
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -303,8 +308,12 @@ var _ = Describe("Transaction Management", func() {
 			Format:      "console",
 			Environment: "development",
 		})
+		dbHost := os.Getenv("DB_HOST")
+		if dbHost == "" {
+			dbHost = "localhost"
+		}
 		cfg = &config.DatabaseConfig{
-			Host:            "postgres",
+			Host:            dbHost,
 			Port:            5432,
 			User:            "ezqrin",
 			Password:        "ezqrin_dev",
@@ -327,7 +336,7 @@ var _ = Describe("Transaction Management", func() {
 		})
 
 		// Integration tests
-		PDescribe("transaction operations", func() {
+		Describe("transaction operations", func() {
 			var db *database.PostgresDB
 
 			BeforeEach(func() {
