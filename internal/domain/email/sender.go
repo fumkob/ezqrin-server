@@ -1,3 +1,5 @@
+//go:generate mockgen -destination=mocks/mock_sender.go -package=mocks . Sender
+
 // Package email defines the interface for sending emails.
 package email
 

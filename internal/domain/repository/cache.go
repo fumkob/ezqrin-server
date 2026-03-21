@@ -1,3 +1,5 @@
+//go:generate mockgen -destination=mocks/mock_cache_repository.go -package=mocks . CacheRepository,TokenBlacklistRepository
+
 package repository
 
 import (
