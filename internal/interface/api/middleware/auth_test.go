@@ -159,7 +159,12 @@ var _ = Describe("AuthMiddleware", func() {
 		When("the token is invalid (bad signature)", func() {
 			It("should return 401 with invalid token", func() {
 				// Sign with a different secret so verification fails.
-				wrongSecretToken, err := crypto.GenerateAccessToken(uuid.New().String(), "attendee", "wrong-secret", time.Hour)
+				wrongSecretToken, err := crypto.GenerateAccessToken(
+					uuid.New().String(),
+					"attendee",
+					"wrong-secret",
+					time.Hour,
+				)
 				Expect(err).NotTo(HaveOccurred())
 
 				req := httptest.NewRequest(http.MethodGet, "/protected", nil)
