@@ -123,7 +123,6 @@ var _ = Describe("NewSenderFromConfig", func() {
 				}
 
 				sender, err := NewSenderFromConfig(cfg, logger)
-
 				// The factory routed to Gmail (no "unknown backend" error) but
 				// Gmail sender construction/token exchange fails.
 				if err != nil {

@@ -45,7 +45,6 @@ func msgStr(fromAddr, fromName string, msg domainemail.Message) string {
 // ─── specs ──────────────────────────────────────────────────────────────────
 
 var _ = Describe("buildRFCMessage", func() {
-
 	// ── plain-text only ──────────────────────────────────────────────────────
 
 	When("building a plain-text-only message", func() {

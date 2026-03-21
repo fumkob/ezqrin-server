@@ -356,7 +356,7 @@ var _ = Describe("RegisterUseCase", func() {
 
 		When("registering with all valid roles", func() {
 			for _, role := range []string{"admin", "organizer", "staff"} {
-				role := role // capture loop variable
+				// capture loop variable
 				Context("with role "+role, func() {
 					It("should succeed", func() {
 						mockUserRepo.EXPECT().

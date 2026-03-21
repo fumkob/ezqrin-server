@@ -43,7 +43,13 @@ var _ = Describe("LogoutUseCase", func() {
 		var err error
 		accessToken, err = crypto.GenerateAccessToken(userID, "organizer", testJWTSecret, 15*time.Minute)
 		Expect(err).NotTo(HaveOccurred())
-		refreshToken, err = crypto.GenerateRefreshToken(userID, "organizer", testJWTSecret, "web", auth.RefreshTokenExpiryWeb)
+		refreshToken, err = crypto.GenerateRefreshToken(
+			userID,
+			"organizer",
+			testJWTSecret,
+			"web",
+			auth.RefreshTokenExpiryWeb,
+		)
 		Expect(err).NotTo(HaveOccurred())
 		return
 	}
