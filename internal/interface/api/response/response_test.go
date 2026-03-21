@@ -6,14 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
-	"github.com/gin-gonic/gin"
-
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"github.com/gin-gonic/gin"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // newTestContext creates a gin.Context backed by an httptest.ResponseRecorder.
@@ -189,7 +187,12 @@ var _ = Describe("Response helpers", func() {
 			Context("with CodeInternal", func() {
 				It("returns 500 with the INTERNAL_ERROR code in the body", func() {
 					c, w := newTestContext("/crash")
-					response.ProblemWithCode(c, http.StatusInternalServerError, apperrors.CodeInternal, "something went wrong")
+					response.ProblemWithCode(
+						c,
+						http.StatusInternalServerError,
+						apperrors.CodeInternal,
+						"something went wrong",
+					)
 
 					Expect(w.Code).To(Equal(http.StatusInternalServerError))
 
