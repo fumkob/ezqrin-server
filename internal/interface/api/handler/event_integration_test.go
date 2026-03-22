@@ -21,6 +21,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -43,6 +44,8 @@ var _ = Describe("Event API Integration", func() {
 	)
 
 	BeforeEach(func() {
+		crypto.SetHashCost(crypto.MinCost)
+
 		var err error
 
 		// Set up environment for tests

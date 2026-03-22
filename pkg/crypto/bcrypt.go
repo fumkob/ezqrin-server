@@ -13,10 +13,23 @@ const (
 	// between security and performance for production use.
 	DefaultCost = 12
 
+	// MinCost is the minimum bcrypt cost factor for testing purposes.
+	MinCost = bcrypt.MinCost
+
 	// MaxPasswordLength is the maximum password length for bcrypt (72 bytes).
 	// Bcrypt silently truncates passwords longer than 72 bytes.
 	MaxPasswordLength = 72
 )
+
+// hashCost is the active bcrypt cost factor. Defaults to DefaultCost.
+// Use SetHashCost to override (e.g. in tests).
+var hashCost = DefaultCost
+
+// SetHashCost overrides the bcrypt cost factor.
+// Intended for tests only — production code should use DefaultCost.
+func SetHashCost(cost int) {
+	hashCost = cost
+}
 
 // Bcrypt errors
 var (
@@ -55,7 +68,7 @@ func HashPassword(password string) (string, error) {
 	}
 
 	// Generate bcrypt hash
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), DefaultCost)
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), hashCost)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash password: %w", err)
 	}

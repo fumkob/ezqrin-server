@@ -50,6 +50,8 @@ var _ = Describe("Authentication API Integration", func() {
 	)
 
 	BeforeEach(func() {
+		crypto.SetHashCost(crypto.MinCost)
+
 		var err error
 
 		// Create test configuration using environment variables if available
