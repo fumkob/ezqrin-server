@@ -16,7 +16,7 @@ type HealthChecker interface {
 // HealthStatus contains database health and connection pool statistics
 type HealthStatus struct {
 	Healthy          bool      `json:"healthy"`
-	ResponseTime     int64     `json:"response_time_ms"`
+	ResponseTime     int64     `json:"response_time_us"`
 	TotalConns       int32     `json:"total_connections"`
 	IdleConns        int32     `json:"idle_connections"`
 	MaxConns         int32     `json:"max_connections"`
@@ -40,10 +40,10 @@ func (db *PostgresDB) CheckHealth(ctx context.Context) (*HealthStatus, error) {
 	// Ping database to check connectivity
 	if err := db.pool.Ping(ctx); err != nil {
 		status.Error = err.Error()
-		status.ResponseTime = time.Since(startTime).Milliseconds()
+		status.ResponseTime = time.Since(startTime).Microseconds()
 		db.logger.Error("database health check failed",
 			zap.Error(err),
-			zap.Int64("response_time_ms", status.ResponseTime),
+			zap.Int64("response_time_us", status.ResponseTime),
 		)
 		return status, apperrors.Wrapf(err, "database health check failed")
 	}
@@ -51,7 +51,7 @@ func (db *PostgresDB) CheckHealth(ctx context.Context) (*HealthStatus, error) {
 	// Get connection pool statistics
 	stats := db.pool.Stat()
 	status.Healthy = true
-	status.ResponseTime = time.Since(startTime).Milliseconds()
+	status.ResponseTime = time.Since(startTime).Microseconds()
 	status.TotalConns = stats.TotalConns()
 	status.IdleConns = stats.IdleConns()
 	status.MaxConns = stats.MaxConns()
@@ -59,7 +59,7 @@ func (db *PostgresDB) CheckHealth(ctx context.Context) (*HealthStatus, error) {
 	status.ConstructingConn = stats.ConstructingConns()
 
 	db.logger.Debug("database health check succeeded",
-		zap.Int64("response_time_ms", status.ResponseTime),
+		zap.Int64("response_time_us", status.ResponseTime),
 		zap.Int32("total_conns", status.TotalConns),
 		zap.Int32("idle_conns", status.IdleConns),
 		zap.Int32("acquired_conns", status.AcquiredConns),

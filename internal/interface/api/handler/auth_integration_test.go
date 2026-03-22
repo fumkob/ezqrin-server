@@ -97,7 +97,7 @@ var _ = Describe("Authentication API Integration", func() {
 			},
 			JWT: config.JWTConfig{
 				Secret:                   jwtSecret,
-				AccessTokenExpiry:        15 * time.Minute,
+				AccessTokenExpiry:        time.Hour,
 				RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
 				RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
 			},
