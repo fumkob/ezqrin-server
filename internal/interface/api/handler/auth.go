@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
+	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/response"
 	"github.com/fumkob/ezqrin-server/internal/usecase/auth"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
@@ -12,10 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"go.uber.org/zap"
-)
-
-const (
-	authHeaderParts = 2 // Bearer token format: "Bearer <token>"
 )
 
 // AuthHandler handles authentication endpoints.
@@ -126,7 +123,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // Implements generated.ServerInterface.LogoutUser
 func (h *AuthHandler) LogoutUser(c *gin.Context) {
 	// Extract tokens from request
-	accessToken := extractBearerToken(c)
+	accessToken := middleware.ExtractBearerToken(c)
 
 	// Refresh token might be in request body or header
 	var refreshToken string
@@ -181,20 +178,4 @@ func detectClientType(userAgent string) string {
 		return auth.ClientTypeMobile
 	}
 	return auth.ClientTypeWeb
-}
-
-// extractBearerToken extracts the Bearer token from Authorization header
-func extractBearerToken(c *gin.Context) string {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return ""
-	}
-
-	// Authorization header format: "Bearer <token>"
-	parts := strings.SplitN(authHeader, " ", authHeaderParts)
-	if len(parts) != authHeaderParts || parts[0] != "Bearer" {
-		return ""
-	}
-
-	return parts[1]
 }
