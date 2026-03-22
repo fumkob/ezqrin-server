@@ -59,7 +59,7 @@ func NewContainer(
 	repos := &RepositoryContainer{
 		User:        database.NewUserRepository(db.GetPool(), logger),
 		Event:       database.NewEventRepository(db.GetPool(), logger),
-		Participant: database.NewParticipantRepository(db.GetPool()),
+		Participant: database.NewParticipantRepository(db.GetPool(), logger),
 		Checkin:     database.NewCheckinRepository(db.GetPool()),
 	}
 

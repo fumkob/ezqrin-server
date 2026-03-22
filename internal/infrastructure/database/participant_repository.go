@@ -7,6 +7,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -15,12 +16,13 @@ import (
 
 // ParticipantRepository implements the ParticipantRepository interface.
 type participantRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *logger.Logger
 }
 
 // NewParticipantRepository creates a new participant repository.
-func NewParticipantRepository(pool *pgxpool.Pool) repository.ParticipantRepository {
-	return &participantRepository{pool: pool}
+func NewParticipantRepository(pool *pgxpool.Pool, logger *logger.Logger) repository.ParticipantRepository {
+	return &participantRepository{pool: pool, logger: logger}
 }
 
 // Create creates a new participant in the database.
