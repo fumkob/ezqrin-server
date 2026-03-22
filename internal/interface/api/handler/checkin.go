@@ -45,8 +45,8 @@ func (h *CheckinHandler) CheckInParticipant(c *gin.Context, eventID generated.Ev
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// Convert request to usecase input
 	input := checkin.CheckInInput{
@@ -84,8 +84,8 @@ func (h *CheckinHandler) ListCheckIns(
 	eventID generated.EventIDParam,
 	params generated.ListCheckInsParams,
 ) {
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	input := h.buildListCheckInsInput(eventID, params)
 
@@ -101,8 +101,8 @@ func (h *CheckinHandler) ListCheckIns(
 
 // GetCheckInStatus handles getting check-in status for a participant (GET /participants/{id}/checkin-status).
 func (h *CheckinHandler) GetCheckInStatus(c *gin.Context, participantID generated.ParticipantIDParam) {
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	output, err := h.usecase.GetStatus(c.Request.Context(), userID, isAdmin, uuid.UUID(participantID))
 	if err != nil {
@@ -117,8 +117,8 @@ func (h *CheckinHandler) GetCheckInStatus(c *gin.Context, participantID generate
 
 // CancelCheckIn handles canceling a check-in (DELETE /events/{id}/checkins/{cid}).
 func (h *CheckinHandler) CancelCheckIn(c *gin.Context, id generated.EventIDParam, cid openapi_types.UUID) {
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	err := h.usecase.Cancel(c.Request.Context(), userID, isAdmin, uuid.UUID(cid))
 	if err != nil {
@@ -130,30 +130,6 @@ func (h *CheckinHandler) CancelCheckIn(c *gin.Context, id generated.EventIDParam
 }
 
 // Helper functions
-
-func (h *CheckinHandler) getUserID(c *gin.Context) uuid.UUID {
-	val, exists := c.Get(middleware.ContextKeyUserID)
-	if !exists {
-		return uuid.Nil
-	}
-	id, ok := val.(uuid.UUID)
-	if !ok {
-		return uuid.Nil
-	}
-	return id
-}
-
-func (h *CheckinHandler) getUserRole(c *gin.Context) string {
-	val, exists := c.Get(middleware.ContextKeyUserRole)
-	if !exists {
-		return ""
-	}
-	role, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return role
-}
 
 func (h *CheckinHandler) toCheckInResponse(output *checkin.CheckInOutput) generated.CheckInResponse {
 	resp := generated.CheckInResponse{

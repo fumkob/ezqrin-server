@@ -39,8 +39,8 @@ func NewEventHandler(usecase event.Usecase, logger *logger.Logger) *EventHandler
 // GetEvents handles listing events (GET /events).
 func (h *EventHandler) GetEvents(c *gin.Context, params generated.GetEventsParams) {
 	var organizerID *uuid.UUID
-	role := h.getUserRole(c)
-	userID := h.getUserID(c)
+	role := middleware.GetUserRole(c)
+	userID, _ := middleware.GetUserID(c)
 
 	// If not admin, only show own events
 	if role != string(entity.RoleAdmin) {
@@ -107,7 +107,7 @@ func (h *EventHandler) PostEvents(c *gin.Context) {
 		return
 	}
 
-	userID := h.getUserID(c)
+	userID, _ := middleware.GetUserID(c)
 
 	input := event.CreateEventInput{
 		OrganizerID: userID,
@@ -159,8 +159,8 @@ func (h *EventHandler) GetEventsId(c *gin.Context, id generated.EventIDParam) {
 	// For now, let's assume all authenticated users can view, but only owner/admin see organizer details
 	// The requirement says "Organizers see their own events, admins see all" for List.
 	// For detail, let's keep it consistent.
-	role := h.getUserRole(c)
-	userID := h.getUserID(c)
+	role := middleware.GetUserRole(c)
+	userID, _ := middleware.GetUserID(c)
 	if role != string(entity.RoleAdmin) && evt.OrganizerID != userID {
 		response.ProblemFromError(c, apperrors.Forbidden("you do not have permission to view this event"))
 		return
@@ -186,8 +186,8 @@ func (h *EventHandler) PutEventsId(c *gin.Context, id generated.EventIDParam) {
 		return
 	}
 
-	role := h.getUserRole(c)
-	userID := h.getUserID(c)
+	role := middleware.GetUserRole(c)
+	userID, _ := middleware.GetUserID(c)
 
 	evt, err := h.usecase.Update(c.Request.Context(), eventID, userID, role == string(entity.RoleAdmin), input)
 	if err != nil {
@@ -202,8 +202,8 @@ func (h *EventHandler) PutEventsId(c *gin.Context, id generated.EventIDParam) {
 func (h *EventHandler) DeleteEventsId(c *gin.Context, id generated.EventIDParam) {
 	eventID := uuid.UUID(id)
 
-	role := h.getUserRole(c)
-	userID := h.getUserID(c)
+	role := middleware.GetUserRole(c)
+	userID, _ := middleware.GetUserID(c)
 
 	err := h.usecase.Delete(c.Request.Context(), eventID, userID, role == string(entity.RoleAdmin))
 	if err != nil {
@@ -218,8 +218,8 @@ func (h *EventHandler) DeleteEventsId(c *gin.Context, id generated.EventIDParam)
 func (h *EventHandler) GetEventsIdStats(c *gin.Context, id generated.EventIDParam) {
 	eventID := uuid.UUID(id)
 
-	role := h.getUserRole(c)
-	userID := h.getUserID(c)
+	role := middleware.GetUserRole(c)
+	userID, _ := middleware.GetUserID(c)
 
 	output, err := h.usecase.GetStats(c.Request.Context(), eventID, userID, role == string(entity.RoleAdmin))
 	if err != nil {
@@ -247,30 +247,6 @@ func (h *EventHandler) GetEventsIdStats(c *gin.Context, id generated.EventIDPara
 }
 
 // Helpers
-
-func (h *EventHandler) getUserID(c *gin.Context) uuid.UUID {
-	val, exists := c.Get(middleware.ContextKeyUserID)
-	if !exists {
-		return uuid.Nil
-	}
-	id, ok := val.(uuid.UUID)
-	if !ok {
-		return uuid.Nil
-	}
-	return id
-}
-
-func (h *EventHandler) getUserRole(c *gin.Context) string {
-	val, exists := c.Get(middleware.ContextKeyUserRole)
-	if !exists {
-		return ""
-	}
-	role, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return role
-}
 
 func (h *EventHandler) buildUpdateInput(req generated.UpdateEventRequest) (event.UpdateEventInput, error) {
 	input := event.UpdateEventInput{}
