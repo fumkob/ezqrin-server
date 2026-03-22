@@ -57,6 +57,8 @@ type EventStatsOutput struct {
 	ByStatus              map[string]int64
 }
 
+//go:generate mockgen -destination=mocks/mock_usecase.go -package=mocks . Usecase
+
 // Usecase defines the interface for event-related business logic.
 type Usecase interface {
 	Create(ctx context.Context, input CreateEventInput) (*entity.Event, error)

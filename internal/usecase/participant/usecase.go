@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -destination=mocks/mock_usecase.go -package=mocks . Usecase
+
 // Usecase defines participant business logic operations
 type Usecase interface {
 	Create(
