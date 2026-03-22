@@ -130,6 +130,10 @@ func (r *participantRepository) BulkCreate(ctx context.Context, participants []*
 	for i := 0; i < len(participants); i++ {
 		_, err := results.Exec()
 		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
+				return apperrors.Conflict("participant already exists")
+			}
 			return apperrors.Wrapf(err, "failed to insert participant batch")
 		}
 	}
