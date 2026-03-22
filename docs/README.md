@@ -34,6 +34,7 @@ for managing events, participants, and check-ins.
 - [System Overview](./architecture/overview.md) - High-level architecture and design patterns
 - [Database Design](./architecture/database.md) - Database schema and relationships
 - [Security](./architecture/security.md) - Authentication, authorization, and security measures
+- [Observability](./architecture/observability.md) - OpenTelemetry, tracing, metrics, and log correlation
 
 ### 🧪 Testing & Development
 
