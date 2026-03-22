@@ -668,4 +668,53 @@ var _ = Describe("AuthMiddleware", func() {
 			})
 		})
 	})
+
+	// ---------------------------------------------------------------------------
+	// ExtractBearerToken()
+	// ---------------------------------------------------------------------------
+	Describe("ExtractBearerToken", func() {
+		When("a valid Bearer token is present in the Authorization header", func() {
+			It("should return the token string", func() {
+				gin.SetMode(gin.TestMode)
+				w := httptest.NewRecorder()
+				c, _ := gin.CreateTestContext(w)
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req.Header.Set("Authorization", "Bearer my-test-token")
+				c.Request = req
+
+				result := middleware.ExtractBearerToken(c)
+
+				Expect(result).To(Equal("my-test-token"))
+			})
+		})
+
+		When("the Authorization header is empty", func() {
+			It("should return an empty string", func() {
+				gin.SetMode(gin.TestMode)
+				w := httptest.NewRecorder()
+				c, _ := gin.CreateTestContext(w)
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				c.Request = req
+
+				result := middleware.ExtractBearerToken(c)
+
+				Expect(result).To(Equal(""))
+			})
+		})
+
+		When("the Authorization header uses a scheme other than Bearer", func() {
+			It("should return an empty string", func() {
+				gin.SetMode(gin.TestMode)
+				w := httptest.NewRecorder()
+				c, _ := gin.CreateTestContext(w)
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req.Header.Set("Authorization", "Basic dXNlcjpwYXNz")
+				c.Request = req
+
+				result := middleware.ExtractBearerToken(c)
+
+				Expect(result).To(Equal(""))
+			})
+		})
+	})
 })

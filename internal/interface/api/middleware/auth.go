@@ -72,7 +72,7 @@ func NewAuthMiddleware(
 func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract token from Authorization header
-		token := extractBearerToken(c)
+		token := ExtractBearerToken(c)
 		if token == "" {
 			m.logger.WithContext(c.Request.Context()).Warn("missing authorization token")
 			response.ProblemFromError(c, apperrors.Unauthorized("missing authorization token"))
@@ -131,7 +131,7 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract token from Authorization header
-		token := extractBearerToken(c)
+		token := ExtractBearerToken(c)
 		if token == "" {
 			// No token present, continue without authentication
 			c.Next()
@@ -204,8 +204,9 @@ func (m *AuthMiddleware) RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
-// extractBearerToken extracts the Bearer token from Authorization header
-func extractBearerToken(c *gin.Context) string {
+// ExtractBearerToken extracts the Bearer token from Authorization header.
+// It returns an empty string when the header is absent or not in "Bearer <token>" format.
+func ExtractBearerToken(c *gin.Context) string {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		return ""
