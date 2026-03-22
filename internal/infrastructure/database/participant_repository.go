@@ -10,6 +10,7 @@ import (
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -58,15 +59,18 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 		participant.UpdatedAt,
 	)
 	if err != nil {
-		// Check for unique constraint violations
-		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_event_email\" (SQLSTATE 23505)" {
-			return apperrors.Conflict("participant with this email already exists for this event")
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
+			switch pgErr.ConstraintName {
+			case "unique_event_email":
+				return apperrors.Conflict("participant with this email already exists for this event")
+			case "participants_qr_code_key":
+				return apperrors.Conflict("QR code already exists")
+			default:
+				return apperrors.Conflict("participant already exists")
+			}
 		}
-		if err.Error() == "ERROR: duplicate key value violates unique constraint "+
-			"\"participants_qr_code_key\" (SQLSTATE 23505)" {
-			return apperrors.Conflict("QR code already exists")
-		}
-		return fmt.Errorf("failed to insert participant: %w", err)
+		return apperrors.Wrapf(err, "failed to insert participant")
 	}
 
 	return nil
