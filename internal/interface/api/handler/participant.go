@@ -254,7 +254,7 @@ func (h *ParticipantHandler) UpdateParticipant(c *gin.Context, id generated.Part
 	// Convert request to usecase input
 	input := participant.UpdateParticipantInput{
 		Name:          req.Name,
-		Email:         convertEmailPtrToStringPtr(req.Email),
+		Email:         convertEmailPtr(req.Email),
 		QREmail:       convertEmailPtr(req.QrEmail),
 		EmployeeID:    req.EmployeeId,
 		Phone:         req.Phone,
@@ -537,15 +537,6 @@ func ptrOrDefault[T any](ptr *T, defaultVal T) T {
 
 // convertEmailPtr converts openapi_types.Email pointer to string pointer
 func convertEmailPtr(email *openapi_types.Email) *string {
-	if email == nil {
-		return nil
-	}
-	str := string(*email)
-	return &str
-}
-
-// convertEmailPtrToStringPtr converts openapi_types.Email pointer to string pointer
-func convertEmailPtrToStringPtr(email *openapi_types.Email) *string {
 	if email == nil {
 		return nil
 	}
