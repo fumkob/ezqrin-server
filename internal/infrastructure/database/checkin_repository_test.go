@@ -59,7 +59,7 @@ var _ = Describe("CheckinRepository", func() {
 
 		repo = database.NewCheckinRepository(db.GetPool())
 		eventRepo = database.NewEventRepository(db.GetPool(), log)
-		participantRepo = database.NewParticipantRepository(db.GetPool())
+		participantRepo = database.NewParticipantRepository(db.GetPool(), log)
 
 		// Create test user (organizer)
 		testUser = &entity.User{
