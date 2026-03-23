@@ -12,6 +12,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/internal/usecase/participant"
+	participantMocks "github.com/fumkob/ezqrin-server/internal/usecase/participant/mocks"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
@@ -19,74 +20,9 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
-
-// mockParticipantUsecase is a hand-rolled mock for participant.Usecase used in handler unit tests.
-// Only SendQRCodes is exercised by QRCodeHandler; all other methods are no-ops.
-type mockParticipantUsecase struct {
-	sendQRCodesFunc func(
-		ctx context.Context,
-		userID uuid.UUID,
-		isAdmin bool,
-		input participant.SendQRCodesInput,
-	) (participant.SendQRCodesOutput, error)
-}
-
-func (m *mockParticipantUsecase) Create(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, input participant.CreateParticipantInput,
-) (*entity.Participant, error) {
-	return nil, nil
-}
-
-func (m *mockParticipantUsecase) BulkCreate(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, input participant.BulkCreateInput,
-) (participant.BulkCreateOutput, error) {
-	return participant.BulkCreateOutput{}, nil
-}
-
-func (m *mockParticipantUsecase) GetByID(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID,
-) (*entity.Participant, error) {
-	return nil, nil
-}
-
-func (m *mockParticipantUsecase) List(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, input participant.ListParticipantsInput,
-) (participant.ListParticipantsOutput, error) {
-	return participant.ListParticipantsOutput{}, nil
-}
-
-func (m *mockParticipantUsecase) Update(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID, input participant.UpdateParticipantInput,
-) (*entity.Participant, error) {
-	return nil, nil
-}
-
-func (m *mockParticipantUsecase) Delete(ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID) error {
-	return nil
-}
-
-func (m *mockParticipantUsecase) GetQRCode(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, id uuid.UUID, format string, size int,
-) (participant.QRCodeOutput, error) {
-	return participant.QRCodeOutput{}, nil
-}
-
-func (m *mockParticipantUsecase) ExportCSV(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, eventID uuid.UUID,
-) ([]*entity.Participant, error) {
-	return nil, nil
-}
-
-func (m *mockParticipantUsecase) SendQRCodes(
-	ctx context.Context, userID uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
-) (participant.SendQRCodesOutput, error) {
-	if m.sendQRCodesFunc != nil {
-		return m.sendQRCodesFunc(ctx, userID, isAdmin, input)
-	}
-	return participant.SendQRCodesOutput{}, nil
-}
 
 // newQRCodeHandlerRouter creates a Gin test router with QRCodeHandler routes, injecting auth context.
 func newQRCodeHandlerRouter(uc participant.Usecase, userID uuid.UUID, role string, log *logger.Logger) *gin.Engine {
@@ -114,20 +50,26 @@ var _ = Describe("QRCodeHandler", func() {
 		log     *logger.Logger
 		eventID uuid.UUID
 		userID  uuid.UUID
+		ctrl    *gomock.Controller
 	)
 
 	BeforeEach(func() {
 		gin.SetMode(gin.TestMode)
-		log = &logger.Logger{Logger: zap.NewNop()}
+		log = newTestLogger()
 		eventID = uuid.New()
 		userID = uuid.New()
+		ctrl = gomock.NewController(GinkgoT())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Describe("SendEventQRCodes", func() {
 		When("the request body is invalid", func() {
 			Context("with malformed JSON", func() {
 				It("should return 400 Bad Request", func() {
-					mockUC := &mockParticipantUsecase{}
+					mockUC := participantMocks.NewMockUsecase(ctrl)
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
 					req := httptest.NewRequest(
@@ -145,7 +87,7 @@ var _ = Describe("QRCodeHandler", func() {
 
 			Context("with missing Content-Type and no body", func() {
 				It("should return 400 Bad Request", func() {
-					mockUC := &mockParticipantUsecase{}
+					mockUC := participantMocks.NewMockUsecase(ctrl)
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
 					req := httptest.NewRequest(
@@ -167,9 +109,10 @@ var _ = Describe("QRCodeHandler", func() {
 				It("should return 200 OK with SentCount and FailedCount=0", func() {
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{
@@ -178,8 +121,7 @@ var _ = Describe("QRCodeHandler", func() {
 								Total:       5,
 								Failures:    []participant.SendQRCodeFailure{},
 							}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -213,9 +155,10 @@ var _ = Describe("QRCodeHandler", func() {
 					pid2 := uuid.New()
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{
@@ -224,8 +167,7 @@ var _ = Describe("QRCodeHandler", func() {
 								Total:       2,
 								Failures:    []participant.SendQRCodeFailure{},
 							}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -254,24 +196,20 @@ var _ = Describe("QRCodeHandler", func() {
 			Context("when some sends succeeded and some failed", func() {
 				It("should return 207 Multi-Status with failure details", func() {
 					failedParticipantID := uuid.New()
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
-						) (participant.SendQRCodesOutput, error) {
-							return participant.SendQRCodesOutput{
-								SentCount:   3,
-								FailedCount: 1,
-								Total:       4,
-								Failures: []participant.SendQRCodeFailure{
-									{
-										ParticipantID: failedParticipantID,
-										Email:         "failed@example.com",
-										Reason:        "SMTP connection refused",
-									},
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(participant.SendQRCodesOutput{
+							SentCount:   3,
+							FailedCount: 1,
+							Total:       4,
+							Failures: []participant.SendQRCodeFailure{
+								{
+									ParticipantID: failedParticipantID,
+									Email:         "failed@example.com",
+									Reason:        "SMTP connection refused",
 								},
-							}, nil
-						},
-					}
+							},
+						}, nil)
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -306,21 +244,17 @@ var _ = Describe("QRCodeHandler", func() {
 
 			Context("when all sends failed (SentCount=0, FailedCount>0)", func() {
 				It("should return 200 OK (not 207) because SentCount is not > 0", func() {
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
-						) (participant.SendQRCodesOutput, error) {
-							return participant.SendQRCodesOutput{
-								SentCount:   0,
-								FailedCount: 2,
-								Total:       2,
-								Failures: []participant.SendQRCodeFailure{
-									{ParticipantID: uuid.New(), Email: "a@example.com", Reason: "timeout"},
-									{ParticipantID: uuid.New(), Email: "b@example.com", Reason: "timeout"},
-								},
-							}, nil
-						},
-					}
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(participant.SendQRCodesOutput{
+							SentCount:   0,
+							FailedCount: 2,
+							Total:       2,
+							Failures: []participant.SendQRCodeFailure{
+								{ParticipantID: uuid.New(), Email: "a@example.com", Reason: "timeout"},
+								{ParticipantID: uuid.New(), Email: "b@example.com", Reason: "timeout"},
+							},
+						}, nil)
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -348,13 +282,9 @@ var _ = Describe("QRCodeHandler", func() {
 		When("the usecase returns an error", func() {
 			Context("with a Forbidden error (caller lacks permission)", func() {
 				It("should return 403 Forbidden", func() {
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
-						) (participant.SendQRCodesOutput, error) {
-							return participant.SendQRCodesOutput{}, apperrors.Forbidden("not the event organizer")
-						},
-					}
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(participant.SendQRCodesOutput{}, apperrors.Forbidden("not the event organizer"))
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -374,13 +304,9 @@ var _ = Describe("QRCodeHandler", func() {
 
 			Context("with a NotFound error (event does not exist)", func() {
 				It("should return 404 Not Found", func() {
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
-						) (participant.SendQRCodesOutput, error) {
-							return participant.SendQRCodesOutput{}, apperrors.NotFound("event not found")
-						},
-					}
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(participant.SendQRCodesOutput{}, apperrors.NotFound("event not found"))
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -404,14 +330,14 @@ var _ = Describe("QRCodeHandler", func() {
 				It("should pass the template value to the usecase", func() {
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{SentCount: 1, Total: 1}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -440,14 +366,14 @@ var _ = Describe("QRCodeHandler", func() {
 				It("should default to template=default", func() {
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{SentCount: 1, Total: 1}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -473,14 +399,14 @@ var _ = Describe("QRCodeHandler", func() {
 					adminID := uuid.New()
 					var capturedIsAdmin bool
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedIsAdmin = isAdmin
 							return participant.SendQRCodesOutput{SentCount: 2, Total: 2}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, adminID, string(entity.RoleAdmin), log)
 
@@ -506,14 +432,14 @@ var _ = Describe("QRCodeHandler", func() {
 					specificEventID := uuid.New()
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{SentCount: 1, Total: 1}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 
@@ -539,14 +465,14 @@ var _ = Describe("QRCodeHandler", func() {
 					pid1, pid2, pid3 := uuid.New(), uuid.New(), uuid.New()
 					var capturedInput participant.SendQRCodesInput
 
-					mockUC := &mockParticipantUsecase{
-						sendQRCodesFunc: func(
-							ctx context.Context, uid uuid.UUID, isAdmin bool, input participant.SendQRCodesInput,
+					mockUC := participantMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().SendQRCodes(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(
+							_ context.Context, _ uuid.UUID, _ bool, input participant.SendQRCodesInput,
 						) (participant.SendQRCodesOutput, error) {
 							capturedInput = input
 							return participant.SendQRCodesOutput{SentCount: 3, Total: 3}, nil
-						},
-					}
+						})
 
 					r := newQRCodeHandlerRouter(mockUC, userID, "organizer", log)
 

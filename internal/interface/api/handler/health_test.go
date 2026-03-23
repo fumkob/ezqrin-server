@@ -27,13 +27,7 @@ var _ = Describe("HealthHandler", func() {
 		gin.SetMode(gin.TestMode)
 
 		// Create test logger
-		var err error
-		log, err = logger.New(logger.Config{
-			Level:       "info",
-			Format:      "json",
-			Environment: "test",
-		})
-		Expect(err).ToNot(HaveOccurred())
+		log = newTestLogger()
 
 		// Create mocks
 		mockDB = &mockDBHealthChecker{healthy: true}
