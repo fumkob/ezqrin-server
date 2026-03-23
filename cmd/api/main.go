@@ -28,12 +28,12 @@ const (
 	dbRetryInterval      = 5 * time.Second
 )
 
-// Application dependencies
-var (
-	appDB     database.Service
-	appLogger *logger.Logger
-	appCache  cache.Service
-)
+// app holds the application's core dependencies.
+type app struct {
+	db     database.Service
+	logger *logger.Logger
+	cache  cache.Service
+}
 
 func main() {
 	// Load configuration from environment variables
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// Initialize logger first (before other dependencies)
-	appLogger, err = logger.New(logger.Config{
+	appLogger, err := logger.New(logger.Config{
 		Level:       cfg.Logging.Level,
 		Format:      cfg.Logging.Format,
 		Environment: cfg.Server.Environment,
@@ -52,31 +52,33 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 
+	a := &app{logger: appLogger}
+
 	// Initialize infrastructure (database, cache)
 	ctx := context.Background()
-	if err := initializeInfrastructure(ctx, cfg); err != nil {
-		appLogger.Fatal("failed to initialize infrastructure", zap.Error(err))
+	if err := a.initializeInfrastructure(ctx, cfg); err != nil {
+		a.logger.Fatal("failed to initialize infrastructure", zap.Error(err))
 	}
-	defer cleanup()
+	defer a.cleanup()
 
 	// Initialize container with repositories and use cases
-	appContainer, err := container.NewContainer(cfg, appLogger, appDB, appCache)
+	appContainer, err := container.NewContainer(cfg, a.logger, a.db, a.cache)
 	if err != nil {
-		appLogger.Fatal("failed to initialize container", zap.Error(err))
+		a.logger.Fatal("failed to initialize container", zap.Error(err))
 	}
 
 	// Setup router with dependencies
 	router := api.SetupRouter(&api.RouterDependencies{
 		Config:    cfg,
-		Logger:    appLogger,
-		DB:        appDB,
-		Cache:     appCache,
+		Logger:    a.logger,
+		DB:        a.db,
+		Cache:     a.cache,
 		Container: appContainer,
 	})
 
 	// Create and run HTTP server
 	srv := createServer(cfg, router)
-	runServerWithGracefulShutdown(srv, cfg)
+	a.runServerWithGracefulShutdown(srv, cfg)
 }
 
 // createServer creates and configures the HTTP server.
@@ -91,11 +93,11 @@ func createServer(cfg *config.Config, handler http.Handler) *http.Server {
 }
 
 // runServerWithGracefulShutdown starts the server and handles graceful shutdown.
-func runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
+func (a *app) runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
 	// Start server in a goroutine
 	serverErrors := make(chan error, 1)
 	go func() {
-		appLogger.Info("starting HTTP server",
+		a.logger.Info("starting HTTP server",
 			zap.Int("port", cfg.Server.Port),
 			zap.String("environment", cfg.Server.Environment),
 		)
@@ -109,10 +111,10 @@ func runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
 	// Block until we receive a signal or server error
 	select {
 	case err := <-serverErrors:
-		appLogger.Fatal("server error", zap.Error(err))
+		a.logger.Fatal("server error", zap.Error(err))
 
 	case sig := <-shutdown:
-		appLogger.Info("received shutdown signal, starting graceful shutdown",
+		a.logger.Info("received shutdown signal, starting graceful shutdown",
 			zap.String("signal", sig.String()),
 		)
 
@@ -122,27 +124,27 @@ func runServerWithGracefulShutdown(srv *http.Server, cfg *config.Config) {
 
 		// Attempt graceful shutdown
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			appLogger.Error("error during shutdown", zap.Error(err))
+			a.logger.Error("error during shutdown", zap.Error(err))
 			if err := srv.Close(); err != nil {
-				appLogger.Fatal("failed to close server", zap.Error(err))
+				a.logger.Fatal("failed to close server", zap.Error(err))
 			}
 		}
 
-		appLogger.Info("server stopped gracefully")
+		a.logger.Info("server stopped gracefully")
 	}
 }
 
 // initializeInfrastructure initializes basic infrastructure dependencies.
-func initializeInfrastructure(ctx context.Context, cfg *config.Config) error {
-	appLogger.Info("initializing application infrastructure")
+func (a *app) initializeInfrastructure(ctx context.Context, cfg *config.Config) error {
+	a.logger.Info("initializing application infrastructure")
 
 	// Initialize database
-	if err := initializeDatabase(ctx, cfg); err != nil {
+	if err := a.initializeDatabase(ctx, cfg); err != nil {
 		return err
 	}
 
 	// Initialize Redis cache
-	if err := initializeRedis(ctx, cfg); err != nil {
+	if err := a.initializeRedis(ctx, cfg); err != nil {
 		return err
 	}
 
@@ -150,9 +152,8 @@ func initializeInfrastructure(ctx context.Context, cfg *config.Config) error {
 }
 
 // initializeDatabase establishes database connection and waits for it to become healthy.
-func initializeDatabase(ctx context.Context, cfg *config.Config) error {
-	var err error
-	db, err := database.NewPostgresDB(ctx, &cfg.Database, appLogger)
+func (a *app) initializeDatabase(ctx context.Context, cfg *config.Config) error {
+	db, err := database.NewPostgresDB(ctx, &cfg.Database, a.logger)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
@@ -166,15 +167,13 @@ func initializeDatabase(ctx context.Context, cfg *config.Config) error {
 		return fmt.Errorf("database not healthy: %w", err)
 	}
 
-	appDB = db // Assign to interface after health check
-	appLogger.Info("database connection established and healthy")
+	a.db = db // Assign to interface after health check
+	a.logger.Info("database connection established and healthy")
 	return nil
 }
 
 // initializeRedis establishes Redis connection and verifies health.
-func initializeRedis(ctx context.Context, cfg *config.Config) error {
-	var err error
-
+func (a *app) initializeRedis(ctx context.Context, cfg *config.Config) error {
 	redisConfig := &redisClient.ClientConfig{
 		Host:         cfg.Redis.Host,
 		Port:         fmt.Sprintf("%d", cfg.Redis.Port),
@@ -192,35 +191,35 @@ func initializeRedis(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize redis: %w", err)
 	}
-	appCache = client // Implicit interface conversion to cache.Service
+	a.cache = client // Implicit interface conversion to cache.Service
 
 	// Verify connection
-	if err := appCache.Ping(ctx); err != nil {
-		appCache.Close()
+	if err := a.cache.Ping(ctx); err != nil {
+		a.cache.Close()
 		return fmt.Errorf("redis not healthy: %w", err)
 	}
 
-	appLogger.Info("redis connection established and healthy")
+	a.logger.Info("redis connection established and healthy")
 	return nil
 }
 
 // cleanup gracefully closes all application dependencies.
-func cleanup() {
-	if appLogger != nil {
-		appLogger.Info("shutting down application infrastructure")
+func (a *app) cleanup() {
+	if a.logger != nil {
+		a.logger.Info("shutting down application infrastructure")
 	}
 
-	if appDB != nil {
-		appDB.Close()
+	if a.db != nil {
+		a.db.Close()
 	}
 
-	if appCache != nil {
-		appCache.Close()
+	if a.cache != nil {
+		a.cache.Close()
 	}
 
-	if appLogger != nil {
+	if a.logger != nil {
 		// Sync logger before exit to flush any buffered logs
-		_ = appLogger.Sync()
-		appLogger.Info("cleanup completed")
+		_ = a.logger.Sync()
+		a.logger.Info("cleanup completed")
 	}
 }
