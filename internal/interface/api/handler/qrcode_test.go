@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
-	"go.uber.org/zap"
 )
 
 // newQRCodeHandlerRouter creates a Gin test router with QRCodeHandler routes, injecting auth context.
