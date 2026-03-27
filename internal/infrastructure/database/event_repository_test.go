@@ -265,7 +265,7 @@ var _ = Describe("EventRepository", func() {
 			var participantRepo repository.ParticipantRepository
 
 			BeforeEach(func() {
-				participantRepo = database.NewParticipantRepository(db.GetPool())
+				participantRepo = database.NewParticipantRepository(db.GetPool(), log)
 				for i, status := range []entity.ParticipantStatus{
 					entity.ParticipantStatusConfirmed,
 					entity.ParticipantStatusTentative,

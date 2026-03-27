@@ -56,7 +56,7 @@ var _ = Describe("ParticipantRepository", func() {
 		db, err = database.NewPostgresDB(ctx, cfg, log)
 		Expect(err).To(BeNil())
 
-		repo = database.NewParticipantRepository(db.GetPool())
+		repo = database.NewParticipantRepository(db.GetPool(), log)
 		userRepo = database.NewUserRepository(db.GetPool(), log)
 		eventRepo = database.NewEventRepository(db.GetPool(), log)
 

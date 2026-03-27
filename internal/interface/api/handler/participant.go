@@ -45,8 +45,8 @@ func (h *ParticipantHandler) CreateParticipant(c *gin.Context, eventID generated
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// Convert request to usecase input
 	status := entity.ParticipantStatusTentative
@@ -86,8 +86,8 @@ func (h *ParticipantHandler) BulkCreateParticipants(c *gin.Context, eventID gene
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// Convert request to usecase input
 	input := h.convertBulkCreateRequest(req, eventID)
@@ -131,8 +131,8 @@ func (h *ParticipantHandler) ImportParticipantsCSV(
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	skipDuplicates := params.SkipDuplicates != nil && *params.SkipDuplicates
 	eventUUID := uuid.UUID(eventID)
@@ -167,8 +167,8 @@ func (h *ParticipantHandler) ListParticipants(
 	eventID generated.EventIDParam,
 	params generated.ListParticipantsParams,
 ) {
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	input := participant.ListParticipantsInput{
 		EventID: uuid.UUID(eventID),
@@ -225,8 +225,8 @@ func (h *ParticipantHandler) ListParticipants(
 // GetParticipant handles getting participant details (GET /participants/{id}).
 func (h *ParticipantHandler) GetParticipant(c *gin.Context, id generated.ParticipantIDParam) {
 	participantID := uuid.UUID(id)
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	p, err := h.usecase.GetByID(c.Request.Context(), userID, isAdmin, participantID)
 	if err != nil {
@@ -248,13 +248,13 @@ func (h *ParticipantHandler) UpdateParticipant(c *gin.Context, id generated.Part
 		return
 	}
 
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// Convert request to usecase input
 	input := participant.UpdateParticipantInput{
 		Name:          req.Name,
-		Email:         convertEmailPtrToStringPtr(req.Email),
+		Email:         convertEmailPtr(req.Email),
 		QREmail:       convertEmailPtr(req.QrEmail),
 		EmployeeID:    req.EmployeeId,
 		Phone:         req.Phone,
@@ -284,8 +284,8 @@ func (h *ParticipantHandler) UpdateParticipant(c *gin.Context, id generated.Part
 // DeleteParticipant handles participant deletion (DELETE /participants/{id}).
 func (h *ParticipantHandler) DeleteParticipant(c *gin.Context, id generated.ParticipantIDParam) {
 	participantID := uuid.UUID(id)
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	err := h.usecase.Delete(c.Request.Context(), userID, isAdmin, participantID)
 	if err != nil {
@@ -303,8 +303,8 @@ func (h *ParticipantHandler) DownloadParticipantQRCode(
 	params generated.DownloadParticipantQRCodeParams,
 ) {
 	participantID := uuid.UUID(id)
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 
 	// Parse parameters with defaults
 	format := "png"
@@ -334,8 +334,8 @@ func (h *ParticipantHandler) ExportParticipantsCSV(
 	id generated.EventIDParam,
 	params generated.ExportParticipantsCSVParams,
 ) {
-	userID := h.getUserID(c)
-	isAdmin := h.getUserRole(c) == string(entity.RoleAdmin)
+	userID, _ := middleware.GetUserID(c)
+	isAdmin := middleware.GetUserRole(c) == string(entity.RoleAdmin)
 	eventID := uuid.UUID(id)
 
 	participants, err := h.usecase.ExportCSV(c.Request.Context(), userID, isAdmin, eventID)
@@ -450,30 +450,6 @@ func (h *ParticipantHandler) convertBulkErrors(errors []participant.BulkCreateEr
 	return bulkErrors
 }
 
-func (h *ParticipantHandler) getUserID(c *gin.Context) uuid.UUID {
-	val, exists := c.Get(middleware.ContextKeyUserID)
-	if !exists {
-		return uuid.Nil
-	}
-	id, ok := val.(uuid.UUID)
-	if !ok {
-		return uuid.Nil
-	}
-	return id
-}
-
-func (h *ParticipantHandler) getUserRole(c *gin.Context) string {
-	val, exists := c.Get(middleware.ContextKeyUserRole)
-	if !exists {
-		return ""
-	}
-	role, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return role
-}
-
 func (h *ParticipantHandler) toGeneratedParticipant(p *entity.Participant) generated.Participant {
 	id := openapi_types.UUID(p.ID)
 	eventID := openapi_types.UUID(p.EventID)
@@ -537,15 +513,6 @@ func ptrOrDefault[T any](ptr *T, defaultVal T) T {
 
 // convertEmailPtr converts openapi_types.Email pointer to string pointer
 func convertEmailPtr(email *openapi_types.Email) *string {
-	if email == nil {
-		return nil
-	}
-	str := string(*email)
-	return &str
-}
-
-// convertEmailPtrToStringPtr converts openapi_types.Email pointer to string pointer
-func convertEmailPtrToStringPtr(email *openapi_types.Email) *string {
 	if email == nil {
 		return nil
 	}

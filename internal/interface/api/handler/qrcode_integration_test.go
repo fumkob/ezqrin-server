@@ -20,6 +20,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/generated"
+	"github.com/fumkob/ezqrin-server/pkg/crypto"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	. "github.com/onsi/ginkgo/v2"
@@ -42,6 +43,8 @@ var _ = Describe("QRCode API Integration", func() {
 	)
 
 	BeforeEach(func() {
+		crypto.SetHashCost(crypto.MinCost)
+
 		var err error
 
 		dbHost := os.Getenv("DB_HOST")
@@ -88,7 +91,7 @@ var _ = Describe("QRCode API Integration", func() {
 			},
 			JWT: config.JWTConfig{
 				Secret:                   jwtSecret,
-				AccessTokenExpiry:        15 * time.Minute,
+				AccessTokenExpiry:        time.Hour,
 				RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
 				RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
 			},

@@ -3,30 +3,32 @@ package database
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/fumkob/ezqrin-server/internal/domain/entity"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ParticipantRepository implements the ParticipantRepository interface.
 type participantRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *logger.Logger
 }
 
 // NewParticipantRepository creates a new participant repository.
-func NewParticipantRepository(pool *pgxpool.Pool) repository.ParticipantRepository {
-	return &participantRepository{pool: pool}
+func NewParticipantRepository(pool *pgxpool.Pool, logger *logger.Logger) repository.ParticipantRepository {
+	return &participantRepository{pool: pool, logger: logger}
 }
 
 // Create creates a new participant in the database.
 func (r *participantRepository) Create(ctx context.Context, participant *entity.Participant) error {
 	if err := participant.Validate(); err != nil {
-		return fmt.Errorf("invalid participant: %w", err)
+		return apperrors.Wrapf(err, "invalid participant")
 	}
 
 	query := `
@@ -58,15 +60,18 @@ func (r *participantRepository) Create(ctx context.Context, participant *entity.
 		participant.UpdatedAt,
 	)
 	if err != nil {
-		// Check for unique constraint violations
-		if err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_event_email\" (SQLSTATE 23505)" {
-			return apperrors.Conflict("participant with this email already exists for this event")
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
+			switch pgErr.ConstraintName {
+			case "unique_event_email":
+				return apperrors.Conflict("participant with this email already exists for this event")
+			case "participants_qr_code_key":
+				return apperrors.Conflict("QR code already exists")
+			default:
+				return apperrors.Conflict("participant already exists")
+			}
 		}
-		if err.Error() == "ERROR: duplicate key value violates unique constraint "+
-			"\"participants_qr_code_key\" (SQLSTATE 23505)" {
-			return apperrors.Conflict("QR code already exists")
-		}
-		return fmt.Errorf("failed to insert participant: %w", err)
+		return apperrors.Wrapf(err, "failed to insert participant")
 	}
 
 	return nil
@@ -81,7 +86,7 @@ func (r *participantRepository) BulkCreate(ctx context.Context, participants []*
 	// Validate all participants first
 	for _, p := range participants {
 		if err := p.Validate(); err != nil {
-			return fmt.Errorf("invalid participant: %w", err)
+			return apperrors.Wrapf(err, "invalid participant")
 		}
 	}
 
@@ -125,7 +130,11 @@ func (r *participantRepository) BulkCreate(ctx context.Context, participants []*
 	for i := 0; i < len(participants); i++ {
 		_, err := results.Exec()
 		if err != nil {
-			return fmt.Errorf("failed to insert participant batch: %w", err)
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
+				return apperrors.Conflict("participant already exists")
+			}
+			return apperrors.Wrapf(err, "failed to insert participant batch")
 		}
 	}
 
@@ -150,7 +159,7 @@ func (r *participantRepository) FindByID(ctx context.Context, id uuid.UUID) (*en
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperrors.NotFound("participant not found")
 		}
-		return nil, fmt.Errorf("failed to find participant: %w", err)
+		return nil, apperrors.Wrapf(err, "failed to find participant")
 	}
 
 	return participant, nil
@@ -252,7 +261,7 @@ func (r *participantRepository) FindByQRCode(ctx context.Context, qrCode string)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperrors.NotFound("participant not found")
 		}
-		return nil, fmt.Errorf("failed to find participant by QR code: %w", err)
+		return nil, apperrors.Wrapf(err, "failed to find participant by QR code")
 	}
 
 	return participant, nil
@@ -280,7 +289,7 @@ func (r *participantRepository) FindByEmployeeID(
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperrors.NotFound("participant not found")
 		}
-		return nil, fmt.Errorf("failed to find participant by employee ID: %w", err)
+		return nil, apperrors.Wrapf(err, "failed to find participant by employee ID")
 	}
 
 	return participant, nil
@@ -289,7 +298,7 @@ func (r *participantRepository) FindByEmployeeID(
 // Update updates an existing participant's information.
 func (r *participantRepository) Update(ctx context.Context, participant *entity.Participant) error {
 	if err := participant.Validate(); err != nil {
-		return fmt.Errorf("invalid participant: %w", err)
+		return apperrors.Wrapf(err, "invalid participant")
 	}
 
 	query := `
@@ -324,7 +333,7 @@ func (r *participantRepository) Update(ctx context.Context, participant *entity.
 		participant.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update participant: %w", err)
+		return apperrors.Wrapf(err, "failed to update participant")
 	}
 
 	if result.RowsAffected() == 0 {
@@ -343,7 +352,7 @@ func (r *participantRepository) Delete(ctx context.Context, id uuid.UUID) error 
 
 	result, err := r.pool.Exec(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("failed to delete participant: %w", err)
+		return apperrors.Wrapf(err, "failed to delete participant")
 	}
 
 	if result.RowsAffected() == 0 {
@@ -420,7 +429,7 @@ func (r *participantRepository) ExistsByEmail(ctx context.Context, eventID uuid.
 	var exists bool
 	err := r.pool.QueryRow(ctx, query, eventID, email).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("failed to check participant existence: %w", err)
+		return false, apperrors.Wrapf(err, "failed to check participant existence")
 	}
 
 	return exists, nil
@@ -452,7 +461,7 @@ func (r *participantRepository) GetPaymentStats(
 		&stats.TotalPaymentAmount,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get payment stats: %w", err)
+		return nil, apperrors.Wrapf(err, "failed to get payment stats")
 	}
 
 	return stats, nil
@@ -533,7 +542,7 @@ func (r *participantRepository) queryParticipantsWithCheckin(
 	const defaultCapacity = 10
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query participants: %w", err)
+		return nil, apperrors.Wrapf(err, "failed to query participants")
 	}
 	defer rows.Close()
 
@@ -541,13 +550,13 @@ func (r *participantRepository) queryParticipantsWithCheckin(
 	for rows.Next() {
 		participant, err := r.scanParticipantWithCheckin(rows)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan participant: %w", err)
+			return nil, apperrors.Wrapf(err, "failed to scan participant")
 		}
 		participants = append(participants, participant)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating participants: %w", err)
+		return nil, apperrors.Wrapf(err, "error iterating participants")
 	}
 
 	return participants, nil
@@ -565,7 +574,7 @@ func (r *participantRepository) countParticipants(
 	var total int64
 	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count participants: %w", err)
+		return 0, apperrors.Wrapf(err, "failed to count participants")
 	}
 	return total, nil
 }

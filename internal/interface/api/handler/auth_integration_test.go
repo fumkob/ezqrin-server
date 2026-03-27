@@ -50,6 +50,8 @@ var _ = Describe("Authentication API Integration", func() {
 	)
 
 	BeforeEach(func() {
+		crypto.SetHashCost(crypto.MinCost)
+
 		var err error
 
 		// Create test configuration using environment variables if available
@@ -97,7 +99,7 @@ var _ = Describe("Authentication API Integration", func() {
 			},
 			JWT: config.JWTConfig{
 				Secret:                   jwtSecret,
-				AccessTokenExpiry:        15 * time.Minute,
+				AccessTokenExpiry:        time.Hour,
 				RefreshTokenExpiryWeb:    7 * 24 * time.Hour,
 				RefreshTokenExpiryMobile: 90 * 24 * time.Hour,
 			},
