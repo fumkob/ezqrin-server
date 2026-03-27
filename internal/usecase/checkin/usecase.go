@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -destination=mocks/mock_usecase.go -package=mocks . Usecase
+
 // Usecase defines check-in business logic operations
 type Usecase interface {
 	CheckIn(

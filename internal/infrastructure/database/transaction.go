@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +13,8 @@ import (
 
 // txKey is the context key for storing pgx.Tx
 type txKey struct{}
+
+const rollbackTimeout = 5 * time.Second
 
 // WithTransaction executes the provided function within a database transaction.
 // It automatically handles begin, commit, and rollback based on the function's return value.
@@ -42,7 +45,9 @@ func WithTransaction(ctx context.Context, pool *pgxpool.Pool, fn func(context.Co
 	defer func() {
 		if p := recover(); p != nil {
 			// Rollback on panic using background context (original context may be cancelled)
-			_ = tx.Rollback(context.Background())
+			rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), rollbackTimeout)
+			_ = tx.Rollback(rollbackCtx)
+			rollbackCancel()
 			panic(p) // Re-throw panic after rollback
 		}
 	}()
@@ -50,7 +55,10 @@ func WithTransaction(ctx context.Context, pool *pgxpool.Pool, fn func(context.Co
 	// Execute the provided function
 	if err := fn(txCtx); err != nil {
 		// Rollback on error using background context (original context may be cancelled)
-		if rbErr := tx.Rollback(context.Background()); rbErr != nil {
+		rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), rollbackTimeout)
+		rbErr := tx.Rollback(rollbackCtx)
+		rollbackCancel()
+		if rbErr != nil {
 			// Wrap both errors properly to preserve error context
 			return fmt.Errorf("transaction failed: %w (rollback also failed: %w)", err, rbErr)
 		}

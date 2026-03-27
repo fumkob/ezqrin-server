@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // mockDBHealthChecker implements database.HealthChecker for testing.
@@ -39,4 +41,9 @@ func (m *mockRedisHealthChecker) Ping(ctx context.Context) error {
 		return m.err
 	}
 	return nil
+}
+
+// newTestLogger returns a test logger with no-op logging.
+func newTestLogger() *logger.Logger {
+	return &logger.Logger{Logger: zap.NewNop()}
 }

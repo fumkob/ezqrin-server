@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,72 +12,14 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/interface/api/handler"
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/internal/usecase/event"
+	eventMocks "github.com/fumkob/ezqrin-server/internal/usecase/event/mocks"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
-
-// mockEventUsecase is a hand-rolled mock for event.Usecase used in handler unit tests.
-type mockEventUsecase struct {
-	createFunc  func(ctx context.Context, input event.CreateEventInput) (*entity.Event, error)
-	getByIDFunc func(ctx context.Context, id uuid.UUID) (*entity.Event, error)
-	listFunc    func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error)
-	updateFunc  func(
-		ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
-	) (*entity.Event, error)
-	deleteFunc   func(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool) error
-	getStatsFunc func(
-		ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool,
-	) (event.EventStatsOutput, error)
-}
-
-func (m *mockEventUsecase) Create(ctx context.Context, input event.CreateEventInput) (*entity.Event, error) {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, input)
-	}
-	return nil, nil
-}
-
-func (m *mockEventUsecase) GetByID(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
-	if m.getByIDFunc != nil {
-		return m.getByIDFunc(ctx, id)
-	}
-	return nil, nil
-}
-
-func (m *mockEventUsecase) List(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error) {
-	if m.listFunc != nil {
-		return m.listFunc(ctx, input)
-	}
-	return event.ListEventsOutput{}, nil
-}
-
-func (m *mockEventUsecase) Update(
-	ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
-) (*entity.Event, error) {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, organizerID, isAdmin, input)
-	}
-	return nil, nil
-}
-
-func (m *mockEventUsecase) Delete(ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id, organizerID, isAdmin)
-	}
-	return nil
-}
-
-func (m *mockEventUsecase) GetStats(
-	ctx context.Context, id uuid.UUID, organizerID uuid.UUID, isAdmin bool,
-) (event.EventStatsOutput, error) {
-	if m.getStatsFunc != nil {
-		return m.getStatsFunc(ctx, id, organizerID, isAdmin)
-	}
-	return event.EventStatsOutput{}, nil
-}
 
 // newTestEntityEvent creates an entity.Event with specified participant and checked-in counts.
 func newTestEntityEvent(organizerID uuid.UUID, participantCount, checkedInCount int64) *entity.Event {
@@ -129,18 +70,18 @@ var _ = Describe("EventHandler", func() {
 	var (
 		log         *logger.Logger
 		organizerID uuid.UUID
+		ctrl        *gomock.Controller
 	)
 
 	BeforeEach(func() {
 		gin.SetMode(gin.TestMode)
-		var err error
-		log, err = logger.New(logger.Config{
-			Level:       "warn",
-			Format:      "console",
-			Environment: "test",
-		})
-		Expect(err).NotTo(HaveOccurred())
+		log = newTestLogger()
 		organizerID = uuid.New()
+		ctrl = gomock.NewController(GinkgoT())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	// GetEvents returns: {"data": [...events...], "meta": {...}}
@@ -149,14 +90,11 @@ var _ = Describe("EventHandler", func() {
 			Context("with events that have non-zero participant_count and checked_in_count", func() {
 				It("should include participant_count and checked_in_count in each event in the response", func() {
 					evt := newTestEntityEvent(organizerID, 42, 10)
-					mockUC := &mockEventUsecase{
-						listFunc: func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error) {
-							return event.ListEventsOutput{
-								Events:     []*entity.Event{evt},
-								TotalCount: 1,
-							}, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().List(gomock.Any(), gomock.Any()).Return(event.ListEventsOutput{
+						Events:     []*entity.Event{evt},
+						TotalCount: 1,
+					}, nil)
 
 					r := newEventHandlerRouter(mockUC, organizerID, "organizer", log)
 
@@ -186,14 +124,11 @@ var _ = Describe("EventHandler", func() {
 			Context("with events that have zero counts", func() {
 				It("should include participant_count=0 and checked_in_count=0 in the response", func() {
 					evt := newTestEntityEvent(organizerID, 0, 0)
-					mockUC := &mockEventUsecase{
-						listFunc: func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error) {
-							return event.ListEventsOutput{
-								Events:     []*entity.Event{evt},
-								TotalCount: 1,
-							}, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().List(gomock.Any(), gomock.Any()).Return(event.ListEventsOutput{
+						Events:     []*entity.Event{evt},
+						TotalCount: 1,
+					}, nil)
 
 					r := newEventHandlerRouter(mockUC, organizerID, "organizer", log)
 
@@ -221,14 +156,11 @@ var _ = Describe("EventHandler", func() {
 				It("should map counts correctly per event", func() {
 					evt1 := newTestEntityEvent(organizerID, 5, 3)
 					evt2 := newTestEntityEvent(organizerID, 20, 18)
-					mockUC := &mockEventUsecase{
-						listFunc: func(ctx context.Context, input event.ListEventsInput) (event.ListEventsOutput, error) {
-							return event.ListEventsOutput{
-								Events:     []*entity.Event{evt1, evt2},
-								TotalCount: 2,
-							}, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().List(gomock.Any(), gomock.Any()).Return(event.ListEventsOutput{
+						Events:     []*entity.Event{evt1, evt2},
+						TotalCount: 2,
+					}, nil)
 
 					r := newEventHandlerRouter(mockUC, organizerID, "organizer", log)
 
@@ -263,11 +195,8 @@ var _ = Describe("EventHandler", func() {
 				It("should include participant_count and checked_in_count in the response", func() {
 					evt := newTestEntityEvent(organizerID, 15, 7)
 
-					mockUC := &mockEventUsecase{
-						getByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
-							return evt, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(evt, nil)
 
 					r := newEventHandlerRouter(mockUC, organizerID, "organizer", log)
 
@@ -294,11 +223,8 @@ var _ = Describe("EventHandler", func() {
 					adminID := uuid.New()
 					evt := newTestEntityEvent(organizerID, 100, 55)
 
-					mockUC := &mockEventUsecase{
-						getByIDFunc: func(ctx context.Context, id uuid.UUID) (*entity.Event, error) {
-							return evt, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(evt, nil)
 
 					r := newEventHandlerRouter(mockUC, adminID, "admin", log)
 
@@ -326,13 +252,10 @@ var _ = Describe("EventHandler", func() {
 				It("should include participant_count and checked_in_count in the response", func() {
 					evt := newTestEntityEvent(organizerID, 30, 12)
 
-					mockUC := &mockEventUsecase{
-						updateFunc: func(
-							ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
-						) (*entity.Event, error) {
-							return evt, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().
+						Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(evt, nil)
 
 					r := newEventHandlerRouter(mockUC, organizerID, "organizer", log)
 
@@ -360,13 +283,10 @@ var _ = Describe("EventHandler", func() {
 					adminID := uuid.New()
 					evt := newTestEntityEvent(organizerID, 8, 4)
 
-					mockUC := &mockEventUsecase{
-						updateFunc: func(
-							ctx context.Context, id uuid.UUID, oID uuid.UUID, isAdmin bool, input event.UpdateEventInput,
-						) (*entity.Event, error) {
-							return evt, nil
-						},
-					}
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().
+						Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						Return(evt, nil)
 
 					r := newEventHandlerRouter(mockUC, adminID, "admin", log)
 
