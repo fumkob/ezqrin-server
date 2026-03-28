@@ -133,14 +133,32 @@ Automatic instrumentation via `redisotel.InstrumentClient()`.
 - Span: `redis.command` (per command execution)
 - Attributes: `db.system=redis`, `db.operation`
 
-### Log Correlation
+### Log Pipeline
 
-Zap logs are automatically enriched with trace correlation fields.
+Structured logs are exported to Loki via OTel Logs SDK for centralized aggregation and trace
+correlation.
 
-- Fields injected: `trace_id`, `span_id`
-- Mechanism: `WithContext(ctx)` extension retrieves the active span from the context
-- Existing `request_id` field is preserved unchanged
-- When no span is present in the context, logging proceeds without error
+#### Zap to OTel Bridge
+
+- Zap logger is wrapped with `otelzap.NewHandler()` to bridge log records to the OTel Logs SDK
+- All Zap log output is simultaneously sent to stdout (for local debugging) and to OTel
+  LoggerProvider (for export)
+- Log records automatically include `trace_id` and `span_id` from the active span in context
+
+#### Log Attributes
+
+- `trace_id`: Trace correlation identifier (auto-injected from span context)
+- `span_id`: Span correlation identifier (auto-injected from span context)
+- `request_id`: Request identifier (preserved from existing middleware)
+- `level`: Log level (info, warn, error, etc.)
+- `caller`: Source file and line number
+
+#### Behavior
+
+- When a span exists in context: trace_id and span_id are automatically attached
+- When no span is present: logging proceeds without error, correlation fields are omitted
+- stdout output is always maintained regardless of OTel export status
+- When `OTEL_ENABLED=false`: only stdout output, no OTel export
 
 ---
 
