@@ -177,6 +177,16 @@ func (l *Logger) Fatal(msg string, fields ...zap.Field) {
 	l.Logger.Fatal(msg, fields...)
 }
 
+// WithOTelCore returns a new Logger that tees output to the given additional core.
+// This is used to bridge Zap logs to OTel Logs SDK without creating a dependency
+// from the logger package to the telemetry package.
+func (l *Logger) WithOTelCore(core zapcore.Core) *Logger {
+	combined := zapcore.NewTee(l.Logger.Core(), core)
+	return &Logger{
+		Logger: zap.New(combined, zap.AddCaller(), zap.AddCallerSkip(1)),
+	}
+}
+
 // Sync flushes any buffered log entries
 func (l *Logger) Sync() error {
 	return l.Logger.Sync()
