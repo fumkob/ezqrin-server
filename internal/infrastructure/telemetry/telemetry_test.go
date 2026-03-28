@@ -1,0 +1,116 @@
+package telemetry_test
+
+import (
+	"context"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
+)
+
+var _ = Describe("NewTracerProvider", func() {
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
+
+	When("telemetry is disabled", func() {
+		It("should return a noop TracerProvider without error", func() {
+			cfg := telemetry.Config{
+				Enabled: false,
+			}
+
+			tp, err := telemetry.NewTracerProvider(ctx, cfg)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tp).NotTo(BeNil())
+
+			// The noop provider should still work: create a tracer, start a span
+			tracer := tp.Tracer("test")
+			_, span := tracer.Start(ctx, "test-span")
+			span.End()
+
+			// Shutdown should succeed
+			Expect(tp.Shutdown(ctx)).To(Succeed())
+		})
+	})
+
+	When("telemetry is enabled", func() {
+		Context("with a valid OTLP endpoint", func() {
+			It("should create a TracerProvider that can produce spans", func() {
+				cfg := telemetry.Config{
+					Enabled:          true,
+					ServiceName:      "test-service",
+					OTLPEndpoint:     "localhost:4317",
+					OTLPInsecure:     true,
+					TracesSampler:    "always_on",
+					TracesSamplerArg: 1.0,
+				}
+
+				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tp).NotTo(BeNil())
+
+				// Should be able to create a tracer and start a span
+				tracer := tp.Tracer("test")
+				spanCtx, span := tracer.Start(ctx, "test-span")
+				Expect(spanCtx).NotTo(BeNil())
+				Expect(span).NotTo(BeNil())
+				Expect(span.SpanContext().IsValid()).To(BeTrue())
+				span.End()
+
+				// Shutdown should succeed (even if collector is not running,
+				// the batch exporter drains gracefully)
+				Expect(tp.Shutdown(ctx)).To(Succeed())
+			})
+		})
+
+		Context("with always_off sampler", func() {
+			It("should create a TracerProvider that does not sample", func() {
+				cfg := telemetry.Config{
+					Enabled:          true,
+					ServiceName:      "test-service",
+					OTLPEndpoint:     "localhost:4317",
+					OTLPInsecure:     true,
+					TracesSampler:    "always_off",
+					TracesSamplerArg: 0,
+				}
+
+				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tp).NotTo(BeNil())
+
+				tracer := tp.Tracer("test")
+				_, span := tracer.Start(ctx, "test-span")
+				Expect(span.SpanContext().IsSampled()).To(BeFalse())
+				span.End()
+
+				Expect(tp.Shutdown(ctx)).To(Succeed())
+			})
+		})
+
+		Context("with traceidratio sampler", func() {
+			It("should create a TracerProvider without error", func() {
+				cfg := telemetry.Config{
+					Enabled:          true,
+					ServiceName:      "test-service",
+					OTLPEndpoint:     "localhost:4317",
+					OTLPInsecure:     true,
+					TracesSampler:    "traceidratio",
+					TracesSamplerArg: 0.5,
+				}
+
+				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tp).NotTo(BeNil())
+
+				Expect(tp.Shutdown(ctx)).To(Succeed())
+			})
+		})
+	})
+})
