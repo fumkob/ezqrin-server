@@ -8,6 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
+
+	"go.opentelemetry.io/otel"
 )
 
 var _ = Describe("NewTracerProvider", func() {
@@ -167,6 +169,66 @@ var _ = Describe("NewMeterProvider", func() {
 				defer cancel()
 				_ = mp.Shutdown(shutdownCtx)
 			})
+		})
+	})
+})
+
+var _ = Describe("Init", func() {
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
+
+	When("telemetry is enabled", func() {
+		It("should initialize all providers and return non-nil Providers and ShutdownFunc", func() {
+			cfg := telemetry.Config{
+				Enabled:          true,
+				ServiceName:      "test-service",
+				OTLPEndpoint:     "localhost:4317",
+				OTLPInsecure:     true,
+				TracesSampler:    "always_on",
+				TracesSamplerArg: 1.0,
+				LogsExporter:     "otlp",
+			}
+
+			providers, shutdown, err := telemetry.Init(ctx, cfg)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(providers).NotTo(BeNil())
+			Expect(providers.TracerProvider).NotTo(BeNil())
+			Expect(providers.MeterProvider).NotTo(BeNil())
+			Expect(providers.LoggerProvider).NotTo(BeNil())
+			Expect(shutdown).NotTo(BeNil())
+
+			// Verify global registration
+			Expect(otel.GetTracerProvider()).To(Equal(providers.TracerProvider))
+			Expect(otel.GetMeterProvider()).To(Equal(providers.MeterProvider))
+
+			// Shutdown should succeed (graceful drain even without collector)
+			shutdownCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+			defer cancel()
+			_ = shutdown(shutdownCtx)
+		})
+	})
+
+	When("telemetry is disabled", func() {
+		It("should return noop providers and shutdown should succeed", func() {
+			cfg := telemetry.Config{
+				Enabled: false,
+			}
+
+			providers, shutdown, err := telemetry.Init(ctx, cfg)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(providers).NotTo(BeNil())
+			Expect(providers.TracerProvider).NotTo(BeNil())
+			Expect(providers.MeterProvider).NotTo(BeNil())
+			Expect(providers.LoggerProvider).NotTo(BeNil())
+			Expect(shutdown).NotTo(BeNil())
+
+			// Shutdown should succeed
+			Expect(shutdown(ctx)).To(Succeed())
 		})
 	})
 })
