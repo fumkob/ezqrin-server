@@ -60,6 +60,16 @@ qrcode:
   # HMAC secret for QR code signing (set via QR_HMAC_SECRET env var)
   hmac_secret: ""
 
+# Telemetry (OpenTelemetry) Configuration
+telemetry:
+  enabled: true
+  service_name: ezqrin-server
+  otlp_endpoint: localhost:4317
+  otlp_insecure: true
+  traces_sampler: always_on
+  traces_sampler_arg: 1.0
+  logs_exporter: otlp
+
 # Email Configuration
 email:
   backend: "smtp"

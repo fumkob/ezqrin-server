@@ -23,14 +23,15 @@ const (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	Logging  LoggingConfig
-	CORS     CORSConfig
-	QRCode   QRCodeConfig
-	Email    EmailConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	JWT       JWTConfig
+	Logging   LoggingConfig
+	CORS      CORSConfig
+	QRCode    QRCodeConfig
+	Email     EmailConfig
+	Telemetry TelemetryConfig
 }
 
 // ServerConfig contains server-related configuration
@@ -139,6 +140,17 @@ type EmailConfig struct {
 	// Use this when the recipient's mail server blocks HTML emails.
 	// Set via EMAIL_PLAIN_TEXT_ONLY=true.
 	PlainTextOnly bool
+}
+
+// TelemetryConfig contains OpenTelemetry configuration.
+type TelemetryConfig struct {
+	Enabled          bool
+	ServiceName      string
+	OTLPEndpoint     string
+	OTLPInsecure     bool
+	TracesSampler    string
+	TracesSamplerArg float64
+	LogsExporter     string
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -277,6 +289,15 @@ var envKeyMap = map[string]string{
 	"QR_HOSTING_BASE_URL":  "qrcode.hosting_base_url",
 	"WALLET_PASS_BASE_URL": "qrcode.wallet_pass_base_url",
 
+	// Telemetry
+	"OTEL_ENABLED":                "telemetry.enabled",
+	"OTEL_SERVICE_NAME":           "telemetry.service_name",
+	"OTEL_EXPORTER_OTLP_ENDPOINT": "telemetry.otlp_endpoint",
+	"OTEL_EXPORTER_OTLP_INSECURE": "telemetry.otlp_insecure",
+	"OTEL_TRACES_SAMPLER":         "telemetry.traces_sampler",
+	"OTEL_TRACES_SAMPLER_ARG":     "telemetry.traces_sampler_arg",
+	"OTEL_LOGS_EXPORTER":          "telemetry.logs_exporter",
+
 	// Email
 	"EMAIL_BACKEND":             "email.backend",
 	"EMAIL_FROM_ADDRESS":        "email.from_address",
@@ -337,6 +358,17 @@ func unmarshalEmailConfig(v *viper.Viper, cfg *Config) {
 	cfg.Email.PlainTextOnly = v.GetBool("email.plain_text_only")
 }
 
+// unmarshalTelemetryConfig maps telemetry configuration from viper to Config.
+func unmarshalTelemetryConfig(v *viper.Viper, cfg *Config) {
+	cfg.Telemetry.Enabled = v.GetBool("telemetry.enabled")
+	cfg.Telemetry.ServiceName = v.GetString("telemetry.service_name")
+	cfg.Telemetry.OTLPEndpoint = v.GetString("telemetry.otlp_endpoint")
+	cfg.Telemetry.OTLPInsecure = v.GetBool("telemetry.otlp_insecure")
+	cfg.Telemetry.TracesSampler = v.GetString("telemetry.traces_sampler")
+	cfg.Telemetry.TracesSamplerArg = v.GetFloat64("telemetry.traces_sampler_arg")
+	cfg.Telemetry.LogsExporter = v.GetString("telemetry.logs_exporter")
+}
+
 // unmarshalConfig maps viper configuration to Config struct
 func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.Port = v.GetInt("server.port")
@@ -385,6 +417,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.QRCode.WalletPassBaseURL = v.GetString("qrcode.wallet_pass_base_url")
 
 	unmarshalEmailConfig(v, cfg)
+	unmarshalTelemetryConfig(v, cfg)
 
 	// Validate required fields
 	if cfg.Database.User == "" {
