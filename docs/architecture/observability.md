@@ -371,10 +371,11 @@ open http://localhost:3000
 
 ## Future Extensions
 
-- Log aggregation and visualization via Loki
 - Instrumentation of external service calls (email sending, QR code generation)
+- Production log backend integration (Cloud Logging, Datadog Logs) via Collector exporter swap
 - Production backend support (Cloud Trace, Datadog, etc.)
 - Custom Grafana dashboards
+- Grafana dashboard templates for log-trace correlation workflows
 - Alert rule configuration
 
 ---
