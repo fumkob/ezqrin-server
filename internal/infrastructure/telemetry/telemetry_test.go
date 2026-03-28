@@ -4,11 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
-
 	"go.opentelemetry.io/otel"
 )
 

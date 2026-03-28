@@ -328,6 +328,21 @@ func bindEnvVars(v *viper.Viper) {
 	}
 }
 
+// unmarshalDatabaseConfig maps database configuration from viper to Config.
+func unmarshalDatabaseConfig(v *viper.Viper, cfg *Config) {
+	cfg.Database.Host = v.GetString("database.host")
+	cfg.Database.Port = v.GetInt("database.port")
+	cfg.Database.User = v.GetString("database.user")
+	cfg.Database.Password = v.GetString("database.password")
+	// Check environment variable first for database.name to support test database override
+	cfg.Database.Name = getEnvOrDefault("DB_NAME", v.GetString("database.name"))
+	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
+	cfg.Database.MaxConns = v.GetInt("database.max_conns")
+	cfg.Database.MinConns = v.GetInt("database.min_conns")
+	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
+	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
+}
+
 // unmarshalRedisConfig maps Redis configuration from viper to Config
 func unmarshalRedisConfig(v *viper.Viper, cfg *Config) {
 	cfg.Redis.Host = v.GetString("redis.host")
@@ -377,18 +392,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
 	cfg.Server.IdleTimeout = v.GetDuration("server.idle_timeout")
 
-	cfg.Database.Host = v.GetString("database.host")
-	cfg.Database.Port = v.GetInt("database.port")
-	cfg.Database.User = v.GetString("database.user")
-	cfg.Database.Password = v.GetString("database.password")
-	// Check environment variable first for database.name to support test database override
-	cfg.Database.Name = getEnvOrDefault("DB_NAME", v.GetString("database.name"))
-	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
-	cfg.Database.MaxConns = v.GetInt("database.max_conns")
-	cfg.Database.MinConns = v.GetInt("database.min_conns")
-	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
-	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
-
+	unmarshalDatabaseConfig(v, cfg)
 	unmarshalRedisConfig(v, cfg)
 
 	cfg.JWT.Secret = v.GetString("jwt.secret")

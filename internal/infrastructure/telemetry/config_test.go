@@ -3,10 +3,9 @@ package telemetry_test
 import (
 	"os"
 
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 )
 
 var _ = Describe("Config", func() {
