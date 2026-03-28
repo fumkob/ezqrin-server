@@ -175,8 +175,14 @@ correlation.
 | OTEL_TRACES_SAMPLER           | always_on         | Sampling strategy                        |
 | OTEL_TRACES_SAMPLER_ARG       | 1.0               | Sampling ratio                           |
 | OTEL_LOG_LEVEL                | info              | OTel SDK internal log level              |
+| OTEL_LOGS_EXPORTER                | otlp              | Log exporter type (otlp or none)         |
 
 All variable names follow the official OTel environment variable naming convention (`OTEL_*`).
+
+All three signals (traces, metrics, logs) share the same `OTEL_EXPORTER_OTLP_ENDPOINT`. Per-signal
+endpoint override is possible via `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`,
+`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, and `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` following the OTel
+environment variable specification, but this is not required for typical usage.
 
 ### Configuration Struct
 
