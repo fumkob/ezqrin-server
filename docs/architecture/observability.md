@@ -20,6 +20,7 @@ required.
 - Visualize request flows end-to-end with distributed tracing
 - Measure performance and error rates through metrics
 - Automatically inject Trace ID and Span ID into log output for log-trace correlation
+- Collect and aggregate structured logs via OTel Logs SDK and Loki for log-trace correlation
 - Enable telemetry visualization in local environments via Jaeger, Prometheus, and Grafana
 - Support exporter switching through environment variables
 - Allow complete telemetry disablement via `OTEL_ENABLED=false`
@@ -27,7 +28,7 @@ required.
 ### Non-Goals
 
 - Production infrastructure provisioning (Cloud Trace, Datadog, etc.)
-- Log aggregation backends such as Loki
+- Production log backend provisioning (Cloud Logging, Datadog Logs, etc.) — achievable via Collector config swap with no application changes
 - Custom Grafana dashboard creation
 - Instrumentation of external service calls such as email sending and QR code generation
 
