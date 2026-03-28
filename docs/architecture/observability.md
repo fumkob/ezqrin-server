@@ -337,6 +337,9 @@ must behave identically whether telemetry is enabled or disabled.
 | router.go     | Requests are processed correctly after otelgin middleware is added             |
 | logger.go     | `trace_id` and `span_id` are present in logs when a span exists in the context |
 | logger.go     | Logging does not error when no span is present in the context                  |
+| logger.go         | LoggerProvider enabled: log records are sent to OTel Logs SDK                 |
+| logger.go         | `OTEL_ENABLED=false`: stdout output only, no OTel export                      |
+| telemetry.go      | LoggerProvider initialization and shutdown complete without error              |
 
 The `telemetry` package uses `tracetest.SpanRecorder` to verify span generation in unit tests.
 
@@ -354,6 +357,14 @@ open http://localhost:16686
 
 # 4. Verify metrics in Grafana
 open http://localhost:3000
+
+# 5. Verify logs in Grafana via Loki data source
+open http://localhost:3000
+
+# 6. In Grafana Explore, query Loki for recent log lines and confirm trace_id field is present
+
+# 7. From a trace in Jaeger, use the Trace-to-Log jump feature to navigate to correlated log lines
+#    in Loki via trace_id
 ```
 
 ---
