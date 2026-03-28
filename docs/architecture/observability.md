@@ -20,6 +20,7 @@ required.
 - Visualize request flows end-to-end with distributed tracing
 - Measure performance and error rates through metrics
 - Automatically inject Trace ID and Span ID into log output for log-trace correlation
+- Collect and aggregate structured logs via OTel Logs SDK and Loki
 - Enable telemetry visualization in local environments via Jaeger, Prometheus, and Grafana
 - Support exporter switching through environment variables
 - Allow complete telemetry disablement via `OTEL_ENABLED=false`
@@ -27,7 +28,7 @@ required.
 ### Non-Goals
 
 - Production infrastructure provisioning (Cloud Trace, Datadog, etc.)
-- Log aggregation backends such as Loki
+- Production log backend provisioning (Cloud Logging, Datadog Logs, etc.) — achievable via Collector config swap with no application changes
 - Custom Grafana dashboard creation
 - Instrumentation of external service calls such as email sending and QR code generation
 
@@ -38,44 +39,44 @@ required.
 ### Signal Flow
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  ezQRin Server (Go)                                 │
-│                                                     │
-│  ┌─────────┐  ┌──────────┐  ┌─────────┐            │
-│  │ otelgin │  │ otelpgx  │  │redisotel│            │
-│  │ MW      │  │ tracer   │  │ hook    │            │
-│  └────┬────┘  └────┬─────┘  └────┬────┘            │
-│       │            │             │                  │
-│  ┌────▼────────────▼─────────────▼────┐             │
-│  │     OTel SDK (TracerProvider,      │             │
-│  │     MeterProvider, LoggerProvider) │             │
-│  └────────────────┬───────────────────┘             │
-│                   │ OTLP (gRPC)                     │
-└───────────────────┼─────────────────────────────────┘
-                    ▼
-          ┌─────────────────┐
-          │  OTel Collector │
-          │  (Gateway)      │
-          └──┬──────┬───────┘
-             │      │
-     ┌───────▼┐  ┌──▼────────┐
-     │ Jaeger │  │Prometheus │
-     │(traces)│  │ (metrics) │
-     └───┬────┘  └──┬────────┘
-         │          │
-     ┌───▼──────────▼───┐
-     │     Grafana       │
-     │  (dashboards)     │
-     └───────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  ezQRin Server (Go)                                            │
+│                                                                │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────────┐     │
+│  │ otelgin │  │ otelpgx  │  │redisotel│  │  OTel Log    │     │
+│  │ MW      │  │ tracer   │  │ hook    │  │  Bridge (Zap)│     │
+│  └────┬────┘  └────┬─────┘  └────┬────┘  └──────┬───────┘     │
+│       │            │             │               │             │
+│  ┌────▼────────────▼─────────────▼───────────────▼────┐        │
+│  │     OTel SDK (TracerProvider, MeterProvider,        │        │
+│  │     LoggerProvider)                                 │        │
+│  └────────────────────────┬────────────────────────────┘        │
+│                           │ OTLP (gRPC)                         │
+└───────────────────────────┼─────────────────────────────────────┘
+                            ▼
+                  ┌─────────────────┐
+                  │  OTel Collector │
+                  │  (Gateway)      │
+                  └──┬──────┬───┬───┘
+                     │      │   │
+           ┌─────────▼┐  ┌──▼──────────┐  ┌──▼──┐
+           │  Jaeger  │  │ Prometheus  │  │Loki │
+           │ (traces) │  │ (metrics)   │  │(logs)│
+           └────┬─────┘  └──┬──────────┘  └──┬──┘
+                │           │                 │
+           ┌────▼───────────▼─────────────────▼───┐
+           │              Grafana                  │
+           │  (unified visualization)              │
+           └───────────────────────────────────────┘
 ```
 
 ### Design Principles
 
 - The application exports telemetry using a single protocol: OTLP over gRPC
-- The OTel Collector receives all signals and routes traces to Jaeger and metrics to Prometheus
-- Grafana integrates Jaeger and Prometheus as data sources for unified visualization
-- Logs are enriched with Trace ID and Span ID via Zap; future expansion to Loki is possible
-- Switching backends requires only Collector configuration changes; no application code changes
+- The OTel Collector receives all signals and routes traces to Jaeger, metrics to Prometheus, and logs to Loki
+- Zap logs are bridged to OTel Logs SDK via a Log Bridge, enabling structured log export over OTLP alongside traces and metrics
+- Grafana integrates Jaeger, Prometheus, and Loki as data sources for unified visualization across all three signals
+- In production, Loki can be replaced with Cloud Logging, Datadog Logs, or other backends by changing only the Collector exporter configuration
 
 ---
 
@@ -89,9 +90,13 @@ required.
 | PostgreSQL Instrumentation | exaring/otelpgx                                  | Automatic DB query instrumentation         |
 | Redis Instrumentation      | redis/go-redis/extra/redisotel/v9                | Automatic Redis command instrumentation    |
 | Collector                  | otel/opentelemetry-collector-contrib             | Telemetry reception and routing            |
+| OTel Logs SDK              | go.opentelemetry.io/otel/sdk/log                 | LoggerProvider configuration               |
+| OTLP Log Exporter          | otlplog/otlploggrpc                              | Log data export over OTLP                  |
+| Zap OTel Bridge            | go.opentelemetry.io/contrib/bridges/otelzap      | Bridge Zap logs to OTel Logs SDK           |
+| Log Backend                | grafana/loki                                      | Log aggregation and storage                |
 | Trace Backend              | jaegertracing/all-in-one                         | Trace storage and visualization            |
 | Metrics Backend            | prom/prometheus                                  | Metrics collection and storage             |
-| Dashboard                  | grafana/grafana                                  | Unified visualization                      |
+| Dashboard                  | grafana/grafana                                  | Unified visualization (traces, metrics, logs) |
 
 ---
 
@@ -127,14 +132,32 @@ Automatic instrumentation via `redisotel.InstrumentClient()`.
 - Span: `redis.command` (per command execution)
 - Attributes: `db.system=redis`, `db.operation`
 
-### Log Correlation
+### Log Pipeline
 
-Zap logs are automatically enriched with trace correlation fields.
+Structured logs are exported to Loki via OTel Logs SDK for centralized aggregation and trace
+correlation.
 
-- Fields injected: `trace_id`, `span_id`
-- Mechanism: `WithContext(ctx)` extension retrieves the active span from the context
-- Existing `request_id` field is preserved unchanged
-- When no span is present in the context, logging proceeds without error
+#### Zap to OTel Bridge
+
+- Zap logger is wrapped with `otelzap.NewHandler()` to bridge log records to the OTel Logs SDK
+- All Zap log output is simultaneously sent to stdout (for local debugging) and to OTel
+  LoggerProvider (for export)
+- Log records automatically include `trace_id` and `span_id` from the active span in context
+
+#### Log Attributes
+
+- `trace_id`: Trace correlation identifier (auto-injected from span context)
+- `span_id`: Span correlation identifier (auto-injected from span context)
+- `request_id`: Request identifier (preserved from existing middleware)
+- `level`: Log level (info, warn, error, etc.)
+- `caller`: Source file and line number
+
+#### Behavior
+
+- When a span exists in context: trace_id and span_id are automatically attached
+- When no span is present: logging proceeds without error, correlation fields are omitted
+- stdout output is always maintained regardless of OTel export status
+- When `OTEL_ENABLED=false`: only stdout output, no OTel export
 
 ---
 
@@ -151,8 +174,14 @@ Zap logs are automatically enriched with trace correlation fields.
 | OTEL_TRACES_SAMPLER           | always_on         | Sampling strategy                        |
 | OTEL_TRACES_SAMPLER_ARG       | 1.0               | Sampling ratio                           |
 | OTEL_LOG_LEVEL                | info              | OTel SDK internal log level              |
+| OTEL_LOGS_EXPORTER            | otlp              | Log exporter type (otlp or none)         |
 
 All variable names follow the official OTel environment variable naming convention (`OTEL_*`).
+
+All three signals (traces, metrics, logs) share the same `OTEL_EXPORTER_OTLP_ENDPOINT`. Per-signal
+endpoint override is possible via `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`,
+`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`, and `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` following the OTel
+environment variable specification, but this is not required for typical usage.
 
 ### Configuration Struct
 
@@ -164,6 +193,7 @@ type TelemetryConfig struct {
     OTLPInsecure     bool
     TracesSampler    string
     TracesSamplerArg float64
+    LogsExporter     string
 }
 ```
 
@@ -182,6 +212,7 @@ DevContainer compose setup to keep the development baseline unaffected.
 | jaeger         | jaegertracing/all-in-one                 | 16686 (UI)                                   | Trace visualization               |
 | prometheus     | prom/prometheus                          | 9090                                         | Metrics collection                |
 | grafana        | grafana/grafana                          | 3000                                         | Unified dashboard                 |
+| loki           | grafana/loki                             | 3100                                         | Log aggregation and storage       |
 
 ### OTel Collector Configuration (`otel-collector-config.yaml`)
 
@@ -204,6 +235,8 @@ exporters:
     endpoint: http://jaeger:4318
   prometheus:
     endpoint: 0.0.0.0:8889
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
 
 service:
   pipelines:
@@ -215,6 +248,10 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki]
 ```
 
 ### Prometheus Configuration
@@ -229,7 +266,7 @@ scrape_configs:
 
 ### Grafana
 
-Jaeger and Prometheus are configured as data sources via Grafana provisioning, so they are
+Jaeger, Prometheus, and Loki are configured as data sources via Grafana provisioning, so they are
 available automatically on startup without manual configuration.
 
 ### Makefile Commands
@@ -251,9 +288,13 @@ make telemetry-down  # Stop the telemetry stack
 | internal/infrastructure/database/postgres.go       | Add `otelpgx` Tracer option to `pgxpool` creation                               |
 | internal/infrastructure/cache/redis/client.go      | Add `redisotel.InstrumentClient()` call after client creation                   |
 | internal/interface/api/router.go                   | Add `otelgin` middleware immediately after `RequestID()`                        |
-| pkg/logger/logger.go                               | Add `trace_id`/`span_id` auto-injection logic in `WithContext()`                |
+| pkg/logger/logger.go                               | Integrate `otelzap.NewHandler()` to bridge Zap output to OTel Logs SDK; retain `WithContext()` for `trace_id`/`span_id` field injection |
 | config/config.go                                   | Add `TelemetryConfig` with environment variable reading                         |
 | .env.example                                       | Add `OTEL_*` environment variable template entries                              |
+
+The `pkg/logger` package does not depend on the `telemetry` package directly. The otelzap bridge
+connection (passing the LoggerProvider to `otelzap.NewHandler()`) happens in `cmd/api/main.go`
+during initialization, keeping the dependency direction clean.
 
 ### New Package
 
@@ -262,6 +303,7 @@ internal/infrastructure/telemetry/
 ├── telemetry.go    # Integrated provider initialization and shutdown
 ├── tracer.go       # TracerProvider configuration
 ├── meter.go        # MeterProvider configuration
+├── logger.go       # LoggerProvider configuration and otelzap bridge setup
 └── config.go       # Telemetry configuration struct
 ```
 
@@ -295,6 +337,9 @@ must behave identically whether telemetry is enabled or disabled.
 | router.go     | Requests are processed correctly after otelgin middleware is added             |
 | logger.go     | `trace_id` and `span_id` are present in logs when a span exists in the context |
 | logger.go     | Logging does not error when no span is present in the context                  |
+| logger.go     | LoggerProvider enabled: log records are sent to OTel Logs SDK                 |
+| logger.go     | `OTEL_ENABLED=false`: stdout output only, no OTel export                      |
+| telemetry.go  | LoggerProvider initialization and shutdown complete without error              |
 
 The `telemetry` package uses `tracetest.SpanRecorder` to verify span generation in unit tests.
 
@@ -310,18 +355,23 @@ curl -X GET http://localhost:8080/api/v1/health
 # 3. Verify traces in Jaeger UI
 open http://localhost:16686
 
-# 4. Verify metrics in Grafana
+# 4. Verify metrics and logs in Grafana
 open http://localhost:3000
+
+# 5. In Grafana Explore, query Loki for recent log lines and confirm trace_id field is present
+
+# 6. From a trace in Jaeger, use the Trace-to-Log jump feature to navigate to correlated log lines
+#    in Loki via trace_id
 ```
 
 ---
 
 ## Future Extensions
 
-- Log aggregation and visualization via Loki
 - Instrumentation of external service calls (email sending, QR code generation)
-- Production backend support (Cloud Trace, Datadog, etc.)
+- Production backend integration for all signals (Cloud Trace/Logging, Datadog, etc.) via Collector exporter swap
 - Custom Grafana dashboards
+- Grafana dashboard templates for log-trace correlation workflows
 - Alert rule configuration
 
 ---
