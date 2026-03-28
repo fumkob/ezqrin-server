@@ -212,6 +212,7 @@ DevContainer compose setup to keep the development baseline unaffected.
 | jaeger         | jaegertracing/all-in-one                 | 16686 (UI)                                   | Trace visualization               |
 | prometheus     | prom/prometheus                          | 9090                                         | Metrics collection                |
 | grafana        | grafana/grafana                          | 3000                                         | Unified dashboard                 |
+| loki           | grafana/loki                             | 3100                                         | Log aggregation and storage       |
 
 ### OTel Collector Configuration (`otel-collector-config.yaml`)
 
@@ -234,6 +235,8 @@ exporters:
     endpoint: http://jaeger:4318
   prometheus:
     endpoint: 0.0.0.0:8889
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
 
 service:
   pipelines:
@@ -245,6 +248,10 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki]
 ```
 
 ### Prometheus Configuration
@@ -259,7 +266,7 @@ scrape_configs:
 
 ### Grafana
 
-Jaeger and Prometheus are configured as data sources via Grafana provisioning, so they are
+Jaeger, Prometheus, and Loki are configured as data sources via Grafana provisioning, so they are
 available automatically on startup without manual configuration.
 
 ### Makefile Commands
