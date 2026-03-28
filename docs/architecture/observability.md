@@ -288,9 +288,13 @@ make telemetry-down  # Stop the telemetry stack
 | internal/infrastructure/database/postgres.go       | Add `otelpgx` Tracer option to `pgxpool` creation                               |
 | internal/infrastructure/cache/redis/client.go      | Add `redisotel.InstrumentClient()` call after client creation                   |
 | internal/interface/api/router.go                   | Add `otelgin` middleware immediately after `RequestID()`                        |
-| pkg/logger/logger.go                               | Add `trace_id`/`span_id` auto-injection logic in `WithContext()`                |
+| pkg/logger/logger.go                               | Integrate `otelzap.NewHandler()` to bridge Zap output to OTel Logs SDK; retain `WithContext()` for `trace_id`/`span_id` field injection |
 | config/config.go                                   | Add `TelemetryConfig` with environment variable reading                         |
 | .env.example                                       | Add `OTEL_*` environment variable template entries                              |
+
+The `pkg/logger` package does not depend on the `telemetry` package directly. The otelzap bridge
+connection (passing the LoggerProvider to `otelzap.NewHandler()`) happens in `cmd/api/main.go`
+during initialization, keeping the dependency direction clean.
 
 ### New Package
 
@@ -299,6 +303,7 @@ internal/infrastructure/telemetry/
 ├── telemetry.go    # Integrated provider initialization and shutdown
 ├── tracer.go       # TracerProvider configuration
 ├── meter.go        # MeterProvider configuration
+├── logger.go       # LoggerProvider configuration and otelzap bridge setup
 └── config.go       # Telemetry configuration struct
 ```
 
