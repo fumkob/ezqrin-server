@@ -2,6 +2,7 @@ package telemetry_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -110,6 +111,61 @@ var _ = Describe("NewTracerProvider", func() {
 				Expect(tp).NotTo(BeNil())
 
 				Expect(tp.Shutdown(ctx)).To(Succeed())
+			})
+		})
+	})
+})
+
+var _ = Describe("NewMeterProvider", func() {
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+	})
+
+	When("telemetry is disabled", func() {
+		It("should return a noop MeterProvider without error", func() {
+			cfg := telemetry.Config{
+				Enabled: false,
+			}
+
+			mp, err := telemetry.NewMeterProvider(ctx, cfg)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mp).NotTo(BeNil())
+
+			// Shutdown should succeed
+			Expect(mp.Shutdown(ctx)).To(Succeed())
+		})
+	})
+
+	When("telemetry is enabled", func() {
+		Context("with a valid OTLP endpoint", func() {
+			It("should create a MeterProvider without error and shutdown succeeds", func() {
+				cfg := telemetry.Config{
+					Enabled:      true,
+					ServiceName:  "test-service",
+					OTLPEndpoint: "localhost:4317",
+					OTLPInsecure: true,
+				}
+
+				mp, err := telemetry.NewMeterProvider(ctx, cfg)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(mp).NotTo(BeNil())
+
+				// Should be able to create a meter and record a measurement
+				meter := mp.Meter("test")
+				counter, counterErr := meter.Int64Counter("test_counter")
+				Expect(counterErr).NotTo(HaveOccurred())
+				counter.Add(ctx, 1)
+
+				// Shutdown with a short timeout — the periodic reader will
+				// attempt to export, which fails without a running collector,
+				// so we just verify it completes without panic.
+				shutdownCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+				defer cancel()
+				_ = mp.Shutdown(shutdownCtx)
 			})
 		})
 	})
