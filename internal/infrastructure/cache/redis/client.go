@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -46,6 +47,22 @@ type Client struct {
 	config *ClientConfig
 }
 
+// intOrDefault returns val if non-zero, otherwise returns def.
+func intOrDefault(val, def int) int {
+	if val == 0 {
+		return def
+	}
+	return val
+}
+
+// durationOrDefault returns val if non-zero, otherwise returns def.
+func durationOrDefault(val, def time.Duration) time.Duration {
+	if val == 0 {
+		return def
+	}
+	return val
+}
+
 // NewClient creates a new Redis client with connection pooling.
 // The client will automatically reconnect on connection failures.
 // Config values fallback to defaults if not provided (zero values).
@@ -56,48 +73,25 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 
-	// Use config values with fallback to defaults
-	poolSize := cfg.PoolSize
-	if poolSize == 0 {
-		poolSize = defaultPoolSize
-	}
-
-	minIdleConns := cfg.MinIdleConns
-	if minIdleConns == 0 {
-		minIdleConns = defaultMinIdleConns
-	}
-
-	maxRetries := cfg.MaxRetries
-	if maxRetries == 0 {
-		maxRetries = defaultMaxRetries
-	}
-
-	dialTimeout := cfg.DialTimeout
-	if dialTimeout == 0 {
-		dialTimeout = defaultDialTimeout
-	}
-
-	readTimeout := cfg.ReadTimeout
-	if readTimeout == 0 {
-		readTimeout = defaultReadTimeout
-	}
-
-	writeTimeout := cfg.WriteTimeout
-	if writeTimeout == 0 {
-		writeTimeout = defaultWriteTimeout
-	}
-
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         addr,
 		Password:     cfg.Password,
 		DB:           cfg.DB,
-		PoolSize:     poolSize,
-		MinIdleConns: minIdleConns,
-		MaxRetries:   maxRetries,
-		DialTimeout:  dialTimeout,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
+		PoolSize:     intOrDefault(cfg.PoolSize, defaultPoolSize),
+		MinIdleConns: intOrDefault(cfg.MinIdleConns, defaultMinIdleConns),
+		MaxRetries:   intOrDefault(cfg.MaxRetries, defaultMaxRetries),
+		DialTimeout:  durationOrDefault(cfg.DialTimeout, defaultDialTimeout),
+		ReadTimeout:  durationOrDefault(cfg.ReadTimeout, defaultReadTimeout),
+		WriteTimeout: durationOrDefault(cfg.WriteTimeout, defaultWriteTimeout),
 	})
+
+	// Instrument Redis with OpenTelemetry tracing and metrics
+	if err := redisotel.InstrumentTracing(rdb); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis tracing: %w", err)
+	}
+	if err := redisotel.InstrumentMetrics(rdb); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis metrics: %w", err)
+	}
 
 	// Verify connection
 	ctx, cancel := context.WithTimeout(context.Background(), defaultPingTimeout)

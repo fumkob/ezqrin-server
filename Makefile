@@ -1,4 +1,4 @@
-.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all lint-fix test-coverage-local test-unit-coverage-local
+.PHONY: help dev-up dev-rebuild dev-down dev-shell dev-logs dev-clean migrate-up migrate-down migrate-version migrate-create db-shell db-reset test build gen-api gen-mock gen-all lint-fix test-coverage-local test-unit-coverage-local telemetry-up telemetry-down
 
 #
 # Container Runtime Detection (Docker/Podman)
@@ -67,6 +67,10 @@ help:
 	@echo "  make lint            - Run linters"
 	@echo "  make lint-fix        - Run linters with auto-fix"
 	@echo "  make vet             - Run go vet"
+	@echo ""
+	@echo "Telemetry:"
+	@echo "  make telemetry-up    - Start telemetry stack (Jaeger, Prometheus, Loki, Grafana)"
+	@echo "  make telemetry-down  - Stop telemetry stack"
 	@echo ""
 	@echo "Verification:"
 	@echo "  make verify-setup    - Verify complete setup (migrations, DB connection)"
@@ -292,3 +296,15 @@ gen-mock:
 gen-all: gen-api gen-mock
 	@echo ""
 	@echo "=== All Code Generation Complete ==="
+
+#
+# Telemetry
+#
+
+## Start the telemetry stack (Jaeger, Prometheus, Loki, Grafana)
+telemetry-up: check-runtime
+	$(COMPOSE_CMD) -f docker-compose.telemetry.yaml up -d
+
+## Stop the telemetry stack
+telemetry-down: check-runtime
+	$(COMPOSE_CMD) -f docker-compose.telemetry.yaml down

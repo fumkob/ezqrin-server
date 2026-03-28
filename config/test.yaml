@@ -6,3 +6,6 @@ database:
   max_conns: 10
   min_conns: 2
 
+telemetry:
+  enabled: false
+

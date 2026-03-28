@@ -23,14 +23,15 @@ const (
 
 // Config holds all application configuration
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	JWT      JWTConfig
-	Logging  LoggingConfig
-	CORS     CORSConfig
-	QRCode   QRCodeConfig
-	Email    EmailConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Redis     RedisConfig
+	JWT       JWTConfig
+	Logging   LoggingConfig
+	CORS      CORSConfig
+	QRCode    QRCodeConfig
+	Email     EmailConfig
+	Telemetry TelemetryConfig
 }
 
 // ServerConfig contains server-related configuration
@@ -139,6 +140,17 @@ type EmailConfig struct {
 	// Use this when the recipient's mail server blocks HTML emails.
 	// Set via EMAIL_PLAIN_TEXT_ONLY=true.
 	PlainTextOnly bool
+}
+
+// TelemetryConfig contains OpenTelemetry configuration.
+type TelemetryConfig struct {
+	Enabled          bool
+	ServiceName      string
+	OTLPEndpoint     string
+	OTLPInsecure     bool
+	TracesSampler    string
+	TracesSamplerArg float64
+	LogsExporter     string
 }
 
 // Load reads configuration from YAML files and environment variables.
@@ -277,6 +289,15 @@ var envKeyMap = map[string]string{
 	"QR_HOSTING_BASE_URL":  "qrcode.hosting_base_url",
 	"WALLET_PASS_BASE_URL": "qrcode.wallet_pass_base_url",
 
+	// Telemetry
+	"OTEL_ENABLED":                "telemetry.enabled",
+	"OTEL_SERVICE_NAME":           "telemetry.service_name",
+	"OTEL_EXPORTER_OTLP_ENDPOINT": "telemetry.otlp_endpoint",
+	"OTEL_EXPORTER_OTLP_INSECURE": "telemetry.otlp_insecure",
+	"OTEL_TRACES_SAMPLER":         "telemetry.traces_sampler",
+	"OTEL_TRACES_SAMPLER_ARG":     "telemetry.traces_sampler_arg",
+	"OTEL_LOGS_EXPORTER":          "telemetry.logs_exporter",
+
 	// Email
 	"EMAIL_BACKEND":             "email.backend",
 	"EMAIL_FROM_ADDRESS":        "email.from_address",
@@ -305,6 +326,21 @@ func bindEnvVars(v *viper.Viper) {
 	for envVar, viperKey := range envKeyMap {
 		_ = v.BindEnv(viperKey, envVar)
 	}
+}
+
+// unmarshalDatabaseConfig maps database configuration from viper to Config.
+func unmarshalDatabaseConfig(v *viper.Viper, cfg *Config) {
+	cfg.Database.Host = v.GetString("database.host")
+	cfg.Database.Port = v.GetInt("database.port")
+	cfg.Database.User = v.GetString("database.user")
+	cfg.Database.Password = v.GetString("database.password")
+	// Check environment variable first for database.name to support test database override
+	cfg.Database.Name = getEnvOrDefault("DB_NAME", v.GetString("database.name"))
+	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
+	cfg.Database.MaxConns = v.GetInt("database.max_conns")
+	cfg.Database.MinConns = v.GetInt("database.min_conns")
+	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
+	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
 }
 
 // unmarshalRedisConfig maps Redis configuration from viper to Config
@@ -337,6 +373,17 @@ func unmarshalEmailConfig(v *viper.Viper, cfg *Config) {
 	cfg.Email.PlainTextOnly = v.GetBool("email.plain_text_only")
 }
 
+// unmarshalTelemetryConfig maps telemetry configuration from viper to Config.
+func unmarshalTelemetryConfig(v *viper.Viper, cfg *Config) {
+	cfg.Telemetry.Enabled = v.GetBool("telemetry.enabled")
+	cfg.Telemetry.ServiceName = v.GetString("telemetry.service_name")
+	cfg.Telemetry.OTLPEndpoint = v.GetString("telemetry.otlp_endpoint")
+	cfg.Telemetry.OTLPInsecure = v.GetBool("telemetry.otlp_insecure")
+	cfg.Telemetry.TracesSampler = v.GetString("telemetry.traces_sampler")
+	cfg.Telemetry.TracesSamplerArg = v.GetFloat64("telemetry.traces_sampler_arg")
+	cfg.Telemetry.LogsExporter = v.GetString("telemetry.logs_exporter")
+}
+
 // unmarshalConfig maps viper configuration to Config struct
 func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.Port = v.GetInt("server.port")
@@ -345,18 +392,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.Server.WriteTimeout = v.GetDuration("server.write_timeout")
 	cfg.Server.IdleTimeout = v.GetDuration("server.idle_timeout")
 
-	cfg.Database.Host = v.GetString("database.host")
-	cfg.Database.Port = v.GetInt("database.port")
-	cfg.Database.User = v.GetString("database.user")
-	cfg.Database.Password = v.GetString("database.password")
-	// Check environment variable first for database.name to support test database override
-	cfg.Database.Name = getEnvOrDefault("DB_NAME", v.GetString("database.name"))
-	cfg.Database.SSLMode = v.GetString("database.ssl_mode")
-	cfg.Database.MaxConns = v.GetInt("database.max_conns")
-	cfg.Database.MinConns = v.GetInt("database.min_conns")
-	cfg.Database.MaxConnLifetime = v.GetDuration("database.max_conn_lifetime")
-	cfg.Database.MaxConnIdleTime = v.GetDuration("database.max_conn_idle_time")
-
+	unmarshalDatabaseConfig(v, cfg)
 	unmarshalRedisConfig(v, cfg)
 
 	cfg.JWT.Secret = v.GetString("jwt.secret")
@@ -385,6 +421,7 @@ func unmarshalConfig(v *viper.Viper, cfg *Config) error {
 	cfg.QRCode.WalletPassBaseURL = v.GetString("qrcode.wallet_pass_base_url")
 
 	unmarshalEmailConfig(v, cfg)
+	unmarshalTelemetryConfig(v, cfg)
 
 	// Validate required fields
 	if cfg.Database.User == "" {
