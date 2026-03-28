@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/cache"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -98,6 +99,14 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	})
+
+	// Instrument Redis with OpenTelemetry tracing and metrics
+	if err := redisotel.InstrumentTracing(rdb); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis tracing: %w", err)
+	}
+	if err := redisotel.InstrumentMetrics(rdb); err != nil {
+		return nil, fmt.Errorf("failed to instrument redis metrics: %w", err)
+	}
 
 	// Verify connection
 	ctx, cancel := context.WithTimeout(context.Background(), defaultPingTimeout)
