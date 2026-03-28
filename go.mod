@@ -3,6 +3,7 @@ module github.com/fumkob/ezqrin-server
 go 1.26.1
 
 require (
+	github.com/exaring/otelpgx v0.10.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/validator/v10 v10.27.0
