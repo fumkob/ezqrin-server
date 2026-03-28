@@ -91,9 +91,13 @@ required.
 | PostgreSQL Instrumentation | exaring/otelpgx                                  | Automatic DB query instrumentation         |
 | Redis Instrumentation      | redis/go-redis/extra/redisotel/v9                | Automatic Redis command instrumentation    |
 | Collector                  | otel/opentelemetry-collector-contrib             | Telemetry reception and routing            |
+| OTel Logs SDK              | go.opentelemetry.io/otel/sdk/log                 | LoggerProvider configuration               |
+| OTLP Log Exporter          | otlplog/otlploggrpc                              | Log data export over OTLP                  |
+| Zap OTel Bridge            | go.opentelemetry.io/contrib/bridges/otelzap      | Bridge Zap logs to OTel Logs SDK           |
+| Log Backend                | grafana/loki                                      | Log aggregation and storage                |
 | Trace Backend              | jaegertracing/all-in-one                         | Trace storage and visualization            |
 | Metrics Backend            | prom/prometheus                                  | Metrics collection and storage             |
-| Dashboard                  | grafana/grafana                                  | Unified visualization                      |
+| Dashboard                  | grafana/grafana                                  | Unified visualization (traces, metrics, logs) |
 
 ---
 
