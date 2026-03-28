@@ -17,8 +17,10 @@ import (
 	redisClient "github.com/fumkob/ezqrin-server/internal/infrastructure/cache/redis"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/container"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/database"
+	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 	"github.com/fumkob/ezqrin-server/internal/interface/api"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
+	"go.opentelemetry.io/contrib/bridges/otelzap"
 	"go.uber.org/zap"
 )
 
@@ -30,9 +32,10 @@ const (
 
 // app holds the application's core dependencies.
 type app struct {
-	db     database.Service
-	logger *logger.Logger
-	cache  cache.Service
+	db                database.Service
+	logger            *logger.Logger
+	cache             cache.Service
+	telemetryShutdown telemetry.ShutdownFunc
 }
 
 func main() {
@@ -52,10 +55,34 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 
-	a := &app{logger: appLogger}
+	// Initialize telemetry (after logger, before infrastructure)
+	ctx := context.Background()
+	telemetryCfg := telemetry.Config{
+		Enabled:          cfg.Telemetry.Enabled,
+		ServiceName:      cfg.Telemetry.ServiceName,
+		OTLPEndpoint:     cfg.Telemetry.OTLPEndpoint,
+		OTLPInsecure:     cfg.Telemetry.OTLPInsecure,
+		TracesSampler:    cfg.Telemetry.TracesSampler,
+		TracesSamplerArg: cfg.Telemetry.TracesSamplerArg,
+		LogsExporter:     cfg.Telemetry.LogsExporter,
+	}
+	providers, shutdownTelemetry, err := telemetry.Init(ctx, telemetryCfg)
+	if err != nil {
+		appLogger.Fatal("failed to initialize telemetry", zap.Error(err))
+	}
+
+	// Bridge Zap logs to OTel Logs SDK
+	if cfg.Telemetry.Enabled {
+		otelCore := otelzap.NewCore("ezqrin-server", otelzap.WithLoggerProvider(providers.LoggerProvider))
+		appLogger = appLogger.WithOTelCore(otelCore)
+	}
+
+	a := &app{
+		logger:            appLogger,
+		telemetryShutdown: shutdownTelemetry,
+	}
 
 	// Initialize infrastructure (database, cache)
-	ctx := context.Background()
 	if err := a.initializeInfrastructure(ctx, cfg); err != nil {
 		a.logger.Fatal("failed to initialize infrastructure", zap.Error(err))
 	}
@@ -217,8 +244,18 @@ func (a *app) cleanup() {
 		a.cache.Close()
 	}
 
+	// Shutdown telemetry before logger sync to flush remaining telemetry data
+	if a.telemetryShutdown != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := a.telemetryShutdown(ctx); err != nil {
+			if a.logger != nil {
+				a.logger.Error("telemetry shutdown error", zap.Error(err))
+			}
+		}
+	}
+
 	if a.logger != nil {
-		// Sync logger before exit to flush any buffered logs
 		_ = a.logger.Sync()
 		a.logger.Info("cleanup completed")
 	}
