@@ -11,6 +11,7 @@ import (
 	"github.com/fumkob/ezqrin-server/internal/interface/api/middleware"
 	"github.com/fumkob/ezqrin-server/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 const (
@@ -28,7 +29,7 @@ type RouterDependencies struct {
 }
 
 // SetupRouter creates and configures the Gin HTTP router with all middleware and routes.
-// It applies middleware in the correct order: RequestID → Logging → Recovery → CORS.
+// It applies middleware in the correct order: RequestID → OTelGin → Logging → Recovery → CORS.
 // Routes are registered using OpenAPI-generated code for type safety and spec compliance.
 func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	// Set Gin mode based on environment
@@ -48,10 +49,11 @@ func SetupRouter(deps *RouterDependencies) *gin.Engine {
 	}
 
 	// Apply global middleware in order
-	router.Use(middleware.RequestID())             // Generate request ID first
-	router.Use(middleware.Logging(deps.Logger))    // Log requests with request ID
-	router.Use(middleware.Recovery(deps.Logger))   // Recover from panics
-	router.Use(middleware.CORS(&deps.Config.CORS)) // Handle CORS
+	router.Use(middleware.RequestID())                                // Generate request ID first
+	router.Use(otelgin.Middleware(deps.Config.Telemetry.ServiceName)) // OpenTelemetry tracing
+	router.Use(middleware.Logging(deps.Logger))                       // Log requests with request ID
+	router.Use(middleware.Recovery(deps.Logger))                      // Recover from panics
+	router.Use(middleware.CORS(&deps.Config.CORS))                    // Handle CORS
 
 	// Register OpenAPI-generated routes under the versioned base path
 	// This automatically registers all routes defined in the OpenAPI specification
