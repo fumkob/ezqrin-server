@@ -4,25 +4,25 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fumkob/ezqrin-server/config"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // NewTracerProvider creates a new TracerProvider.
 // When cfg.Enabled is false, it returns a noop provider.
-func NewTracerProvider(ctx context.Context, cfg Config) (*sdktrace.TracerProvider, error) {
+// The res parameter is the shared OTel resource (may be nil when disabled).
+func NewTracerProvider(
+	ctx context.Context,
+	cfg config.TelemetryConfig,
+	res *resource.Resource,
+) (*sdktrace.TracerProvider, error) {
 	if !cfg.Enabled {
 		return sdktrace.NewTracerProvider(), nil
 	}
 
-	dialOpts := []grpc.DialOption{}
-	if cfg.OTLPInsecure {
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
+	dialOpts := buildDialOptions(cfg)
 
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(cfg.OTLPEndpoint),
@@ -30,15 +30,6 @@ func NewTracerProvider(ctx context.Context, cfg Config) (*sdktrace.TracerProvide
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
-	}
-
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			semconv.ServiceNameKey.String(cfg.ServiceName),
-		),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
 	sampler := resolveSampler(cfg.TracesSampler, cfg.TracesSamplerArg)

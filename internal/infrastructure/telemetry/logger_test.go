@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,11 +19,11 @@ var _ = Describe("NewLoggerProvider", func() {
 
 	When("telemetry is disabled", func() {
 		It("should return a noop LoggerProvider without error", func() {
-			cfg := telemetry.Config{
+			cfg := config.TelemetryConfig{
 				Enabled: false,
 			}
 
-			lp, err := telemetry.NewLoggerProvider(ctx, cfg)
+			lp, err := telemetry.NewLoggerProvider(ctx, cfg, nil)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(lp).NotTo(BeNil())
@@ -35,12 +36,12 @@ var _ = Describe("NewLoggerProvider", func() {
 	When("telemetry is enabled", func() {
 		Context("with LogsExporter set to none", func() {
 			It("should return a noop LoggerProvider without error", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:      true,
 					LogsExporter: "none",
 				}
 
-				lp, err := telemetry.NewLoggerProvider(ctx, cfg)
+				lp, err := telemetry.NewLoggerProvider(ctx, cfg, nil)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(lp).NotTo(BeNil())
@@ -52,15 +53,16 @@ var _ = Describe("NewLoggerProvider", func() {
 
 		Context("with a valid OTLP endpoint", func() {
 			It("should create a LoggerProvider without error and shutdown succeeds", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:      true,
 					ServiceName:  "test-service",
 					OTLPEndpoint: "localhost:4317",
 					OTLPInsecure: true,
 					LogsExporter: "otlp",
 				}
+				res := buildTestResource(ctx, cfg.ServiceName)
 
-				lp, err := telemetry.NewLoggerProvider(ctx, cfg)
+				lp, err := telemetry.NewLoggerProvider(ctx, cfg, res)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(lp).NotTo(BeNil())

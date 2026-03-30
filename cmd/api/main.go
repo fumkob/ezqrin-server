@@ -57,23 +57,14 @@ func main() {
 
 	// Initialize telemetry (after logger, before infrastructure)
 	ctx := context.Background()
-	telemetryCfg := telemetry.Config{
-		Enabled:          cfg.Telemetry.Enabled,
-		ServiceName:      cfg.Telemetry.ServiceName,
-		OTLPEndpoint:     cfg.Telemetry.OTLPEndpoint,
-		OTLPInsecure:     cfg.Telemetry.OTLPInsecure,
-		TracesSampler:    cfg.Telemetry.TracesSampler,
-		TracesSamplerArg: cfg.Telemetry.TracesSamplerArg,
-		LogsExporter:     cfg.Telemetry.LogsExporter,
-	}
-	providers, shutdownTelemetry, err := telemetry.Init(ctx, telemetryCfg)
+	providers, shutdownTelemetry, err := telemetry.Init(ctx, cfg.Telemetry)
 	if err != nil {
 		appLogger.Fatal("failed to initialize telemetry", zap.Error(err))
 	}
 
 	// Bridge Zap logs to OTel Logs SDK
 	if cfg.Telemetry.Enabled {
-		otelCore := otelzap.NewCore("ezqrin-server", otelzap.WithLoggerProvider(providers.LoggerProvider))
+		otelCore := otelzap.NewCore(cfg.Telemetry.ServiceName, otelzap.WithLoggerProvider(providers.LoggerProvider))
 		appLogger = appLogger.WithOTelCore(otelCore)
 	}
 
@@ -256,7 +247,7 @@ func (a *app) cleanup() {
 	}
 
 	if a.logger != nil {
-		_ = a.logger.Sync()
 		a.logger.Info("cleanup completed")
+		_ = a.logger.Sync()
 	}
 }

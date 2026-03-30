@@ -4,11 +4,21 @@ import (
 	"context"
 	"time"
 
+	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/infrastructure/telemetry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
+
+// buildTestResource creates a resource for use in provider tests.
+func buildTestResource(ctx context.Context, serviceName string) *resource.Resource {
+	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceNameKey.String(serviceName)))
+	Expect(err).NotTo(HaveOccurred())
+	return res
+}
 
 var _ = Describe("NewTracerProvider", func() {
 	var ctx context.Context
@@ -19,11 +29,11 @@ var _ = Describe("NewTracerProvider", func() {
 
 	When("telemetry is disabled", func() {
 		It("should return a noop TracerProvider without error", func() {
-			cfg := telemetry.Config{
+			cfg := config.TelemetryConfig{
 				Enabled: false,
 			}
 
-			tp, err := telemetry.NewTracerProvider(ctx, cfg)
+			tp, err := telemetry.NewTracerProvider(ctx, cfg, nil)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tp).NotTo(BeNil())
@@ -41,7 +51,7 @@ var _ = Describe("NewTracerProvider", func() {
 	When("telemetry is enabled", func() {
 		Context("with a valid OTLP endpoint", func() {
 			It("should create a TracerProvider that can produce spans", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:          true,
 					ServiceName:      "test-service",
 					OTLPEndpoint:     "localhost:4317",
@@ -49,8 +59,9 @@ var _ = Describe("NewTracerProvider", func() {
 					TracesSampler:    "always_on",
 					TracesSamplerArg: 1.0,
 				}
+				res := buildTestResource(ctx, cfg.ServiceName)
 
-				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+				tp, err := telemetry.NewTracerProvider(ctx, cfg, res)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(tp).NotTo(BeNil())
@@ -71,7 +82,7 @@ var _ = Describe("NewTracerProvider", func() {
 
 		Context("with always_off sampler", func() {
 			It("should create a TracerProvider that does not sample", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:          true,
 					ServiceName:      "test-service",
 					OTLPEndpoint:     "localhost:4317",
@@ -79,8 +90,9 @@ var _ = Describe("NewTracerProvider", func() {
 					TracesSampler:    "always_off",
 					TracesSamplerArg: 0,
 				}
+				res := buildTestResource(ctx, cfg.ServiceName)
 
-				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+				tp, err := telemetry.NewTracerProvider(ctx, cfg, res)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(tp).NotTo(BeNil())
@@ -96,7 +108,7 @@ var _ = Describe("NewTracerProvider", func() {
 
 		Context("with traceidratio sampler", func() {
 			It("should create a TracerProvider without error", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:          true,
 					ServiceName:      "test-service",
 					OTLPEndpoint:     "localhost:4317",
@@ -104,8 +116,9 @@ var _ = Describe("NewTracerProvider", func() {
 					TracesSampler:    "traceidratio",
 					TracesSamplerArg: 0.5,
 				}
+				res := buildTestResource(ctx, cfg.ServiceName)
 
-				tp, err := telemetry.NewTracerProvider(ctx, cfg)
+				tp, err := telemetry.NewTracerProvider(ctx, cfg, res)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(tp).NotTo(BeNil())
@@ -125,11 +138,11 @@ var _ = Describe("NewMeterProvider", func() {
 
 	When("telemetry is disabled", func() {
 		It("should return a noop MeterProvider without error", func() {
-			cfg := telemetry.Config{
+			cfg := config.TelemetryConfig{
 				Enabled: false,
 			}
 
-			mp, err := telemetry.NewMeterProvider(ctx, cfg)
+			mp, err := telemetry.NewMeterProvider(ctx, cfg, nil)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(mp).NotTo(BeNil())
@@ -142,14 +155,15 @@ var _ = Describe("NewMeterProvider", func() {
 	When("telemetry is enabled", func() {
 		Context("with a valid OTLP endpoint", func() {
 			It("should create a MeterProvider without error and shutdown succeeds", func() {
-				cfg := telemetry.Config{
+				cfg := config.TelemetryConfig{
 					Enabled:      true,
 					ServiceName:  "test-service",
 					OTLPEndpoint: "localhost:4317",
 					OTLPInsecure: true,
 				}
+				res := buildTestResource(ctx, cfg.ServiceName)
 
-				mp, err := telemetry.NewMeterProvider(ctx, cfg)
+				mp, err := telemetry.NewMeterProvider(ctx, cfg, res)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(mp).NotTo(BeNil())
@@ -180,7 +194,7 @@ var _ = Describe("Init", func() {
 
 	When("telemetry is enabled", func() {
 		It("should initialize all providers and return non-nil Providers and ShutdownFunc", func() {
-			cfg := telemetry.Config{
+			cfg := config.TelemetryConfig{
 				Enabled:          true,
 				ServiceName:      "test-service",
 				OTLPEndpoint:     "localhost:4317",
@@ -212,7 +226,7 @@ var _ = Describe("Init", func() {
 
 	When("telemetry is disabled", func() {
 		It("should return noop providers and shutdown should succeed", func() {
-			cfg := telemetry.Config{
+			cfg := config.TelemetryConfig{
 				Enabled: false,
 			}
 
