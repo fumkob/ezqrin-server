@@ -21,6 +21,7 @@ for real-time check-in operations.
 | Cache         | Redis           | 8+      |
 | Auth          | JWT             | -       |
 | Logging       | Zap             | -       |
+| Observability | OpenTelemetry   | -       |
 | Testing       | Ginkgo / Gomega | -       |
 
 ---
@@ -171,6 +172,13 @@ make build           # Build the application binary
 make run             # Run with Air (hot reload)
 ```
 
+**Telemetry:**
+
+```bash
+make telemetry-up    # Start telemetry stack (Jaeger, Prometheus, Loki, Grafana)
+make telemetry-down  # Stop telemetry stack
+```
+
 ---
 
 ## Running Tests
@@ -212,6 +220,8 @@ ezqrin-server/
 ├── internal/                   # Private application code (Clean Architecture)
 │   ├── domain/                 # Entities, repository interfaces, business rules
 │   ├── interface/api/handler/  # HTTP handlers
+│   ├── infrastructure/
+│   │   └── telemetry/          # OpenTelemetry provider initialization
 │   ├── repository/             # Repository implementations
 │   └── usecase/                # Business logic
 ├── pkg/                        # Public packages
@@ -226,6 +236,9 @@ ezqrin-server/
 │   └── docker-compose.yaml     # Local services (PostgreSQL, Redis)
 ├── .env.secrets.example        # Template for secret environment variables
 ├── docker-compose.prod.yml     # Production Docker Compose configuration
+├── docker-compose.telemetry.yaml  # Telemetry stack (Jaeger, Prometheus, Loki, Grafana)
+├── grafana/                    # Grafana provisioning (datasources)
+├── otel-collector-config.yaml  # OTel Collector pipeline configuration
 ├── Makefile                    # Build and development commands
 └── go.mod                      # Go module definition
 ```
@@ -254,6 +267,7 @@ settings.
 | API Overview          | `docs/api/README.md`                    | Endpoint guide and workflows     |
 | Architecture Overview | `docs/architecture/overview.md`         | Clean Architecture design        |
 | Database Schema       | `docs/architecture/database.md`         | Entity relationships and schema  |
+| Observability Design  | `docs/architecture/observability.md`    | Traces, metrics, logs design     |
 | Security Design       | `docs/architecture/security.md`         | Auth, authorization, data safety |
 | DevContainer Guide    | `docs/deployment/docker.md`             | Development environment setup    |
 | Configuration Ref     | `docs/deployment/environment.md`        | All environment variables        |
