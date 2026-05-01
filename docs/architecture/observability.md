@@ -11,6 +11,10 @@ In local development, Jaeger, Prometheus, and Grafana are used for visualization
 the backend is fully replaceable via OTel Collector configuration with no application code changes
 required.
 
+> **This document is the design specification.** For startup procedures, UI usage, and
+> troubleshooting, see the
+> [Observability Operations Guide](../deployment/observability.md).
+
 ---
 
 ## Goals & Non-Goals

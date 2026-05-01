@@ -351,6 +351,131 @@ EMAIL_GMAIL_REFRESH_TOKEN=1//xxxxxxxxxxxxxxxxx
 
 ---
 
+### Telemetry / OpenTelemetry Configuration
+
+ezQRin exports traces, metrics, and logs via OpenTelemetry. All telemetry settings are optional
+with safe defaults for local development.
+
+#### OTEL_ENABLED
+
+**Description:** Master switch that enables or disables all OpenTelemetry instrumentation.
+When `false`, all OTel providers are replaced with no-op implementations and no Collector
+connection is attempted.
+**Type:** Boolean
+**Default:** `true`
+**Required:** No
+
+```bash
+OTEL_ENABLED=true
+```
+
+#### OTEL_SERVICE_NAME
+
+**Description:** The service name attached to all traces, metrics, and log records. This is the
+identifier shown in the Jaeger service dropdown and Prometheus label `service_name`.
+**Type:** String
+**Default:** `ezqrin-server`
+**Required:** No
+
+```bash
+OTEL_SERVICE_NAME=ezqrin-server
+```
+
+#### OTEL_EXPORTER_OTLP_ENDPOINT
+
+**Description:** The gRPC endpoint of the OTel Collector that the application sends telemetry to.
+All three signals (traces, metrics, logs) share this endpoint by default.
+**Type:** String (host:port)
+**Default:** `localhost:4317`
+**Required:** No
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
+```
+
+#### OTEL_EXPORTER_OTLP_INSECURE
+
+**Description:** Disables TLS verification on the gRPC connection to the Collector. Set to `true`
+in local development (where the Collector runs over plain HTTP). Set to `false` in production
+environments where TLS is required.
+**Type:** Boolean
+**Default:** `true`
+**Required:** No
+
+```bash
+OTEL_EXPORTER_OTLP_INSECURE=true
+```
+
+#### OTEL_TRACES_SAMPLER
+
+**Description:** Controls the trace sampling strategy. Determines which requests generate a trace.
+**Type:** Enum
+**Options:** `always_on`, `always_off`, `traceidratio`
+**Default:** `always_on`
+**Required:** No
+
+| Value | Behavior |
+|-------|----------|
+| `always_on` | Every request is traced. Use in local development. |
+| `always_off` | No traces are created. Disables tracing while keeping metrics and logs active. |
+| `traceidratio` | A fraction of requests are traced, determined by `OTEL_TRACES_SAMPLER_ARG`. |
+
+```bash
+OTEL_TRACES_SAMPLER=always_on
+```
+
+#### OTEL_TRACES_SAMPLER_ARG
+
+**Description:** The sampling ratio when `OTEL_TRACES_SAMPLER=traceidratio`. A value of `1.0`
+traces every request; `0.1` traces approximately 10% of requests.
+**Type:** Float (0.0–1.0)
+**Default:** `1.0`
+**Required:** No (only relevant when sampler is `traceidratio`)
+
+```bash
+OTEL_TRACES_SAMPLER_ARG=0.1
+```
+
+#### OTEL_LOGS_EXPORTER
+
+**Description:** Controls where structured log records are exported. When set to `otlp`, logs are
+sent to the Collector alongside traces and metrics (and forwarded to Loki). When set to `none`,
+log export is disabled while traces and metrics continue to be exported. Stdout logging is always
+active regardless of this setting.
+**Type:** Enum
+**Options:** `otlp`, `none`
+**Default:** `otlp`
+**Required:** No
+
+```bash
+OTEL_LOGS_EXPORTER=otlp
+```
+
+---
+
+**Sampling strategy examples:**
+
+```bash
+# Local development — trace everything
+OTEL_ENABLED=true
+OTEL_TRACES_SAMPLER=always_on
+OTEL_TRACES_SAMPLER_ARG=1.0
+OTEL_LOGS_EXPORTER=otlp
+
+# Production-like — 10% sampling, TLS enabled
+OTEL_ENABLED=true
+OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector.internal:4317
+OTEL_EXPORTER_OTLP_INSECURE=false
+OTEL_TRACES_SAMPLER=traceidratio
+OTEL_TRACES_SAMPLER_ARG=0.1
+OTEL_LOGS_EXPORTER=otlp
+```
+
+For the full local stack setup, UI access, and troubleshooting, see
+[Observability Operations Guide](./observability.md).
+
+---
+
 ### Storage Configuration
 
 #### STORAGE_TYPE
