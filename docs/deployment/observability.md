@@ -25,12 +25,17 @@ containers to become healthy.
 **Step 2 — Start the API server** (in a second terminal):
 
 ```bash
-air
-# or, without hot reload:
+# Start the dev container services (PostgreSQL, Redis, API container) if not already running
+make dev-up
+
+# Run the API with hot reload (executes air inside the dev container)
 make run
 ```
 
 The API server starts on `http://localhost:8080`. Telemetry is enabled by default in development.
+
+If you opened the project via VS Code's **Reopen in Container**, you can run `air` directly inside
+the container terminal instead.
 
 **Step 3 — Send a request to generate a trace**:
 
@@ -241,14 +246,16 @@ OTEL_LOGS_EXPORTER=otlp
 
 **Temporarily disable in local development:**
 
-```bash
-OTEL_ENABLED=false air
-```
-
-Or set it in your `.env` file:
+Set the variable in your `.env` file (or `.env.secrets`) and restart `make run`:
 
 ```bash
 OTEL_ENABLED=false
+```
+
+If running `air` directly inside the dev container terminal, you can also pass the variable inline:
+
+```bash
+OTEL_ENABLED=false air
 ```
 
 The application runs normally with all telemetry replaced by no-op providers. No Collector

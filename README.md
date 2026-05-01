@@ -126,12 +126,16 @@ the stack.
 # 1. Start the telemetry stack (Jaeger, Prometheus, Loki, Grafana, OTel Collector)
 make telemetry-up
 
-# 2. Start the API server (in a separate terminal)
-air
+# 2. Start the dev container services and run the API with hot reload (in a separate terminal)
+make dev-up
+make run
 
 # 3. Send a request to generate a trace
 curl http://localhost:8080/health
 ```
+
+If you opened the project via VS Code's **Reopen in Container**, you can run `air` directly inside
+the container terminal instead of `make run`.
 
 **Service UIs:**
 
