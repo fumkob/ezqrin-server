@@ -235,11 +235,11 @@ processors:
     send_batch_size: 1024
 
 exporters:
-  otlphttp/jaeger:
+  otlp_http/jaeger:
     endpoint: http://jaeger:4318
   prometheus:
     endpoint: 0.0.0.0:8889
-  otlphttp/loki:
+  otlp_http/loki:
     endpoint: http://loki:3100/otlp
 
 service:
@@ -247,7 +247,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/jaeger]
+      exporters: [otlp_http/jaeger]
     metrics:
       receivers: [otlp]
       processors: [batch]
@@ -255,7 +255,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/loki]
+      exporters: [otlp_http/loki]
 ```
 
 ### Prometheus Configuration
