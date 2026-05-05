@@ -313,6 +313,30 @@ contains an active span. If `trace_id` is missing from log lines:
 - Ensure `logger.WithContext(ctx)` (or equivalent) is used before logging within a handler or
   usecase function. The Zap OTel bridge reads the span from the context provided at log call time.
 
+### Collector が起動直後に `Exited (1)` で再起動を繰り返す
+
+`make telemetry-up` 自体は成功するが、API サーバー側に
+`dial tcp 127.0.0.1:4317: connect: connection refused` が出続ける場合、
+otel-collector コンテナが config 検証エラーで即死している可能性が高い。
+
+```bash
+podman logs $(podman ps -aq --filter name=otel-collector) --tail 80
+# あるいは docker logs ...
+```
+
+`unknown type: "..." for id: "..."` のような行が出ている場合、
+`otel-collector-config.yaml` で指定している receiver / processor /
+exporter のいずれかが、使っている Collector image のバージョンに
+存在しない（過去に deprecated → 削除されている）ことが原因。
+
+対処は以下の 2 段階：
+
+1. ログに出ている component 名から、現バージョンの Collector contrib に
+   存在する代替を探す（例: `loki` exporter は削除済み → `otlphttp` で
+   Loki の OTLP endpoint に投げる）
+2. `docker-compose.telemetry.yaml` の image を具体的バージョンに pin して、
+   将来の暗黙更新で再発させない（このリポジトリでは既に pin 済み）
+
 ### `make telemetry-up` fails to start
 
 A port conflict is the most common cause. The stack uses ports 4317, 4318, 8889, 16686, 9090,
@@ -340,6 +364,25 @@ If the test environment variable `SERVER_ENV=test` is not set, the test config m
 Set `SERVER_ENV=test` or `OTEL_ENABLED=false` explicitly in your test environment.
 
 ---
+
+## Image バージョン管理ポリシー
+
+`docker-compose.telemetry.yaml` の各 image は `latest` ではなく具体的な
+バージョンに pin している。理由：
+
+- 上流の Collector contrib などは破壊的変更（component の削除等）を含む
+  リリースを定期的に行うため、`latest` を追従していると気づかぬうちに
+  ローカル環境が壊れる
+- pin しておけば「いつ・なぜ」上げたかが git 履歴で追える
+
+バージョンを上げるとき：
+
+1. 各 image の release notes で破壊的変更を確認（特に Collector contrib の
+   `## Removed` セクション、Loki / Jaeger の major upgrade）
+2. ローカルで `make telemetry-down && make telemetry-up` を実行し、
+   `podman ps` で全コンテナが `Up` であることを確認
+3. Grafana から traces / metrics / logs の三系統が観測できることを確認
+4. 上記が確認できてから commit する
 
 ## Related Documentation
 
