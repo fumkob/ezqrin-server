@@ -8,6 +8,9 @@ services:
       - "4317:4317"
       - "4318:4318"
       - "8889:8889"
+    networks:
+      - default
+      - api-bridge
     depends_on:
       - jaeger
       - loki
@@ -48,3 +51,9 @@ services:
       - jaeger
       - prometheus
       - loki
+
+networks:
+  default:
+  api-bridge:
+    name: ezqrin-telemetry-network
+    external: true

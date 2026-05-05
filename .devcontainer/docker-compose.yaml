@@ -35,6 +35,7 @@ services:
       - LOG_FORMAT=text  # Console format for DevContainer
     networks:
       - devcontainer-network
+      - telemetry-network
 
   postgres:
     container_name: ezqrin-postgres
@@ -84,4 +85,7 @@ volumes:
 
 networks:
   devcontainer-network:
+    driver: bridge
+  telemetry-network:
+    name: ezqrin-telemetry-network
     driver: bridge
