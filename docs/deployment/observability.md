@@ -54,6 +54,39 @@ health check request appears in the results. Click on it to expand the span tree
 
 ---
 
+## ネットワーク構成
+
+API サーバーは DevContainer (`.devcontainer/docker-compose.yaml`) の中で
+動き、telemetry スタック (`docker-compose.telemetry.yaml`) は別 compose
+プロジェクトとして起動する。両者は `ezqrin-telemetry-network` という
+共有ブリッジネットワークで繋がっている。
+
+- DevContainer compose が `ezqrin-telemetry-network` を **作成**（`name:` 固定）
+- telemetry compose の `otel-collector` サービスがこのネットワークに
+  `external: true` で **参加**
+- API は `otel-collector:4317` で Collector に到達できる
+
+### 起動順序
+
+この構成上、**`make dev-up` を先に実行する必要がある**。
+
+```bash
+make dev-up        # DevContainer 起動。同時に ezqrin-telemetry-network も作成される
+make telemetry-up  # telemetry スタック起動。otel-collector が共有ネットワークに参加
+make run           # API 起動（DevContainer 内で air）
+```
+
+`make telemetry-up` を先に走らせると `network ezqrin-telemetry-network not found`
+というエラーで失敗する。その場合は `make dev-up` を先に実行してからやり直せばよい。
+
+### Stop 順序
+
+逆に `make dev-down` を先に実行すると、`ezqrin-telemetry-network` が
+削除されようとして失敗するか、telemetry スタックが切断される。
+通常は telemetry が要らなければ `make telemetry-down` を先に実行する。
+
+---
+
 ## Service UIs and Ports
 
 | Service                     | URL                        | Purpose                                         |
