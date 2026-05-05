@@ -54,36 +54,40 @@ health check request appears in the results. Click on it to expand the span tree
 
 ---
 
-## ネットワーク構成
+## Network Topology
 
-API サーバーは DevContainer (`.devcontainer/docker-compose.yaml`) の中で
-動き、telemetry スタック (`docker-compose.telemetry.yaml`) は別 compose
-プロジェクトとして起動する。両者は `ezqrin-telemetry-network` という
-共有ブリッジネットワークで繋がっている。
+The API server runs inside the DevContainer (`.devcontainer/docker-compose.yaml`),
+and the telemetry stack (`docker-compose.telemetry.yaml`) runs as a
+separate compose project. The two are bridged by a shared bridge
+network named `ezqrin-telemetry-network`.
 
-- DevContainer compose が `ezqrin-telemetry-network` を **作成**（`name:` 固定）
-- telemetry compose の `otel-collector` サービスがこのネットワークに
-  `external: true` で **参加**
-- API は `otel-collector:4317` で Collector に到達できる
+- The DevContainer compose **creates** `ezqrin-telemetry-network` (with
+  a fixed `name:` directive).
+- The telemetry compose's `otel-collector` service **joins** that
+  network using `external: true`.
+- The API reaches the Collector via the service name `otel-collector:4317`.
 
-### 起動順序
+### Startup order
 
-この構成上、**`make dev-up` を先に実行する必要がある**。
+Because of the topology, **`make dev-up` must run before
+`make telemetry-up`**:
 
 ```bash
-make dev-up        # DevContainer 起動。同時に ezqrin-telemetry-network も作成される
-make telemetry-up  # telemetry スタック起動。otel-collector が共有ネットワークに参加
-make run           # API 起動（DevContainer 内で air）
+make dev-up        # Start the DevContainer; this also creates ezqrin-telemetry-network
+make telemetry-up  # Start the telemetry stack; otel-collector joins the shared network
+make run           # Start the API (air, inside the DevContainer)
 ```
 
-`make telemetry-up` を先に走らせると `network ezqrin-telemetry-network not found`
-というエラーで失敗する。その場合は `make dev-up` を先に実行してからやり直せばよい。
+If `make telemetry-up` runs first, it fails with
+`network ezqrin-telemetry-network not found`. Run `make dev-up` first
+and try again.
 
-### Stop 順序
+### Shutdown order
 
-逆に `make dev-down` を先に実行すると、`ezqrin-telemetry-network` が
-削除されようとして失敗するか、telemetry スタックが切断される。
-通常は telemetry が要らなければ `make telemetry-down` を先に実行する。
+Conversely, running `make dev-down` first will either fail (because
+`ezqrin-telemetry-network` is still in use by the telemetry stack) or
+disconnect the telemetry stack. Run `make telemetry-down` first when
+the telemetry stack is no longer needed.
 
 ---
 
@@ -346,29 +350,31 @@ contains an active span. If `trace_id` is missing from log lines:
 - Ensure `logger.WithContext(ctx)` (or equivalent) is used before logging within a handler or
   usecase function. The Zap OTel bridge reads the span from the context provided at log call time.
 
-### Collector が起動直後に `Exited (1)` で再起動を繰り返す
+### Collector restarts in a loop with `Exited (1)` shortly after start
 
-`make telemetry-up` 自体は成功するが、API サーバー側に
-`dial tcp 127.0.0.1:4317: connect: connection refused` が出続ける場合、
-otel-collector コンテナが config 検証エラーで即死している可能性が高い。
+If `make telemetry-up` succeeds but the API server keeps logging
+`dial tcp 127.0.0.1:4317: connect: connection refused`, the
+otel-collector container is likely crashing on startup due to a config
+validation error.
 
 ```bash
 docker logs $(docker ps -aq --filter name=otel-collector) --tail 80
 # Or with podman: podman logs $(podman ps -aq --filter name=otel-collector) --tail 80
 ```
 
-`unknown type: "..." for id: "..."` のような行が出ている場合、
-`otel-collector-config.yaml` で指定している receiver / processor /
-exporter のいずれかが、使っている Collector image のバージョンに
-存在しない（過去に deprecated → 削除されている）ことが原因。
+If you see a line like `unknown type: "..." for id: "..."`, one of the
+receivers / processors / exporters declared in `otel-collector-config.yaml`
+no longer exists in the Collector image version you are using (it was
+deprecated and removed upstream).
 
-対処は以下の 2 段階：
+Resolve in two steps:
 
-1. ログに出ている component 名から、現バージョンの Collector contrib に
-   存在する代替を探す（例: `loki` exporter は削除済み → `otlphttp` で
-   Loki の OTLP endpoint に投げる）
-2. `docker-compose.telemetry.yaml` の image を具体的バージョンに pin して、
-   将来の暗黙更新で再発させない（このリポジトリでは既に pin 済み）
+1. From the component name in the log, find a replacement that exists in
+   the current Collector contrib distribution (e.g., the `loki` exporter
+   was removed; use `otlphttp` against Loki's OTLP endpoint instead).
+2. Pin `docker-compose.telemetry.yaml` images to concrete versions so a
+   future implicit upgrade can't reintroduce the same problem (this
+   repository already pins versions).
 
 ### `make telemetry-up` fails to start
 
@@ -398,24 +404,27 @@ Set `SERVER_ENV=test` or `OTEL_ENABLED=false` explicitly in your test environmen
 
 ---
 
-## Image バージョン管理ポリシー
+## Image Version Pinning Policy
 
-`docker-compose.telemetry.yaml` の各 image は `latest` ではなく具体的な
-バージョンに pin している。理由：
+Each image in `docker-compose.telemetry.yaml` is pinned to a concrete
+version rather than `latest`. Rationale:
 
-- 上流の Collector contrib などは破壊的変更（component の削除等）を含む
-  リリースを定期的に行うため、`latest` を追従していると気づかぬうちに
-  ローカル環境が壊れる
-- pin しておけば「いつ・なぜ」上げたかが git 履歴で追える
+- Upstream projects such as Collector contrib regularly ship releases
+  with breaking changes (component removals, etc.). Tracking `latest`
+  means your local environment can break silently after an unrelated
+  `podman pull`.
+- Pinning makes "when and why" upgrades happened visible in git history.
 
-バージョンを上げるとき：
+When upgrading a pinned version:
 
-1. 各 image の release notes で破壊的変更を確認（特に Collector contrib の
-   `## Removed` セクション、Loki / Jaeger の major upgrade）
-2. ローカルで `make telemetry-down && make telemetry-up` を実行し、
-   `podman ps` で全コンテナが `Up` であることを確認
-3. Grafana から traces / metrics / logs の三系統が観測できることを確認
-4. 上記が確認できてから commit する
+1. Review release notes for breaking changes — pay special attention to
+   the `## Removed` section in Collector contrib releases and major
+   upgrades of Loki / Jaeger.
+2. Run `make telemetry-down && make telemetry-up` locally and confirm
+   all containers are `Up` via `podman ps`.
+3. Verify traces / metrics / logs are observable in Grafana across all
+   three signals.
+4. Commit only after the above checks pass.
 
 ## Related Documentation
 
