@@ -22,12 +22,14 @@ func NewTracerProvider(
 		return sdktrace.NewTracerProvider(), nil
 	}
 
-	dialOpts := buildDialOptions(cfg)
-
-	exporter, err := otlptracegrpc.New(ctx,
+	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(cfg.OTLPEndpoint),
-		otlptracegrpc.WithDialOption(dialOpts...),
-	)
+	}
+	if cfg.OTLPInsecure {
+		opts = append(opts, otlptracegrpc.WithInsecure())
+	}
+
+	exporter, err := otlptracegrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}

@@ -12,8 +12,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Providers holds the initialized OTel providers.
@@ -25,14 +23,6 @@ type Providers struct {
 
 // ShutdownFunc shuts down all telemetry providers.
 type ShutdownFunc func(ctx context.Context) error
-
-// buildDialOptions returns gRPC dial options based on configuration.
-func buildDialOptions(cfg config.TelemetryConfig) []grpc.DialOption {
-	if cfg.OTLPInsecure {
-		return []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	}
-	return nil
-}
 
 // buildResource creates an OTel resource with the service name attribute.
 func buildResource(ctx context.Context, serviceName string) (*resource.Resource, error) {

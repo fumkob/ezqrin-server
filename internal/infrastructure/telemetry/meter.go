@@ -22,12 +22,14 @@ func NewMeterProvider(
 		return metric.NewMeterProvider(), nil
 	}
 
-	dialOpts := buildDialOptions(cfg)
-
-	exporter, err := otlpmetricgrpc.New(ctx,
+	opts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithEndpoint(cfg.OTLPEndpoint),
-		otlpmetricgrpc.WithDialOption(dialOpts...),
-	)
+	}
+	if cfg.OTLPInsecure {
+		opts = append(opts, otlpmetricgrpc.WithInsecure())
+	}
+
+	exporter, err := otlpmetricgrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
 	}

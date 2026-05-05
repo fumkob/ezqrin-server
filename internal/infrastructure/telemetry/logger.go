@@ -22,12 +22,14 @@ func NewLoggerProvider(
 		return sdklog.NewLoggerProvider(), nil
 	}
 
-	dialOpts := buildDialOptions(cfg)
-
-	exporter, err := otlploggrpc.New(ctx,
+	opts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(cfg.OTLPEndpoint),
-		otlploggrpc.WithDialOption(dialOpts...),
-	)
+	}
+	if cfg.OTLPInsecure {
+		opts = append(opts, otlploggrpc.WithInsecure())
+	}
+
+	exporter, err := otlploggrpc.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log exporter: %w", err)
 	}
