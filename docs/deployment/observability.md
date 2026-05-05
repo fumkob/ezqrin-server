@@ -320,8 +320,8 @@ contains an active span. If `trace_id` is missing from log lines:
 otel-collector コンテナが config 検証エラーで即死している可能性が高い。
 
 ```bash
-podman logs $(podman ps -aq --filter name=otel-collector) --tail 80
-# あるいは docker logs ...
+docker logs $(docker ps -aq --filter name=otel-collector) --tail 80
+# Or with podman: podman logs $(podman ps -aq --filter name=otel-collector) --tail 80
 ```
 
 `unknown type: "..." for id: "..."` のような行が出ている場合、

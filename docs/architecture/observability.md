@@ -98,7 +98,7 @@ required.
 | OTLP Log Exporter          | otlplog/otlploggrpc                              | Log data export over OTLP                  |
 | Zap OTel Bridge            | go.opentelemetry.io/contrib/bridges/otelzap      | Bridge Zap logs to OTel Logs SDK           |
 | Log Backend                | grafana/loki                                      | Log aggregation and storage                |
-| Trace Backend              | jaegertracing/all-in-one                         | Trace storage and visualization            |
+| Trace Backend              | jaegertracing/jaeger                             | Trace storage and visualization            |
 | Metrics Backend            | prom/prometheus                                  | Metrics collection and storage             |
 | Dashboard                  | grafana/grafana                                  | Unified visualization (traces, metrics, logs) |
 
@@ -213,7 +213,7 @@ DevContainer compose setup to keep the development baseline unaffected.
 | Service        | Image                                    | Ports                                        | Purpose                           |
 | -------------- | ---------------------------------------- | -------------------------------------------- | --------------------------------- |
 | otel-collector | otel/opentelemetry-collector-contrib     | 4317 (gRPC), 4318 (HTTP), 8889 (metrics)     | Telemetry reception and routing   |
-| jaeger         | jaegertracing/all-in-one                 | 16686 (UI)                                   | Trace visualization               |
+| jaeger         | jaegertracing/jaeger                     | 16686 (UI)                                   | Trace visualization               |
 | prometheus     | prom/prometheus                          | 9090                                         | Metrics collection                |
 | grafana        | grafana/grafana                          | 3000                                         | Unified dashboard                 |
 | loki           | grafana/loki                             | 3100                                         | Log aggregation and storage       |
