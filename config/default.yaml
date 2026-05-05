@@ -64,7 +64,7 @@ qrcode:
 telemetry:
   enabled: true
   service_name: ezqrin-server
-  otlp_endpoint: 127.0.0.1:4317
+  otlp_endpoint: otel-collector:4317
   otlp_insecure: true
   traces_sampler: always_on
   traces_sampler_arg: 1.0
