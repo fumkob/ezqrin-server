@@ -34,6 +34,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/exaring/otelpgx"
 	"github.com/fumkob/ezqrin-server/config"
 	"github.com/fumkob/ezqrin-server/internal/domain/repository"
 	apperrors "github.com/fumkob/ezqrin-server/pkg/errors"
@@ -76,6 +77,7 @@ func NewPostgresDB(ctx context.Context, cfg *config.DatabaseConfig, log *logger.
 	poolConfig.MinConns = int32(cfg.MinConns)
 	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
 	poolConfig.MaxConnIdleTime = cfg.MaxConnIdleTime
+	poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 
 	// Create connection pool
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)

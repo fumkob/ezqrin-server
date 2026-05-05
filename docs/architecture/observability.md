@@ -11,6 +11,10 @@ In local development, Jaeger, Prometheus, and Grafana are used for visualization
 the backend is fully replaceable via OTel Collector configuration with no application code changes
 required.
 
+> **This document is the design specification.** For startup procedures, UI usage, and
+> troubleshooting, see the
+> [Observability Operations Guide](../deployment/observability.md).
+
 ---
 
 ## Goals & Non-Goals
@@ -94,7 +98,7 @@ required.
 | OTLP Log Exporter          | otlplog/otlploggrpc                              | Log data export over OTLP                  |
 | Zap OTel Bridge            | go.opentelemetry.io/contrib/bridges/otelzap      | Bridge Zap logs to OTel Logs SDK           |
 | Log Backend                | grafana/loki                                      | Log aggregation and storage                |
-| Trace Backend              | jaegertracing/all-in-one                         | Trace storage and visualization            |
+| Trace Backend              | jaegertracing/jaeger                             | Trace storage and visualization            |
 | Metrics Backend            | prom/prometheus                                  | Metrics collection and storage             |
 | Dashboard                  | grafana/grafana                                  | Unified visualization (traces, metrics, logs) |
 
@@ -209,7 +213,7 @@ DevContainer compose setup to keep the development baseline unaffected.
 | Service        | Image                                    | Ports                                        | Purpose                           |
 | -------------- | ---------------------------------------- | -------------------------------------------- | --------------------------------- |
 | otel-collector | otel/opentelemetry-collector-contrib     | 4317 (gRPC), 4318 (HTTP), 8889 (metrics)     | Telemetry reception and routing   |
-| jaeger         | jaegertracing/all-in-one                 | 16686 (UI)                                   | Trace visualization               |
+| jaeger         | jaegertracing/jaeger                     | 16686 (UI)                                   | Trace visualization               |
 | prometheus     | prom/prometheus                          | 9090                                         | Metrics collection                |
 | grafana        | grafana/grafana                          | 3000                                         | Unified dashboard                 |
 | loki           | grafana/loki                             | 3100                                         | Log aggregation and storage       |
@@ -231,19 +235,19 @@ processors:
     send_batch_size: 1024
 
 exporters:
-  otlphttp/jaeger:
+  otlp_http/jaeger:
     endpoint: http://jaeger:4318
   prometheus:
     endpoint: 0.0.0.0:8889
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/jaeger]
+      exporters: [otlp_http/jaeger]
     metrics:
       receivers: [otlp]
       processors: [batch]
@@ -251,7 +255,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [loki]
+      exporters: [otlp_http/loki]
 ```
 
 ### Prometheus Configuration
