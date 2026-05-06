@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -61,6 +62,32 @@ func newEventHandlerRouter(uc event.Usecase, userID uuid.UUID, role string, log 
 	r.PUT("/events/:id", func(c *gin.Context) {
 		id, _ := uuid.Parse(c.Param("id"))
 		h.PutEventsId(c, id)
+	})
+
+	return r
+}
+
+// newEventHandlerRouterWithParams creates a Gin router that passes explicit GetEventsParams to GetEvents.
+func newEventHandlerRouterWithParams(
+	uc event.Usecase,
+	userID uuid.UUID,
+	role string,
+	log *logger.Logger,
+	params generated.GetEventsParams,
+) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(func(c *gin.Context) {
+		c.Set(middleware.ContextKeyUserID, userID)
+		c.Set(middleware.ContextKeyUserRole, role)
+		c.Next()
+	})
+
+	h := handler.NewEventHandler(uc, log)
+
+	r.GET("/events", func(c *gin.Context) {
+		h.GetEvents(c, params)
 	})
 
 	return r
@@ -183,6 +210,36 @@ var _ = Describe("EventHandler", func() {
 					second := events[1].(map[string]interface{})
 					Expect(second["participant_count"]).To(BeEquivalentTo(20))
 					Expect(second["checked_in_count"]).To(BeEquivalentTo(18))
+				})
+			})
+
+			Context("with sort=name and order=asc query params", func() {
+				It("should propagate Sort and Order to the usecase ListEventsInput", func() {
+					sortName := generated.SortParam("name")
+					orderAsc := generated.GetEventsParamsOrderAsc
+					params := generated.GetEventsParams{
+						Sort:  &sortName,
+						Order: &orderAsc,
+					}
+
+					var capturedInput event.ListEventsInput
+					mockUC := eventMocks.NewMockUsecase(ctrl)
+					mockUC.EXPECT().
+						List(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(_ context.Context, input event.ListEventsInput) (event.ListEventsOutput, error) {
+							capturedInput = input
+							return event.ListEventsOutput{Events: []*entity.Event{}, TotalCount: 0}, nil
+						})
+
+					r := newEventHandlerRouterWithParams(mockUC, organizerID, "organizer", log, params)
+
+					req := httptest.NewRequest(http.MethodGet, "/events", nil)
+					w := httptest.NewRecorder()
+					r.ServeHTTP(w, req)
+
+					Expect(w.Code).To(Equal(http.StatusOK))
+					Expect(capturedInput.Sort).To(Equal("name"))
+					Expect(capturedInput.Order).To(Equal("asc"))
 				})
 			})
 		})

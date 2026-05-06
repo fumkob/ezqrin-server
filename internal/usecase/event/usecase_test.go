@@ -869,6 +869,117 @@ var _ = Describe("EventUsecase", func() {
 				Expect(errors.Is(err, context.Canceled)).To(BeTrue())
 			})
 		})
+
+		When("sorting and ordering", func() {
+			Context("with sort=name and order=asc", func() {
+				It("should pass Sort and Order to the repository filter", func() {
+					var capturedFilter repository.EventListFilter
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
+						capturedFilter = filter
+						return []*entity.Event{}, 0, nil
+					}
+
+					input := event.ListEventsInput{
+						Page:    1,
+						PerPage: 20,
+						Sort:    "name",
+						Order:   "asc",
+					}
+
+					_, err := usecase.List(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(capturedFilter.Sort).To(Equal("name"))
+					Expect(capturedFilter.Order).To(Equal("asc"))
+				})
+			})
+
+			Context("with sort=start_date and order=desc", func() {
+				It("should pass Sort and Order to the repository filter", func() {
+					var capturedFilter repository.EventListFilter
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
+						capturedFilter = filter
+						return []*entity.Event{}, 0, nil
+					}
+
+					input := event.ListEventsInput{
+						Page:    1,
+						PerPage: 20,
+						Sort:    "start_date",
+						Order:   "desc",
+					}
+
+					_, err := usecase.List(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(capturedFilter.Sort).To(Equal("start_date"))
+					Expect(capturedFilter.Order).To(Equal("desc"))
+				})
+			})
+
+			Context("with empty Sort and Order (default behavior)", func() {
+				It("should pass empty Sort and Order to the repository filter", func() {
+					var capturedFilter repository.EventListFilter
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
+						capturedFilter = filter
+						return []*entity.Event{}, 0, nil
+					}
+
+					input := event.ListEventsInput{
+						Page:    1,
+						PerPage: 20,
+					}
+
+					_, err := usecase.List(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(capturedFilter.Sort).To(Equal(""))
+					Expect(capturedFilter.Order).To(Equal(""))
+				})
+			})
+
+			Context("with OrganizerID filter combined with Sort and Order", func() {
+				It("should pass all filter fields including Sort and Order to the repository", func() {
+					var capturedFilter repository.EventListFilter
+					mockRepo.listFunc = func(
+						ctx context.Context,
+						filter repository.EventListFilter,
+						offset, limit int,
+					) ([]*entity.Event, int64, error) {
+						capturedFilter = filter
+						return []*entity.Event{}, 0, nil
+					}
+
+					input := event.ListEventsInput{
+						OrganizerID: &userID,
+						Page:        1,
+						PerPage:     20,
+						Sort:        "name",
+						Order:       "asc",
+					}
+
+					_, err := usecase.List(ctx, input)
+
+					Expect(err).To(BeNil())
+					Expect(capturedFilter.OrganizerID).NotTo(BeNil())
+					Expect(*capturedFilter.OrganizerID).To(Equal(userID))
+					Expect(capturedFilter.Sort).To(Equal("name"))
+					Expect(capturedFilter.Order).To(Equal("asc"))
+				})
+			})
+		})
 	})
 
 	Describe("GetStats", func() {

@@ -17,6 +17,8 @@ type EventListFilter struct {
 	Search      string
 	StartDate   *time.Time
 	EndDate     *time.Time
+	Sort        string // sort column name (empty = default "created_at")
+	Order       string // "asc" | "desc" (empty = default "desc")
 }
 
 // EventStats represents basic statistics for an event.
