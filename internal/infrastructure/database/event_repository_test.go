@@ -190,6 +190,80 @@ var _ = Describe("EventRepository", func() {
 			Expect(total2).To(Equal(int64(5)))
 			Expect(events2).To(HaveLen(2))
 		})
+
+		Context("when Sort and Order params are specified", func() {
+			It("should default to created_at DESC when Sort and Order are empty", func() {
+				filter := repository.EventListFilter{OrganizerID: &testUserID}
+				events, _, err := repo.List(ctx, filter, 0, 10)
+				Expect(err).To(BeNil())
+				Expect(events).To(HaveLen(5))
+				// Event 5 has the largest (most recent) CreatedAt, so it should come first
+				Expect(events[0].Name).To(Equal("Event 5"))
+				Expect(events[4].Name).To(Equal("Event 1"))
+			})
+
+			It("should return events in name ASC order when sort=name and order=asc", func() {
+				filter := repository.EventListFilter{
+					OrganizerID: &testUserID,
+					Sort:        "name",
+					Order:       "asc",
+				}
+				events, _, err := repo.List(ctx, filter, 0, 10)
+				Expect(err).To(BeNil())
+				Expect(events).To(HaveLen(5))
+				names := make([]string, len(events))
+				for i, e := range events {
+					names[i] = e.Name
+				}
+				Expect(names).To(Equal([]string{"Event 1", "Event 2", "Event 3", "Event 4", "Event 5"}))
+			})
+
+			It("should return events in name DESC order when sort=name and order=desc", func() {
+				filter := repository.EventListFilter{
+					OrganizerID: &testUserID,
+					Sort:        "name",
+					Order:       "desc",
+				}
+				events, _, err := repo.List(ctx, filter, 0, 10)
+				Expect(err).To(BeNil())
+				Expect(events).To(HaveLen(5))
+				names := make([]string, len(events))
+				for i, e := range events {
+					names[i] = e.Name
+				}
+				Expect(names).To(Equal([]string{"Event 5", "Event 4", "Event 3", "Event 2", "Event 1"}))
+			})
+
+			It("should return events in start_date ASC order when sort=start_date and order=asc", func() {
+				filter := repository.EventListFilter{
+					OrganizerID: &testUserID,
+					Sort:        "start_date",
+					Order:       "asc",
+				}
+				events, _, err := repo.List(ctx, filter, 0, 10)
+				Expect(err).To(BeNil())
+				Expect(events).To(HaveLen(5))
+				// Verify the result is ordered ascending by start_date (stable via secondary sort id ASC)
+				for i := 1; i < len(events); i++ {
+					Expect(events[i].StartDate).To(BeTemporally(">=", events[i-1].StartDate))
+				}
+			})
+
+			It("should fall back to created_at DESC and not error when Sort is an invalid/injection value", func() {
+				filter := repository.EventListFilter{
+					OrganizerID: &testUserID,
+					Sort:        "; DROP TABLE events; --",
+				}
+				events, total, err := repo.List(ctx, filter, 0, 10)
+				// Must not return an error and all rows must survive (no injection damage)
+				Expect(err).To(BeNil())
+				Expect(total).To(Equal(int64(5)))
+				Expect(events).To(HaveLen(5))
+				// Invalid Sort falls back to e.created_at; empty Order falls back to DESC,
+				// so Event 5 (most recent) comes first.
+				Expect(events[0].Name).To(Equal("Event 5"))
+			})
+		})
 	})
 
 	When("updating an event", func() {

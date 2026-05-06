@@ -16,6 +16,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// allowedEventSortColumns maps accepted sort parameter values to their SQL column expressions.
+var allowedEventSortColumns = map[string]string{
+	"created_at": "e.created_at",
+	"updated_at": "e.updated_at",
+	"name":       "e.name",
+	"start_date": "e.start_date",
+	"end_date":   "e.end_date",
+	"status":     "e.status",
+}
+
 // EventRepository implements repository.EventRepository using PostgreSQL
 type EventRepository struct {
 	pool   *pgxpool.Pool
@@ -135,9 +145,9 @@ func (r *EventRepository) List(
 			(SELECT COUNT(*) FROM checkins WHERE event_id = e.id) AS checked_in_count
 		FROM events e
 		WHERE %s
-		ORDER BY e.created_at DESC
+		ORDER BY %s
 		LIMIT $%d OFFSET $%d
-	`, whereSQL, argIdx, argIdx+1)
+	`, whereSQL, buildOrderByClause(filter), argIdx, argIdx+1)
 
 	args = append(args, limit, offset)
 	rows, err := q.Query(ctx, query, args...)
@@ -314,6 +324,23 @@ func (r *EventRepository) scanEventRows(rows pgx.Rows, capacity int) ([]*entity.
 		return nil, apperrors.Wrapf(err, "error iterating event rows")
 	}
 	return events, nil
+}
+
+// buildOrderByClause constructs a safe ORDER BY clause from filter.Sort and filter.Order.
+// Unknown sort values fall back to "e.created_at"; unknown order values fall back to "DESC".
+// A secondary sort on "e.id ASC" is appended for stable pagination.
+func buildOrderByClause(filter repository.EventListFilter) string {
+	col, ok := allowedEventSortColumns[strings.ToLower(filter.Sort)]
+	if !ok {
+		col = "e.created_at"
+	}
+
+	dir := "DESC"
+	if strings.EqualFold(filter.Order, "asc") {
+		dir = "ASC"
+	}
+
+	return fmt.Sprintf("%s %s, e.id ASC", col, dir)
 }
 
 func (r *EventRepository) buildListWhereClause(filter repository.EventListFilter) (string, []interface{}, int) {

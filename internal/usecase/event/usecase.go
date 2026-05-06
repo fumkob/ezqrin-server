@@ -64,6 +64,8 @@ func (u *eventUsecase) List(ctx context.Context, input ListEventsInput) (ListEve
 		OrganizerID: input.OrganizerID,
 		Status:      input.Status,
 		Search:      input.Search,
+		Sort:        input.Sort,
+		Order:       input.Order,
 	}
 
 	offset := (input.Page - 1) * input.PerPage
