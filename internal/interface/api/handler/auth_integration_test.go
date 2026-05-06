@@ -192,7 +192,7 @@ var _ = Describe("Authentication API Integration", func() {
 			Middlewares: []generated.MiddlewareFunc{
 				func(c *gin.Context) {
 					// Only authenticate if the route has security requirements (BearerAuthScopes is set by the generated wrapper)
-					if _, exists := c.Get(generated.BearerAuthScopes); exists {
+					if _, exists := c.Get(string(generated.BearerAuthScopes)); exists {
 						authMiddleware.Authenticate()(c)
 					}
 				},

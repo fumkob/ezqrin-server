@@ -41,7 +41,7 @@ fi
 if ! command -v oapi-codegen &> /dev/null; then
     echo -e "${RED}ERROR: oapi-codegen not found in PATH${NC}"
     echo -e "${RED}Please ensure you're running in the DevContainer, or install manually:${NC}"
-    echo -e "${RED}  go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.5.1${NC}"
+    echo -e "${RED}  go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.0${NC}"
     exit 1
 fi
 

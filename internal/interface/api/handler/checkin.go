@@ -247,7 +247,7 @@ func (h *CheckinHandler) convertCheckInsToItems(checkIns []*checkin.CheckInOutpu
 	Id            openapi_types.UUID      `json:"id"`
 	Participant   struct {
 		Email      openapi_types.Email `json:"email"`
-		EmployeeId *string             `json:"employee_id"`
+		EmployeeId *string             `json:"employee_id,omitempty"`
 		Name       string              `json:"name"`
 	} `json:"participant"`
 	ParticipantId openapi_types.UUID `json:"participant_id"`
@@ -264,7 +264,7 @@ func (h *CheckinHandler) convertCheckInsToItems(checkIns []*checkin.CheckInOutpu
 		Id            openapi_types.UUID      `json:"id"`
 		Participant   struct {
 			Email      openapi_types.Email `json:"email"`
-			EmployeeId *string             `json:"employee_id"`
+			EmployeeId *string             `json:"employee_id,omitempty"`
 			Name       string              `json:"name"`
 		} `json:"participant"`
 		ParticipantId openapi_types.UUID `json:"participant_id"`
