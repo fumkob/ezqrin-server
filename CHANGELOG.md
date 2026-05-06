@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-05-06
+
+### Fixed
+- Apply `sort` and `order` query parameters on `GET /events` to the database query — previously they were silently ignored and results were always sorted by `created_at DESC`. Sortable columns are restricted via a whitelist (`created_at`, `updated_at`, `name`, `start_date`, `end_date`, `status`) to guard against SQL injection. (#49)
+- Preserve backticks in GitHub Release notes generated from CHANGELOG entries by passing the body via an environment variable in the release workflow. (#79)
+
 ## [0.2.1] - 2026-05-06
 
 ### Changed
@@ -72,6 +78,7 @@ Initial beta release of ezQRin Server — a Go-based backend API for QR code-bas
 - GitHub Actions CI pipeline (lint + vet + test in parallel)
 - Ginkgo/Gomega BDD-style integration and E2E test suite
 
+[0.2.2]: https://github.com/fumkob/ezqrin-server/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/fumkob/ezqrin-server/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/fumkob/ezqrin-server/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fumkob/ezqrin-server/releases/tag/v0.1.0
