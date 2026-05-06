@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-05-06
+
+### Changed
+- Upgraded Go runtime from 1.26.1 to 1.26.2
+- Updated all OpenTelemetry packages in lockstep (otel v1.43.0, sdk/log v0.19.0, otelhttp v0.68.0, otelzap v0.18.0, otelgin v0.68.0)
+- Bumped direct dependencies to their latest versions, including `kin-openapi`, `validator`, `jwt/v5`, `pgx/v5`, `ginkgo`/`gomega`, `go-redis`, `zap`, `x/crypto`, `google.golang.org/api`, and `grpc`
+- Upgraded development tooling: `golangci-lint` v2.11.3 → v2.12.1 and `oapi-codegen` v2.5.1 → v2.7.0
+- Regenerated API code with `oapi-codegen` v2.7.0 — adds `Valid()` methods on enum types, `omitempty` JSON tags on optional fields, and a typed `BearerAuthScopes` context key constant
+- Adjusted handler routing code to accommodate the typed `BearerAuthScopes` context key
+
 ## [0.2.0] - 2026-05-05
 
 ### Added
@@ -62,5 +72,6 @@ Initial beta release of ezQRin Server — a Go-based backend API for QR code-bas
 - GitHub Actions CI pipeline (lint + vet + test in parallel)
 - Ginkgo/Gomega BDD-style integration and E2E test suite
 
+[0.2.1]: https://github.com/fumkob/ezqrin-server/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/fumkob/ezqrin-server/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/fumkob/ezqrin-server/releases/tag/v0.1.0
