@@ -1,5 +1,5 @@
 # Development container for ezQRin Server
-FROM golang:1.26.2-alpine
+FROM golang:1.27.3-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -20,8 +20,8 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 # Install Air for hot reload
 RUN go install github.com/air-verse/air@latest
 
-# Install golangci-lint (supports Go 1.26+)
-RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.12.1
+# Install golangci-lint (supports Go 1.27+)
+RUN curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.15.0
 
 # Install oapi-codegen for API code generation
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.0
