@@ -111,7 +111,7 @@ type Queryable interface {
 // Verify that pgxpool.Pool and pgx.Tx implement Queryable interface at compile time
 var (
 	_ Queryable = (*pgxpool.Pool)(nil)
-	_ Queryable = (pgx.Tx)(nil)
+	_ Queryable = pgx.Tx(nil)
 )
 
 // TxFunc is a function type that represents a database operation within a transaction
