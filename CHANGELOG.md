@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-11-10
+
+### Changed
+- Upgraded Go runtime from 1.26.2 to 1.27.3
+- Updated all OpenTelemetry packages in lockstep (otel v1.47.0, sdk/log v1.47.0 — now stable, otelgin v0.72.0, otelzap v0.21.0)
+- Bumped direct dependencies to their latest versions, including `kin-openapi`, `oapi-codegen/runtime`, `pgx/v5`, `go-redis`, `golang-migrate`, `ginkgo`/`gomega`, `x/crypto`, and `google.golang.org/api`
+- Telemetry output changes from the upgraded instrumentation (dashboards or queries relying on the old names may need updating):
+  - PostgreSQL spans (`otelpgx` v0.13.0) are now named by operation (e.g. `SELECT`) instead of the full SQL text, which remains in the `db.query.text` attribute; attributes follow current DB semantic conventions (`db.system.name`) and the operation duration metric is now recorded in seconds
+  - Errors logged via `zap.Error` are exported to the OTel log pipeline as the record's error instead of a plain `error` attribute (stdout JSON logs are unchanged)
+  - Metrics now apply the SDK default cardinality limit of 2000 attribute sets per instrument
+- `go-redis` v9.23.0 uses a separate connection pool for pipelines, so the client may open up to twice as many Redis connections under load
+- Upgraded development tooling: `golangci-lint` v2.12.1 → v2.15.0 (required to lint modules targeting Go 1.27)
+
 ## [0.2.2] - 2026-05-06
 
 ### Fixed
@@ -78,6 +91,7 @@ Initial beta release of ezQRin Server — a Go-based backend API for QR code-bas
 - GitHub Actions CI pipeline (lint + vet + test in parallel)
 - Ginkgo/Gomega BDD-style integration and E2E test suite
 
+[0.2.3]: https://github.com/fumkob/ezqrin-server/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/fumkob/ezqrin-server/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/fumkob/ezqrin-server/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/fumkob/ezqrin-server/compare/v0.1.0...v0.2.0
