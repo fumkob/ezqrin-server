@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-11-10
+
+### Changed
+- Upgraded Go runtime from 1.26.2 to 1.27.3
+- Upgraded development tooling: `golangci-lint` v2.12.1 → v2.15.0 (required to lint modules targeting Go 1.27)
+
 ## [0.2.2] - 2026-05-06
 
 ### Fixed
@@ -78,6 +84,7 @@ Initial beta release of ezQRin Server — a Go-based backend API for QR code-bas
 - GitHub Actions CI pipeline (lint + vet + test in parallel)
 - Ginkgo/Gomega BDD-style integration and E2E test suite
 
+[0.2.3]: https://github.com/fumkob/ezqrin-server/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/fumkob/ezqrin-server/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/fumkob/ezqrin-server/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/fumkob/ezqrin-server/compare/v0.1.0...v0.2.0
