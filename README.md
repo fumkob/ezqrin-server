@@ -66,7 +66,7 @@ The API is available at `http://localhost:8080`.
 
 **Prerequisites:**
 
-- Go 1.25.5+
+- Go 1.27.3+
 - PostgreSQL 18+
 - Redis 8+
 - `make`
